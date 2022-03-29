@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Koordinator',
-  tagline: 'QoS based scheduling system for hybrid orchestration workloads on Kubernetes',
+  tagline: 'QoS based scheduling system for hybrid workloads orchestration on Kubernetes',
   url: 'https://koordinator.sh',
   baseUrl: '/',
   onBrokenLinks: 'throw',
@@ -94,7 +94,7 @@ const config = {
           //   position: 'left',
           //   label: 'Tutorial',
           // },
-          {to: 'docs/intro', label: 'Documentation', position: 'left'},
+          {to: 'docs/introduction', label: 'Documentation', position: 'left'},
           {to: '/blog', label: 'Blog', position: 'left'},
           {
             type: 'localeDropdown',
