@@ -9,7 +9,7 @@ const config = {
   title: 'Koordinator',
   tagline: 'QoS based scheduling system for hybrid workloads orchestration on Kubernetes',
   url: 'https://koordinator.sh',
-  baseUrl: '/website/',
+  baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico', // TODO(FillZpp)
