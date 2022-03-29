@@ -88,12 +88,6 @@ const config = {
             type: 'docsVersionDropdown',
             position: 'right',
           },
-          // {
-          //   type: 'doc',
-          //   docId: 'intro',
-          //   position: 'left',
-          //   label: 'Tutorial',
-          // },
           {to: 'docs/introduction', label: 'Documentation', position: 'left'},
           {to: '/blog', label: 'Blog', position: 'left'},
           {
