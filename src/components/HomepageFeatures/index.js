@@ -1,5 +1,5 @@
-import React from 'react';
 import clsx from 'clsx';
+import React from 'react';
 import styles from './styles.module.css';
 
 const FeatureList = [
@@ -8,7 +8,7 @@ const FeatureList = [
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Well-designed priority and QoS mechanism to co-locate different types of workloads in a cluster, a node.
+        Well-designed priority and QoS mechanism to co-locate different types of workloads in a cluster and run different types of pods on a single node.
       </>
     ),
   },
@@ -17,7 +17,7 @@ const FeatureList = [
     Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
     description: (
       <>
-        Allowing for resource overcommitments to achieve high resource utilizations but still satisfying the QoS guarantees by leveraging an application profiling mechanism.
+        Allowing for resource overcommitments to achieve high resource utilizations and ensure QoS guarantees by leveraging an application profiling mechanism.
       </>
     ),
   },
