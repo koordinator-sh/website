@@ -15,7 +15,7 @@ LS(Latency Sensitive)	         | share resources for better resilience to burst 
 BE(Best Effert)	                 | share resource exclude LSE, the quality of resource operation is limited, or even killed in extreme cases |	Typical QoS level for batch jobs, stable computing throughput within a certain period, low-cost resources
 
 
-## Koordinator QoS vs Kubernetes QoS
+## Koordinator QoS vs. Kubernetes QoS
 
 As seen in the [Definition](#definition) section, Koordinator's QoS is more complicated than Kubernetes QoS, because in colocation scenarios, we need to fine-tune the QoS for latency-sensitive workloads to meet the needs of co-located performance.
 
