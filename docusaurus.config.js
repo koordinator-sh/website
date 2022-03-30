@@ -89,7 +89,7 @@ const config = {
             position: 'right',
           },
          
-          {to: 'docs/introduction', label: 'Documentation', position: 'left'},
+          {to: 'docs', label: 'Documentation', position: 'left'},
           {to: '/blog', label: 'Blog', position: 'left'},
           {
             type: 'localeDropdown',
