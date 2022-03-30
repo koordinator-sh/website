@@ -6,11 +6,11 @@ sidebar_position: 1
 
 koord-manager has a variety of parameters that can be specified when creating a Custom Resource (CR). In this section, we will walk through all parameters in `ClusterColocationProfile`.
 
-# What is ClusterColocationProfile?
+## What is ClusterColocationProfile?
 
 `ClusterColocationProfile` is Kubernetes custom resource to configure webhook interception and mutation policy. It is a cluster-scoped resrouce, so it doesn't work in a particular namespace. We aim to reduce users workload by letting webhook do all the dirty work based on `ClusterColocationProfile`.
 
-# Example
+## Example
 
 A `ClusterColocationProfile` is a resoure with a YAML representation like the one below. Please do edit each parameter to fit your own use cases.
 
@@ -39,7 +39,7 @@ spec:
       terminationGracePeriodSeconds: 30
 ```
 
-# General Parameters
+## General Parameters
 
 If you are not familiar with Kubernetes resources please refer to the page [Understanding Kubernetes Objects](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/).
 
