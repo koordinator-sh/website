@@ -1,8 +1,3 @@
----
-title: Installation
-slug: /
----
-
 # Installation
 
 Since v0.1.0 (alpha/beta), Koordinator requires **Kubernetes version >= 1.18**.
