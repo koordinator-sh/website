@@ -7,7 +7,7 @@ Koordinator adds co-location capabilities on top of the original kubernetes, and
 
 ## Koordinator Scheduler
 
-The Koordinator Manager is deployed as a ```Deployment```, which is used to enhance the resource scheduling capabilities of kubernetes in colocation scenarios, including:
+The Koordinator Scheduler is deployed as a ```Deployment```, which is used to enhance the resource scheduling capabilities of kubernetes in colocation scenarios, including:
 
 - More scenario support, including elastic quota scheduling, resource overcommitment, resource reservation, gang scheduling, heterogeneous resource scheduling.
 - Better performance, including dynamic index optimization, equivalence class scheduling, random relaxation algorithm optimization.
