@@ -29,6 +29,7 @@ const sidebars = {
       collapsed: false,
       items: [
         'core-concepts/architecture',
+        'core-concepts/resource-model',
         'core-concepts/priority',
         'core-concepts/qos',
       ],

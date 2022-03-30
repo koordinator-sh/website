@@ -1,7 +1,3 @@
----
-sidebar_position: 1
----
-
 # Architecture
 
 This topic describes the architecture, components, and core concepts associated with Koordinator deployments to Kubernetes. Koordinator consists of two control planes ([Koordinator Scheduler](#koordinator-scheduler)/[Koordinator Manager](#koordinator-manager)) and one daemonset component ([Koordlet](#koordlet)). 
@@ -44,5 +40,6 @@ Inside Koordlet, it mainly includes the following modules:
 
 Here are some recommended next steps:
 
-- Start to [install Koordinator](./priority).
-- Learn Koordinator's [Architecture](./qos).
+- Learn Koordinator's [Resource Model](./resource-model).
+- Learn Koordinator's [Priority](./priority).
+- Learn Koordinator's [QoS](./qos).
