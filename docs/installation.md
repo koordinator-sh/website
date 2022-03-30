@@ -1,14 +1,13 @@
 ---
-sidebar_position: 1
+title: Installation
+slug: /
 ---
 
----
-title: Installation
----
+# Installation
 
 Since v0.1.0 (alpha/beta), Koordinator requires **Kubernetes version >= 1.18**.
 
-## Install with helm
+## Install with helms
 
 Koordinator can be simply installed by helm v3.5+, which is a simple command-line tool and you can get it from [here](https://github.com/helm/helm/releases).
 
@@ -90,7 +89,7 @@ The following table lists the configurable parameters of the chart and their def
 | `scheduler.resources.limits.memory`       | Memory resource limit of koord-scheduler container               | `1Gi`                           |
 | `scheduler.resources.requests.cpu`        | CPU resource request of koord-scheduler container                | `500m`                          |
 | `scheduler.resources.requests.memory`     | Memory resource request of koord-scheduler container             | `256Mi`                         |
-| `scheduler.metrics.port`                  | Port of metrics served                                           | `10251`                         |
+| `scheduler.port`                          | Port of metrics served                                           | `10251`                         |
 | `scheduler.nodeAffinity`                  | Node affinity policy for koord-scheduler pod                     | `{}`                            |
 | `scheduler.nodeSelector`                  | Node labels for koord-scheduler pod                              | `{}`                            |
 | `scheduler.tolerations`                   | Tolerations for koord-scheduler pod                              | `[]`                            |
