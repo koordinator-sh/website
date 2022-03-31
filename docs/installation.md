@@ -8,7 +8,7 @@ Koordinator can be simply installed by helm v3.5+, which is a simple command-lin
 
 ```bash
 # Firstly add koordinator charts repository if you haven't do this.
-$ helm repo add koordinator https://koordinator-sh.github.io/charts/
+$ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 
 # [Optional]
 $ helm repo update
@@ -21,7 +21,7 @@ $ helm install koordinator koordinator-sh/koordinator --version 0.1.0
 
 ```bash
 # Firstly add koordinator charts repository if you haven't do this.
-$ helm repo add koordinator https://koordinator-sh.github.io/charts/
+$ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 
 # [Optional]
 $ helm repo update
@@ -61,6 +61,7 @@ The following table lists the configurable parameters of the chart and their def
 | `featureGates`                            | Feature gates for Koordinator, empty string means all by default | ` `                             |
 | `installation.namespace`                  | namespace for Koordinator installation                           | `koordinator-system`            |
 | `installation.createNamespace`            | Whether to create the installation.namespace                     | `true`                          |
+| `imageRepositoryHost`                     | Image repository host                                            | ` `                             |
 | `manager.log.level`                       | Log level that koord-manager printed                             | `4`                             |
 | `manager.replicas`                        | Replicas of koord-manager deployment                             | `2`                             |
 | `manager.image.repository`                | Repository for koord-manager image                               | `koordinatorsh/koord-manager`   |
@@ -126,7 +127,7 @@ If you want to enable all feature-gates, set the parameter as `featureGates=AllA
 If you are in China and have problem to pull image from official DockerHub, you can use the registry hosted on Alibaba Cloud:
 
 ```bash
-$ helm install koordinator https://... --set  manager.image.repository=koordinator-registry.cn-hangzhou.cr.aliyuncs.com/koordinator/koord-manager
+$ helm install koordinator https://... --set imageRepositoryHost=koordinator-registry.cn-hangzhou.cr.aliyuncs.com
 ```
 
 ## Best Practices

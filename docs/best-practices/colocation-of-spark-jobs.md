@@ -22,7 +22,7 @@ Installing the chart will create a namespace `spark-operator` and if doesn't exi
 $ helm status --namespace spark-operator koord-spark-operator
 ```
 
-## Run Spark Applications with Coordinator
+## Run Spark Applications with Koordinator
 Due to the mechanism that Spark driver pod needs a Kubernetes service account to manage executor pods, the service account must be authorized with appropriate permissions. Run the following command to create namespace `spark-demo` and service account `spark` before submitting jobs.
 ```
 $ kubectl apply -f examples/spark-jobs/service-account.yaml
