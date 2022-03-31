@@ -42,7 +42,7 @@ const config = {
           showReadingTime: true,
           // Please change this to your repo.
           editUrl:
-            'https://github.com/koordinator-sh/koordinator.sh/tree/main/blog',
+            'https://github.com/koordinator-sh/koordinator.sh/edit/main/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
