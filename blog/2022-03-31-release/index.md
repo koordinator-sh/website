@@ -1,5 +1,5 @@
 ---
-slug: release
+slug: release-v0.1.0
 title: Koordinator v0.1.0 - QoS based scheduling system
 authors: [joseph, hormes]
 tags: [koordinator, colocation, kubernetes, scheduling, orchestration, release]
