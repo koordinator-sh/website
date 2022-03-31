@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkkoordinator_sh=self.webpackChunkkoordinator_sh||[]).push([[347],{8998:function(o){o.exports=JSON.parse('{"permalink":"/blog/tags/orchestration","page":1,"postsPerPage":10,"totalPages":1,"totalCount":1,"previousPage":null,"nextPage":null,"blogDescription":"Blog","blogTitle":"Blog"}')}}]);
