@@ -21,3 +21,13 @@
   align-items: center;
   justify-content: center;
 }
+
+.hero {
+  border-bottom: 1px solid var(--hero-border-color);
+}
+
+.heroButtons {
+  display: flex;
+  justify-content: center;
+}
+
