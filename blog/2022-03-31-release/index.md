@@ -145,7 +145,7 @@ Koordinator currently adopts a strategy for node co-location resource scheduling
 ## Tutorial - Colocation of Spark Jobs
 
 Apache Spark is an analysis engine for large-scale data processing, which is widely used in Big Data, SQL Analysis and Machine Learning scenarios. 
-We provide a tutorial to help you how to quickly use Koordinator to run Spark Jobs in colocation mode with other latency sensitive applications. For more details, please refer to the [tutorial](/docs/user-manuals/colocation-profile).
+We provide a tutorial to help you how to quickly use Koordinator to run Spark Jobs in colocation mode with other latency sensitive applications. For more details, please refer to the [tutorial](/docs/user-manuals/colocation-of-spark-jobs).
 
 ## Summary
 
