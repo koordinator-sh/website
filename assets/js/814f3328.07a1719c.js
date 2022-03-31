@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkkoordinator_sh=self.webpackChunkkoordinator_sh||[]).push([[535],{5641:function(e){e.exports=JSON.parse('{"title":"All posts","items":[{"title":"Koordinator v0.1.0 - QoS based scheduling system","permalink":"/blog/release"}]}')}}]);

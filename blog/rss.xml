@@ -9,8 +9,8 @@
         <generator>https://github.com/jpmonette/feed</generator>
         <item>
             <title><![CDATA[Koordinator v0.1.0 - QoS based scheduling system]]></title>
-            <link>https://koordinator.sh/blog/release</link>
-            <guid>release</guid>
+            <link>https://koordinator.sh/blog/release-v0.1.0</link>
+            <guid>release-v0.1.0</guid>
             <pubDate>Thu, 31 Mar 2022 00:00:00 GMT</pubDate>
             <description><![CDATA[We’re pleased to announce the release of Koordinator v0.1.0.]]></description>
             <content:encoded><![CDATA[<p>We’re pleased to announce the release of Koordinator v0.1.0.</p><h2 class="anchor anchorWithStickyNavbar_mojV" id="overview">Overview<a class="hash-link" href="#overview" title="Direct link to heading">​</a></h2><p>Koordinator is a QoS based scheduling system for hybrid workloads orchestration on Kubernetes. It aims to improve the runtime efficiency and reliability of both latency sensitive workloads and batch jobs, simplify the complexity of resource-related configuration tuning, and increase pod deployment density to improve resource utilizations.</p><h2 class="anchor anchorWithStickyNavbar_mojV" id="key-features">Key Features<a class="hash-link" href="#key-features" title="Direct link to heading">​</a></h2><p>Koordinator enhances the kubernetes user experiences in the workload management by providing the following:</p><ul><li>Well-designed <a href="/docs/core-concepts/priority">priority</a> and <a href="/docs/core-concepts/qos">QoS</a> mechanism to co-locate different types of workloads in a cluster and run different types of pods on a single node.
