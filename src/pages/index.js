@@ -14,7 +14,7 @@ const Button = ({ children, href }) => {
   return (
     <div className="col col--2 margin-horiz--sm">
       <Link
-        className="button button--outline button--primary button--lg"
+        className="button button--outline"
         to={href}>
         {children}
       </Link>
