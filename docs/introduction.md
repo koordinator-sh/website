@@ -31,7 +31,7 @@ Kubernetes provides three types of QoS: Guaranteed/Burstable/BestEffort, of whic
 
 Koordinator is compatible with Kubernetes QoS and has numerous enhancements on each type.
 
-### Koordinator schduler vs kube-scheduler
+### Koordinator scheduler vs kube-scheduler
 
 Koordinator scheduler is **not** designed to replace kube-scheduler, but to make co-located workloads run **better** on kubernetes.
 
