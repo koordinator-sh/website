@@ -81,7 +81,7 @@ const config = {
         title: 'Koordinator',
         logo: {
           alt: 'Koordinator',
-          src: 'img/logo.svg', // TODO(FillZpp)
+          src: 'img/logo.svg',
         },
         items: [
           {
