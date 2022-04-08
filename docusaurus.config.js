@@ -12,7 +12,7 @@ const config = {
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.ico', // TODO(FillZpp)
+  favicon: 'img/favicon.ico',
   organizationName: 'koordinator-sh', // Usually your GitHub org/user name.
   projectName: 'koordinator.sh', // Usually your repo name.
 
@@ -81,7 +81,7 @@ const config = {
         title: 'Koordinator',
         logo: {
           alt: 'Koordinator',
-          src: 'img/logo.svg', // TODO(FillZpp)
+          src: 'img/logo.svg',
         },
         items: [
           {
@@ -108,11 +108,31 @@ const config = {
           {
             title: 'Documentation',
             items: [
+              {
+                label: 'Getting Started',
+                href: 'docs/installation',
+              },
+              {
+                label: 'User Manuals',
+                href: 'docs/user-manuals/colocation-profile',
+              },
+              {
+                label: 'Core Concepts',
+                href: 'docs/core-concepts/architecture',
+              }
             ],
           },
           {
             title: 'Community',
             items: [
+              {
+                label: 'Slack ( #koordinator channel )',
+                href: 'https://join.slack.com/t/koordinator-sh/shared_invite/zt-1756qoub4-Cn4~esfdlfAPsD7cwO2NzA',
+              },
+              {
+                label: 'DingTalk (GroupID: 33383887)',
+                href: '.',
+              },
             ],
           },
           {
@@ -121,6 +141,10 @@ const config = {
               {
                 label: 'GitHub',
                 href: 'https://github.com/koordinator-sh/koordinator',
+              },
+              {
+                label: 'Blog',
+                href: 'blog',
               },
             ],
           },
