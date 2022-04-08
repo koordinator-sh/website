@@ -8,11 +8,11 @@ There are five types of QoS supported by the Koordinator scheduling system:
 
 QoS	| feature |	Description
 --- | ---- | -------------
-SYSTEM |	system process, resource constrained	| For system services such as daemonsets, the latency needs to be guaranteed but it needs to limit the resource usage limit of all containers running on the node to ensure that system processes do not occupy too many resources
+SYSTEM |	system process, resource constrained	| For system services such as DaemonSets, the latency needs to be guaranteed but it needs to limit the resource usage limit of all containers running on the node to ensure that system processes do not occupy too many resources
 LSE(Latency Sensitive Exclusive) | reserve resources and organizing co-located pods to share resources | Rarely used, common in middleware-type applications, generally in independent resource pools
 LSR(Latency Sensitive Reserved)	 | reserve resources for better certainty	    |  Similar to Guaranteed by the community, CPU cores are bound
 LS(Latency Sensitive)	         | share resources for better resilience to burst traffic	    |  Typical QoS level for microservice workloads to achieve better resource elasticity and more flexible resource adjustment capabilities
-BE(Best Effert)	                 | share resource exclude LSE, the quality of resource operation is limited, or even killed in extreme cases |	Typical QoS level for batch jobs, stable computing throughput within a certain period, low-cost resources
+BE(Best Effort)	                 | share resource exclude LSE, the quality of resource operation is limited, or even killed in extreme cases |	Typical QoS level for batch jobs, stable computing throughput within a certain period, low-cost resources
 
 
 ## Koordinator QoS vs. Kubernetes QoS

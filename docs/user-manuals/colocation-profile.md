@@ -8,11 +8,11 @@ koord-manager has a variety of parameters that can be specified when creating a 
 
 ## What is ClusterColocationProfile?
 
-`ClusterColocationProfile` is Kubernetes custom resource to configure webhook interception and mutation policy. It is a cluster-scoped resrouce, so it doesn't work in a particular namespace. We aim to reduce users workload by letting webhook do all the dirty work based on `ClusterColocationProfile`.
+`ClusterColocationProfile` is Kubernetes custom resource to configure webhook interception and mutation policy. It is a cluster-scoped resource, so it doesn't work in a particular namespace. We aim to reduce users workload by letting webhook do all the dirty work based on `ClusterColocationProfile`.
 
 ## Example
 
-A `ClusterColocationProfile` is a resoure with a YAML representation like the one below. Please do edit each parameter to fit your own use cases.
+A `ClusterColocationProfile` is a resource with a YAML representation like the one below. Please do edit each parameter to fit your own use cases.
 
 ```yaml
 apiVersion: config.koordinator.sh/v1alpha1
@@ -47,7 +47,7 @@ If you are not familiar with Kubernetes resources please refer to the page [Unde
 
 - **selector**: decides whether to mutate/validate Pods if the Pod matches the selector. Default to the empty LabelSelector, which will match everything.
 
-- **qosClass** (*required*): decribes the type of Koordinator QoS that the Pod is running. The value will be injected into Pod as label koordinator.sh/qosClass. Options are `LSE`, `LSR`, `LS`, `BE`, and `SYSTEM`. For more information, please check [here](../core-concepts/qos).
+- **qosClass** (*required*): describes the type of Koordinator QoS that the Pod is running. The value will be injected into Pod as label koordinator.sh/qosClass. Options are `LSE`, `LSR`, `LS`, `BE`, and `SYSTEM`. For more information, please check [here](../core-concepts/qos).
 
 - **priorityClassName** (*required*): the priorityClassName and the priority value defined in PriorityClass will be injected into the Pod. Options are `koordinator-prod`, `koordinator-mid`, `koordinator-batch`, and `koordinator-free`. For more information, please check [here](../core-concepts/priority).
 
