@@ -20,7 +20,7 @@ There is some white space between PriorityClass to support possible future exten
 
 Koordinator matches different types of workloads to different priorities:
 - koord-prod, running typical latency sensitive services, generally referring to types of services that require a "real-time" response, such as a typical service called by clicking a button in the mobile APP.
-- koord-mid, corresponding to the available resources estimated by the appeal long-term reservation, typically used to run some real-time computing, AI training jobs, such as tensorflow/pytouch, etc.
+- koord-mid, corresponding to the available resources estimated by the appeal long-term reservation, typically used to run some real-time computing, AI training jobs, such as tensorflow/pytorch, etc.
 - koord-batch, corresponding to the available resources estimated by the appeal short-term reservation, run typical offline batch jobs, generally referring to offline analysis type jobs, such as day-level big data reports, non-interactive SQL queries.
 - koord-free, run low-priority offline batch jobs, generally refers to not making resource budgets, using idle resources to complete as much as possible, such as developers submitting a job for testing purposes.
 

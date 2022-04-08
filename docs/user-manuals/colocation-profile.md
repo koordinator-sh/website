@@ -12,7 +12,7 @@ koord-manager has a variety of parameters that can be specified when creating a 
 
 ## Example
 
-A `ClusterColocationProfile` is a resoure with a YAML representation like the one below. Please do edit each parameter to fit your own use cases.
+A `ClusterColocationProfile` is a resource with a YAML representation like the one below. Please do edit each parameter to fit your own use cases.
 
 ```yaml
 apiVersion: config.koordinator.sh/v1alpha1

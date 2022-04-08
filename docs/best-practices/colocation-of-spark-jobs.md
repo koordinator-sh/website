@@ -3,14 +3,14 @@ sidebar_position: 1
 ---
 
 # Colocation of Spark Jobs
-Apache Spark is an analysis engine for large-scale data processing, which is widely used in Big Data, SQL Analysis and Machine Learning scenarios. This tutorial provides a quick practice guide about running Spark jobs in colocation mode with other latency sensitive applications by Koordinator, which is helpful for imporving cluster resource utilization. For more details about how to use, compose, and work with Koordinator colocation, please refer to the [Introdcution](../)
+Apache Spark is an analysis engine for large-scale data processing, which is widely used in Big Data, SQL Analysis and Machine Learning scenarios. This tutorial provides a quick practice guide about running Spark jobs in colocation mode with other latency sensitive applications by Koordinator, which is helpful for improving cluster resource utilization. For more details about how to use, compose, and work with Koordinator colocation, please refer to the [Introduction](../)
 
 ## Requirements
 ### Koordinator Components
-Before submitting Spark jobs as colocate mode, you need to ensure all Koodinator components have already been successfully installed. Please follow the step in [Installation](../installation) guide.
+Before submitting Spark jobs as colocate mode, you need to ensure all Koordinator components have already been successfully installed. Please follow the step in [Installation](../installation) guide.
 
-### Install Kubenetes Operator for Apache Spark 
-To simplify running of Spark jobs in Cluster, we import the Kubernetes Operator for Apache Spark in this practice, which uses Kubenetes custom resource for managing Spark applications.
+### Install Kubernetes Operator for Apache Spark 
+To simplify running of Spark jobs in Cluster, we import the Kubernetes Operator for Apache Spark in this practice, which uses Kubernetes custom resource for managing Spark applications.
 
 With the help of Helm [chart](https://github.com/koordinator-sh/koordinator/tree/main/examples/spark-operator-chart), Kubernetes Operator for Apache Spark can be easily installed using the command below.
 ```
@@ -48,7 +48,7 @@ This will show similar content as following:
 NAME                      STATUS      ATTEMPTS   START                    FINISH                 AGE
 spark-tc-complex          RUNNING     1          2022-03-30T09:11:22Z     <no value>             14s
 ```
-Now, all pods submmited to namespace `spark-demo` will be switched to colocation mode, check spark-driver pod as below for example. We can see the protocols like`koordinator.sh/qosClass: BE` and `koordinator.sh/batch-cpu` are successfully injected to pod by Colocation Pofile.
+Now, all pods submitted to namespace `spark-demo` will be switched to colocation mode, check spark-driver pod as below for example. We can see the protocols like`koordinator.sh/qosClass: BE` and `koordinator.sh/batch-cpu` are successfully injected to pod by Colocation Profile.
 ```
 apiVersion: v1
 kind: Pod
@@ -77,9 +77,9 @@ spec:
 ```
 
 ## Evaluation
-With the help of Koordinator, when pods resource usage is idle, resources already requsted can be reallocated to other colocation pods by the overcommitment model, which can significantly impore the resource utilization of cluster.
+With the help of Koordinator, when pods resource usage is idle, resources already requested can be reallocated to other colocation pods by the overcommitment model, which can significantly impore the resource utilization of cluster.
 
-In our experiment environment, before the Spark job submmited, we can see the cluster allocatable resources run out while the actural resource usage is in low level.
+In our experiment environment, before the Spark job submitted, we can see the cluster allocatable resources run out while the actual resource usage is in low level.
 ```
 $ kubectl describe node
     Allocated resources:
