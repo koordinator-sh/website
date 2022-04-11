@@ -12,5 +12,4 @@ jobs:
       name: Spellcheck
       with:
         config_path: spellcheck.yml
-        source_files: README.md
         task_name: Markdown
