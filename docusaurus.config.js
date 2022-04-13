@@ -18,7 +18,7 @@ const config = {
 
   presets: [
     [
-      'classic',
+      '@docusaurus/preset-classic',
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
@@ -103,7 +103,6 @@ const config = {
         ],
       },
       footer: {
-        style: 'dark',
         links: [
           {
             title: 'Documentation',
@@ -149,7 +148,9 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} The Koordinator Authors. All rights reserved.`,
+        copyright: `
+        <br />
+        <strong>Copyright © ${new Date().getFullYear()} The Koordinator Authors. All rights reserved.</strong>`,
       },
       prism: {
         theme: lightCodeTheme,

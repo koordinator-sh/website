@@ -14,7 +14,7 @@ const Button = ({ children, href }) => {
   return (
     <div className="col col--2 margin-horiz--sm">
       <Link
-        className="button button--outline"
+        className="button button--outline button--primary button--lg"
         to={href}>
         {children}
       </Link>
@@ -25,8 +25,11 @@ const Button = ({ children, href }) => {
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
   return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
-      <div className="container">
+    <header className={clsx('hero', styles.hero)}>
+      <div className="container text--center">
+        <div className={styles.heroLogoWrapper}>
+          <img className={styles.heroLogo} src={useBaseUrl('img/logo.svg')} alt="Koordinator Logo" />
+        </div>
         <h1 className="hero__title">{siteConfig.title}</h1>
         <GitHubButton
             href="https://github.com/koordinator-sh/koordinator"
