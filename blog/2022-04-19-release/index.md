@@ -91,8 +91,8 @@ data:
 
 CPU Burst is a service level objective (SLO)-aware resource scheduling feature. You can use CPU Burst to improve the performance of latency-sensitive applications. CPU scheduling for a container may be throttled by the kernel due to the CPU limit, which downgrades the performance of the application. Koordinator automatically detects CPU throttling events and automatically adjusts the CPU limit to a proper value. This greatly improves the performance of latency-sensitive applications. 
 
-The main code of the CPU Burst function has been merged into the main branch and will be released in the next version. If you want to use this ability early, you are welcome to participate in Koordiantor and improve it together.
+The code of CPU Burst has been developed and is still under review and testing. It will be released in the next version. If you want to use this ability early, you are welcome to participate in Koordiantor and improve it together. For more details, please refer to the PR [#73](https://github.com/koordinator-sh/koordinator/pull/73).
 
 ## More
 
-Fore More details, please refer to the [Documentation](/docs). Hope it helps!
+For more details, please refer to the [Documentation](/docs). Hope it helps!
