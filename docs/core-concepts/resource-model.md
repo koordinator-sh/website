@@ -1,6 +1,6 @@
 # Resource Model
 
-Colocation is a set of resource scheduling solutions for the fine grained orchestration of latency sensitive workloads with the big data computing workloads. Its core to solution two problems:
+Colocation is a set of resource scheduling solutions for the fine grained orchestration of latency sensitive workloads with the big data computing workloads. It needs to solve two major problems:
 
 1. How to schedule resources for latency sensitive workloads to meet performance and long-tail latency requirements, the key points are resource scheduling strategies and QoS-aware strategies.
 2. How to schedule and arrange big data computing workloads to meet the needs of jobs for computing resources at a lower cost. The key is how to achieve reasonable resource overcommitment and QoS protection in extreme abnormal scenarios.
