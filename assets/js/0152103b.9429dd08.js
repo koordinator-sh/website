@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkkoordinator_sh=self.webpackChunkkoordinator_sh||[]).push([[94],{2942:function(o){o.exports=JSON.parse('{"allTagsPath":"/blog/tags","slug":"/blog/tags/koordinator","name":"koordinator","count":2,"permalink":"/blog/tags/koordinator"}')}}]);
