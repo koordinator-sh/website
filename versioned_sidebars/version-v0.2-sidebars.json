@@ -1,0 +1,40 @@
+{
+  "docs": [
+    {
+      "type": "category",
+      "label": "Getting Started",
+      "collapsed": false,
+      "items": [
+        "introduction",
+        "installation"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Key Designs",
+      "collapsed": false,
+      "items": [
+        "key-designs/overview",
+        "key-designs/resource-model",
+        "key-designs/priority",
+        "key-designs/qos"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "User Manuals",
+      "collapsed": false,
+      "items": [
+        "user-manuals/colocation-profile"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Best Practices",
+      "collapsed": false,
+      "items": [
+        "best-practices/colocation-of-spark-jobs"
+      ]
+    }
+  ]
+}
