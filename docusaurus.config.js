@@ -34,7 +34,12 @@ const config = {
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
           includeCurrentVersion: true,
-          // lastVersion: 'v0.1', // TODO(FillZpp)
+          lastVersion: 'current',
+          versions: {
+            current: {
+              label: 'latest',
+            },
+          },
         },
         blog: {
           blogSidebarTitle: 'All posts',
