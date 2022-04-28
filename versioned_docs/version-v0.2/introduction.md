@@ -43,6 +43,6 @@ Koordinator scheduler is developed based on schedule-framework, adding schedulin
 Here are some recommended next steps:
 
 - Start to [install Koordinator](./installation).
-- Learn Koordinator's [Architecture](core-concepts/architecture).
+- Learn Koordinator's [Architecture](key-designs/overview).
 
 
