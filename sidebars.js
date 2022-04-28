@@ -25,13 +25,14 @@ const sidebars = {
     },
     {
       type: 'category',
-      label: 'Core Concepts',
+      label: 'Key Designs',
       collapsed: false,
       items: [
-        'core-concepts/architecture',
-        'core-concepts/resource-model',
-        'core-concepts/priority',
-        'core-concepts/qos',
+        'key-designs/overview',
+        'key-designs/resource-model',
+        'key-designs/priority',
+        'key-designs/qos',
+        'key-designs/koordlet-overview',
       ],
     },
     {
@@ -54,3 +55,5 @@ const sidebars = {
 };
 
 module.exports = sidebars;
+
+console.log(JSON.stringify(sidebars, null, 2))

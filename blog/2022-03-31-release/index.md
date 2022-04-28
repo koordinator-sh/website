@@ -14,7 +14,7 @@ Koordinator is a QoS based scheduling system for hybrid workloads orchestration 
 ## Key Features
 Koordinator enhances the kubernetes user experiences in the workload management by providing the following:
 
-- Well-designed [priority](/docs/core-concepts/priority) and [QoS](/docs/core-concepts/qos) mechanism to co-locate different types of workloads in a cluster and run different types of pods on a single node.
+- Well-designed [priority](/docs/key-designs/priority) and [QoS](/docs/key-designs/qos) mechanism to co-locate different types of workloads in a cluster and run different types of pods on a single node.
 Allowing for resource overcommitments to achieve high resource utilizations but still satisfying the QoS guarantees by leveraging an application profiling mechanism.
 - Fine-grained resource orchestration and isolation mechanism to improve the efficiency of latency-sensitive workloads and batch jobs.
 - Flexible job scheduling mechanism to support workloads in specific areas, e.g., big data, AI, audio and video.
@@ -115,7 +115,7 @@ With the webhook mutating mechanism provided by Kubernetes, koord-manager will m
 
 Taking the above Profile as an example, when the Spark Operator creates a new Pod in the namespace with the `koordinator.sh/enable-colocation=true` label, the Koordinator QoS label `koordinator.sh/qosClass` will be injected into the Pod. According to the Profile definition PriorityClassName, modify the Pod's PriorityClassName and the corresponding Priority value. Users can also set the Koordinator Priority according to their needs to achieve more fine-grained priority management, so the Koordinator Priority label `koordinator.sh/priority` is also injected into the Pod. Koordinator provides an enhanced scheduler koord-scheduler, so you need to modify the Pod's scheduler name koord-scheduler through Profile.
 
-If you expect to integrate Koordinator into your own system, please learn more about the [core concepts](/docs/core-concepts/architecture).
+If you expect to integrate Koordinator into your own system, please learn more about the [core concepts](/docs/key-designs/overview).
 
 ## CPU Suppress
 
