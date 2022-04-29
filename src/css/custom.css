@@ -14,6 +14,8 @@
   --ifm-color-primary-lighter: #43bfe1;
   --ifm-color-primary-lightest: #55c7e7;
   --ifm-code-font-size: 95%;
+
+  --hero-border-color: rgba(0, 0, 0, 0.1);
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */

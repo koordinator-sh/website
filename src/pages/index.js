@@ -6,7 +6,7 @@ import Layout from '@theme/Layout';
 import clsx from 'clsx';
 import React from 'react';
 import GitHubButton from 'react-github-btn';
-import features from './features';
+import features from '../components/features';
 import styles from './index.module.css';
 
 function Feature({Svg, title, description, reverse}) {
