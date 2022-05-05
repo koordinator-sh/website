@@ -3,7 +3,7 @@ import React from 'react';
 const features = [
   {
     title: 'Co-located Workloads Orchestration',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    Svg: require('@site/static/img/workloads-orchestration-feature.svg').default,
     description: (
       <>
 
@@ -20,7 +20,7 @@ const features = [
   },
   {
     title: 'Overcommitment and QoS based Scheduling',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    Svg: require('@site/static/img/resource-model-feature.svg').default,
     description: (
       <>
         Koordinator introduces a well-designed priority and QoS mechanism to co-locate different types of workloads in a cluster and run different types of pods on a single node.
@@ -35,7 +35,7 @@ const features = [
   },
   {
     title: 'Interference detection and Resource Isolation',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    Svg: require('@site/static/img/resource-isolation-feature.svg').default,
     description: (
       <>
         Koordinator introduces a QoSManager to coordinate a set of plugins which are responsible for SLO guarantee by priority, mitigating interference among pods. 
