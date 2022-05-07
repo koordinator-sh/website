@@ -4,42 +4,26 @@ sidebar_position: 1
 
 # Colocation Profile
 
-koord-manager has a variety of parameters that can be specified when creating a Custom Resource (CR). In this section, we will walk through all parameters in `ClusterColocationProfile`.
+## Motivation
 
-## What is ClusterColocationProfile?
+If the workloads in the existing cluster want to be co-located through Koordinator, you need to modify the existing Controller/Operator to support protocols such as the QoS class, priority, and resource model defined by Koordinator.
+In order to avoid repeated construction and make it easier for everyone to obtain the benefits of co-location technology, Koordinator defines `ClusterColocationProfile` CRD, and implements webhook modify and verify newly created Pods, inject the fields described in `ClusterColocationProfile`.
 
-`ClusterColocationProfile` is Kubernetes custom resource to configure webhook interception and mutation policy. It is a cluster-scoped resource, so it doesn't work in a particular namespace. We aim to reduce users workload by letting webhook do all the dirty work based on `ClusterColocationProfile`.
 
-## Example
+## Architecture
 
-A `ClusterColocationProfile` is a resource with a YAML representation like the one below. Please do edit each parameter to fit your own use cases.
+![image](/img/clustercolocationprofile-arch.png)
 
-```yaml
-apiVersion: config.koordinator.sh/v1alpha1
-kind: ClusterColocationProfile
-metadata:
-  name: colocation-profile-example
-spec:
-  namespaceSelector:
-    matchLabels:
-      koordinator.sh/enable-colocation: "true"
-  selector:
-    matchLabels:
-      sparkoperator.k8s.io/launched-by-spark-operator: "true"
-  qosClass: BE
-  priorityClassName: koord-batch
-  koordinatorPriority: 1000
-  schedulerName: koord-scheduler
-  labels:
-    koordinator.sh/mutated: "true"
-  annotations: 
-    koordinator.sh/intercepted: "true"
-  patch:
-    spec:
-      terminationGracePeriodSeconds: 30
+## feature-gates
+
+ClusterColocationProfile mutating/validating feature is turned on by default, if you want to turn it off set feature-gates:
+
+```bash
+$ helm install koordinator https://... --set featureGates="PodMutatingWebhook=false\,PodValidatingWebhook=false"
 ```
 
-## General Parameters
+
+## Spec definition
 
 If you are not familiar with Kubernetes resources please refer to the page [Understanding Kubernetes Objects](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/).
 
@@ -60,3 +44,94 @@ If you are not familiar with Kubernetes resources please refer to the page [Unde
 - **schedulerName**: if specified, the pod will be dispatched by specified scheduler.
 
 - **patch**: indicates Pod Template patching that user would like to inject into the Pod.
+
+
+## Example
+
+### Create ClusterColocationProfile
+
+The `profile.yaml` file below describes to modify Pod in Namepspace with label `koordinator.sh/enable-colocation=true` and inject Koordinator QoS, Koordinator Priority etc.
+
+```yaml
+apiVersion: config.koordinator.sh/v1alpha1
+kind: ClusterColocationProfile
+metadata:
+  name: colocation-profile-example
+spec:
+  namespaceSelector:
+    matchLabels:
+      koordinator.sh/enable-colocation: "true"
+  selector:
+    matchLabels:
+      koordinator.sh/enable-colocation: "true"
+  qosClass: BE
+  priorityClassName: koord-batch
+  koordinatorPriority: 1000
+  schedulerName: koord-scheduler
+  labels:
+    koordinator.sh/mutated: "true"
+  annotations: 
+    koordinator.sh/intercepted: "true"
+  patch:
+    spec:
+      terminationGracePeriodSeconds: 30
+```
+
+Create a ClusterColocationProfile based on the YAML file:
+
+```bash
+$ kubectl apply -f profile.yaml
+```
+
+### Verify ClusterColocationProfile works
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    koordinator.sh/enable-colocation: "true"
+  name: test-pod
+spec:
+  containers:
+  - name: app
+    image: nginx:1.15.1
+    resources:
+        limits:
+          cpu: "1"
+          memory: "3456Mi"
+        requests:
+          cpu: "1"
+          memory: "3456Mi"
+```
+
+Create this pod and now you will find it's injected with Koordinator QoS, Koordinator Priority etc.
+
+```bash
+$ kubectl get pod test-pod -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations: 
+    koordinator.sh/intercepted: true
+  labels:
+    koordinator.sh/qosClass: BE
+    koordinator.sh/priority: 1000
+    koordinator.sh/mutated: true
+  ...
+spec:
+  terminationGracePeriodSeconds: 30
+  priority: 5000
+  priorityClassName: koord-batch
+  schedulerName: koord-scheduler
+  containers:
+  - name: app
+    image: nginx:1.15.1
+    resources:
+        limits:
+          koordinator.sh/batch-cpu: "1000"
+          koordinator.sh/batch-memory: 3456Mi
+        requests:
+          koordinator.sh/batch-cpu: "1000"
+          koordinator.sh/batch-memory: 3456Mi
+```
