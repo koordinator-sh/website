@@ -17,7 +17,8 @@
         "key-designs/overview",
         "key-designs/resource-model",
         "key-designs/priority",
-        "key-designs/qos"
+        "key-designs/qos",
+        "key-designs/koordlet-overview"
       ]
     },
     {
