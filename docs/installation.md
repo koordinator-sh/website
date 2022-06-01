@@ -46,6 +46,53 @@ If you have problem with connecting to `https://koordinator-sh.github.io/charts/
 $ helm install/upgrade koordinator /PATH/TO/CHART
 ```
 
+## Install koord-runtime-proxy (experimental)
+
+koord-runtime-proxy acts as a proxy between kubelet and containerd(dockerd under dockershim scenario), which is designed to intercept CRI request, and apply some resource management policies, such as setting different cgroup parameters by pod priorities under hybrid workload orchestration scenario, applying new isolation policies for latest Linux kernel, CPU architecture, and etc.
+
+### Installing from sources
+
+```bash
+$ git clone https://github.com/koordinator-sh/koordinator.git
+$ cd koordinator
+$ make build-koord-runtime-proxy
+```
+
+### Setup Kubelet
+
+To make koord-runtime-proxy a proxy between kubelet and containerd(dockerd), kubelet parameters should be altered as shown below:
+
+```
+kubelet <other options> \
+   --container-runtime=remote \
+   --container-runtime=/var/run/koord-runtimeproxy/runtimeproxy.sock
+```
+
+### Setup koord-runtime-proxy
+
+Firstly, please make sure your runtime backend is containerd or dockerd.
+
+Under containerd scenario, koord-runtime-proxy can be setup with command:
+
+```
+koord-runtime-proxy \
+   --remote-runtime-service-endpoint=<runtime sockfile path> \
+   --remote-image-service-endpoint=<image sockfile path>
+```
+If containerd listening CRI request on default /var/run/koord-runtimeproxy/runtimeproxy.sock, koord-runtime-proxy can be setup by:
+
+```
+koord-runtime-proxy
+```
+
+Under docker scenario, koord-runtime-proxy should be setup with the additional parameter `--backend-runtime-mode Docker`, and without `remote-image-service-endpoint`:
+
+```
+koord-runtime-proxy \
+   --backend-runtime-mode=Docker \
+   --remote-runtime-service-endpoint=<runtime sockfile path>
+```
+
 ## Options
 
 Note that installing this chart directly means it will use the default template values for Koordinator.
