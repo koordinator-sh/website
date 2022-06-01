@@ -68,7 +68,7 @@ data:
 
 ### BE Pods eviction based on satisfaction
 
-In order to ensure the runtime quality of different workloads in co-located scenarios, Koordinator uses the CPU Suppress mechanism provided by koordlet on the node side to suppress workloads of the best effort type when the load increases. Or increase the resource quota for best effort type workloads when the load decreases. 
+In order to ensure the runtime quality of different workloads in co-location scenarios, Koordinator uses the CPU Suppress mechanism provided by koordlet on the node side to suppress workloads of the best effort type when the load increases. Or increase the resource quota for best effort type workloads when the load decreases. 
 
 However, it is not suitable if there are many best effort Pods on the node and they are frequently suppressed. Therefore, in version v0.4.0, Koordinator provides an eviction mechanism based on satisfaction of the requests for the best effort Pods. If the best effort Pods are frequently suppressed, the requests of the best effort Pods cannot be satisfied, and the satisfaction is generally less than 1; if the best effort Pods are not suppressed and more CPU resources are obtained when the node resources are idle, then the requests of the best effort Pods can be satisfied, and the satisfaction is greater than or equal to 1. If the satisfaction is less than the specified threshold, and the CPU utilization of the best effort Pods is close to 100%, `koordlet` will evict some best effort Pods to improve the runtime quality of the node. The priority with lower priority or with higher CPU utilization of the same priority is evicted.
 
@@ -153,31 +153,33 @@ data:
     }
 ```
 
-In addition, in order to enable this feature, in addition to updating the configuration file and updating the kernel, you also need to install the new component `koord-runtime-proxy` of koordinator.
+To enable this feature, you need to update the kernel and configuration file, then install the new component `koord-runtime-proxy` of koordinator.
 
-## KoordRuntimeProxy
+## koord-runtime-proxy (experimental)
 
-KoordRuntimeProxy acts as a proxy between kubelet and containerd(dockerd under dockershim scenario), which is designed to intercept CRI request, and apply some resource management policies, such as setting different cgroup parameters by pod priorities under hybrid workload orchestration scenario, applying new isolation policies for latest Linux kernel, CPU architecture, and etc.
+`koord-runtime-proxy` acts as a proxy between kubelet and containerd(dockerd under dockershim scenario), which is designed to intercept CRI request, and apply some resource management policies, such as setting different cgroup parameters by pod priorities under hybrid workload orchestration scenario, applying new isolation policies for latest Linux kernel, CPU architecture, and etc.
 
-There are two components involved, KoordRuntimeProxy and RuntimePlugins.
+There are two components involved, koord-runtime-proxy and RuntimePlugins.
 
 ![image](../../static/img/koord-runtime-proxy-architecture.svg)
 
-### KoordRuntimeProxy
-KoordRuntimeProxy is in charge of intercepting request during pod's lifecycle, such as RunPodSandbox, CreateContainer etc., and then calling RuntimePlugins to do resource isolation policies before transferring request to backend containerd(dockerd) and after transferring response to kubelet. KoordRuntimeProxy provides an isolation-policy-execution framework which allows customized plugins registered to do specified isolation policies, these plugins are called RuntimePlugins. KoordRuntimeProxy itself does NOT do any isolation policies.
+### koord-runtime-proxy
+koord-runtime-proxy is in charge of intercepting request during pod's lifecycle, such as RunPodSandbox, CreateContainer etc., and then calling RuntimePlugins to do resource isolation policies before transferring request to backend containerd(dockerd) and after transferring response to kubelet. koord-runtime-proxy provides an isolation-policy-execution framework which allows customized plugins registered to do specified isolation policies, these plugins are called RuntimePlugins. koord-runtime-proxy itself does NOT do any isolation policies.
 
 ### RuntimePlugins
-RuntimePlugins register events(RunPodSandbox etc.) to KoordRuntimeProxy and would receive notifications when events happen. RuntimePlugins should complete resource isolation policies basing on the notification message, and then response KoordRuntimeProxy, KoordRuntimeProxy would decide to transfer request to backend containerd or discard request according to plugins' response.
+RuntimePlugins register events(RunPodSandbox etc.) to koord-runtime-proxy and would receive notifications when events happen. RuntimePlugins should complete resource isolation policies basing on the notification message, and then response koord-runtime-proxy, koord-runtime-proxy would decide to transfer request to backend containerd or discard request according to plugins' response.
 
-If no RuntimePlugins registered, KoordRuntimeProxy would become a transparent proxy between kubelet and containerd.
+If no RuntimePlugins registered, koord-runtime-proxy would become a transparent proxy between kubelet and containerd.
 
 For more details, please refer to the [design doc](https://github.com/koordinator-sh/koordinator/blob/main/docs/design-archive/runtime-manager-design-doc.md).
 
 ### Installation
 
-When installing KoordRuntimeProxy, you need to change the startup parameters of the kubelet, set the CRI parameters to point to the KoordRuntimeProxy, and configure the CRI parameters of the corresponding container runtime when installing the KoordRuntimeProxy. 
+When installing koord-runtime-proxy, you need to change the startup parameters of the kubelet, set the CRI parameters to point to the koord-runtime-proxy, and configure the CRI parameters of the corresponding container runtime when installing the koord-runtime-proxy. 
 
-For detailed installation process, please refer to the [documentation](https://github.com/koordinator-sh/koordinator/blob/main/docs/design-archive/koord-runtime-proxy-design-doc.md#installation).
+koord-runtime-proxy is in the Alpha experimental version stage. Currently, it provides a minimum set of extension points. At the same time, there may be some bugs. You are welcome to try it and give feedback.
+
+For detailed installation process, please refer to the [manual](/docs/installation#install-koord-runtime-proxy-experimental).
 
 ## Load-Aware Scheduling
 
