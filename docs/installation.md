@@ -65,7 +65,7 @@ To make koord-runtime-proxy a proxy between kubelet and containerd(dockerd), kub
 ```
 kubelet <other options> \
    --container-runtime=remote \
-   --container-runtime=/var/run/koord-runtimeproxy/runtimeproxy.sock
+   --container-runtime=unix:///var/run/koord-runtimeproxy/runtimeproxy.sock
 ```
 
 ### Setup koord-runtime-proxy
@@ -76,8 +76,8 @@ Under containerd scenario, koord-runtime-proxy can be setup with command:
 
 ```
 koord-runtime-proxy \
-   --remote-runtime-service-endpoint=<runtime sockfile path> \
-   --remote-image-service-endpoint=<image sockfile path>
+   --remote-runtime-service-endpoint=<runtime socketFile path> \
+   --remote-image-service-endpoint=<image socketFile path>
 ```
 If containerd listening CRI request on default /var/run/koord-runtimeproxy/runtimeproxy.sock, koord-runtime-proxy can be setup by:
 
@@ -90,7 +90,7 @@ Under docker scenario, koord-runtime-proxy should be setup with the additional p
 ```
 koord-runtime-proxy \
    --backend-runtime-mode=Docker \
-   --remote-runtime-service-endpoint=<runtime sockfile path>
+   --remote-runtime-service-endpoint=<runtime socketFile path>
 ```
 
 ## Options
