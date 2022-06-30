@@ -14,7 +14,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Install the latest version.
-$ helm install koordinator koordinator-sh/koordinator --version 0.4.0
+$ helm install koordinator koordinator-sh/koordinator --version 0.5.0
 ```
 
 ## Upgrade with helm
@@ -27,7 +27,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Upgrade the latest version.
-$ helm upgrade koordinator koordinator-sh/koordinator --version 0.4.0 [--force]
+$ helm upgrade koordinator koordinator-sh/koordinator --version 0.5.0 [--force]
 ```
 
 Note that:
@@ -108,7 +108,7 @@ The following table lists the configurable parameters of the chart and their def
 | `featureGates`                            | Feature gates for Koordinator, empty string means all by default | ` `                             |
 | `installation.namespace`                  | namespace for Koordinator installation                           | `koordinator-system`            |
 | `installation.createNamespace`            | Whether to create the installation.namespace                     | `true`                          |
-| `imageRepositoryHost`                     | Image repository host                                            | ` `                             |
+| `imageRepositoryHost`                     | Image repository host                                            | `ghcr.io`                       |
 | `manager.log.level`                       | Log level that koord-manager printed                             | `4`                             |
 | `manager.replicas`                        | Replicas of koord-manager deployment                             | `2`                             |
 | `manager.image.repository`                | Repository for koord-manager image                               | `koordinatorsh/koord-manager`   |
@@ -174,7 +174,7 @@ If you want to enable all feature-gates, set the parameter as `featureGates=AllA
 If you are in China and have problem to pull image from official DockerHub, you can use the registry hosted on Alibaba Cloud:
 
 ```bash
-$ helm install koordinator https://... --set imageRepositoryHost=koordinator-registry.cn-hangzhou.cr.aliyuncs.com
+$ helm install koordinator https://... --set imageRepositoryHost=registry.cn-beijing.aliyuncs.com
 ```
 
 ## Best Practices
@@ -197,8 +197,3 @@ To uninstall koordinator if it is installed with helm charts:
 $ helm uninstall koordinator
 release "koordinator" uninstalled
 ```
-
-
-
-
-
