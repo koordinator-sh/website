@@ -25,28 +25,38 @@ const sidebars = {
     },
     {
       type: 'category',
-      label: 'Key Designs',
+      label: 'Architecture',
       collapsed: false,
       items: [
-        'key-designs/overview',
-        'key-designs/resource-model',
-        'key-designs/priority',
-        'key-designs/qos',
-        'key-designs/koordlet-overview',
+        'architecture/overview',
+        'architecture/resource-model',
+        'architecture/priority',
+        'architecture/qos',
       ],
     },
     {
       type: 'category',
       label: 'User Manuals',
-      collapsed: false,
+      collapsed: true,
       items: [
         'user-manuals/colocation-profile',
       ],
     },
     {
       type: 'category',
+      label: 'Design Details',
+      collapsed: true,
+      items: [
+        'designs/koordlet-overview',
+        'designs/runtime-proxy',
+        'designs/load-aware-scheduling',
+        'designs/fine-grained-cpu-orchestration',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Best Practices',
-      collapsed: false,
+      collapsed: true,
       items: [
         'best-practices/colocation-of-spark-jobs',
       ],

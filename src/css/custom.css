@@ -13,7 +13,7 @@
   --ifm-color-primary-light: #37b9dd;
   --ifm-color-primary-lighter: #43bfe1;
   --ifm-color-primary-lightest: #55c7e7;
-  --ifm-code-font-size: 95%;
+  --ifm-code-font-size: 80%;
 
   --hero-border-color: rgba(0, 0, 0, 0.1);
 }
@@ -38,4 +38,48 @@
 
 [data-theme='dark'] .docusaurus-highlight-code-line {
   background-color: rgba(0, 0, 0, 0.3);
+}
+
+table th {
+  font-size: 0.8rem;
+}
+
+table td {
+  --ifm-code-font-size: 90%;
+  font-size: 0.9rem;
+}
+
+.markdown {
+  font-size: 0.9rem;
+}
+
+.markdown h1:first-child {
+  --ifm-h1-font-size: 2.0rem;
+}
+.markdown > h2 {
+  font-size: 1.4rem;
+}
+.markdown > h3 {
+  font-size: 1.2rem;
+}
+.markdown > h4 {
+  font-size: 1.0rem;
+}
+
+.theme-doc-sidebar-menu {
+  font-size: 0.9rem;
+}
+
+.sidebarItem_node_modules-\@docusaurus-theme-classic-lib-next-theme-BlogSidebar-styles-module {
+  font-size: 0.8rem;
+  margin-top: 2.0rem;
+}
+[class*='blogPostTitle_']:first-child {
+  font-size: 1.8rem;
+}
+.table-of-contents__link {
+  font-size: 0.8rem;
+}
+.pagination-nav__label {
+  font-size: 0.8rem;
 }

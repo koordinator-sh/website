@@ -31,9 +31,9 @@ If you are not familiar with Kubernetes resources please refer to the page [Unde
 
 - **selector**: decides whether to mutate/validate Pods if the Pod matches the selector. Default to the empty LabelSelector, which will match everything.
 
-- **qosClass** (*required*): describes the type of Koordinator QoS that the Pod is running. The value will be injected into Pod as label koordinator.sh/qosClass. Options are `LSE`, `LSR`, `LS`, `BE`, and `SYSTEM`. For more information, please check [here](../key-designs/qos).
+- **qosClass** (*required*): describes the type of Koordinator QoS that the Pod is running. The value will be injected into Pod as label koordinator.sh/qosClass. Options are `LSE`, `LSR`, `LS`, `BE`, and `SYSTEM`. For more information, please check [here](../architecture/qos).
 
-- **priorityClassName** (*required*): the priorityClassName and the priority value defined in PriorityClass will be injected into the Pod. Options are `koordinator-prod`, `koordinator-mid`, `koordinator-batch`, and `koordinator-free`. For more information, please check [here](../key-designs/priority).
+- **priorityClassName** (*required*): the priorityClassName and the priority value defined in PriorityClass will be injected into the Pod. Options are `koordinator-prod`, `koordinator-mid`, `koordinator-batch`, and `koordinator-free`. For more information, please check [here](../architecture/priority).
 
 - **koordinatorPriority**: defines the Pod sub-priority in Koordinator. The priority value will be injected into Pod as label koordinator.sh/priority. Various Koordinator components determine the priority of the Pod in the Koordinator through KoordinatorPriority and the priority value in PriorityClassName. Higher the value, higher the priority.
 

@@ -121,8 +121,8 @@ const config = {
                 href: 'docs/user-manuals/colocation-profile',
               },
               {
-                label: 'Key Designs',
-                href: 'docs/key-designs/overview',
+                label: 'Architecture',
+                href: 'docs/architecture/overview',
               }
             ],
           },
