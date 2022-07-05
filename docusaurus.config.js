@@ -3,6 +3,13 @@
 
 const lightCodeTheme = require('prism-react-renderer/themes/github');
 const darkCodeTheme = require('prism-react-renderer/themes/dracula');
+const versions = require('./versions.json');
+
+function getLatestReleaseVersionName() {
+  const lastReleasedVersion = versions[0];
+  return lastReleasedVersion;
+}
+
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -34,7 +41,7 @@ const config = {
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
           includeCurrentVersion: true,
-          lastVersion: 'current',
+          lastVersion: `${getLatestReleaseVersionName()}`,
           versions: {
             current: {
               label: 'latest',
