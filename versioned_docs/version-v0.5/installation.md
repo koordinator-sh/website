@@ -65,7 +65,7 @@ To make koord-runtime-proxy a proxy between kubelet and containerd, kubelet para
 ```
 kubelet <other options> \
    --container-runtime=remote \
-   --container-runtime=unix:///var/run/koord-runtimeproxy/runtimeproxy.sock
+   --container-runtime-endpoint=unix:///var/run/koord-runtimeproxy/runtimeproxy.sock
 ```
 
 Under docker scenario, to make koord-runtime-proxy a proxy between kubelet and dockerd, kubelet parameters should be altered as shown below:
