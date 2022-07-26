@@ -125,26 +125,26 @@ data:
   resource-qos-config: |
     {
       "clusterStrategy": {
-        "lsr": {
-            "cpuQoS": {
+        "lsrClass": {
+            "cpuQOS": {
                 "enable": "true",
                 "groupIdentity": 2
             }
         },
-        "ls": {
-            "cpuQoS": {
+        "lsClass": {
+            "cpuQOS": {
                 "enable": "true",
                 "groupIdentity": 2
             }
         },
-        "be": {
-            "cpuQoS": {
+        "beClass": {
+            "cpuQOS": {
                 "enable": "true",
                 "groupIdentity": -1
             }
         },
-        "system": {
-            "cpuQoS": {
+        "systemClass": {
+            "cpuQOS": {
                 "enable": "true",
                 "groupIdentity": 2
             }

@@ -152,7 +152,7 @@ data:
     {
       "clusterStrategy": {
         "lsClass": {
-           "resctrlQoS": {
+           "resctrlQOS": {
              "enable": true,
              "catRangeStartPercent": 0,
              "catRangeEndPercent": 100,
@@ -160,7 +160,7 @@ data:
            }
          },
         "beClass": {
-           "resctrlQoS": {
+           "resctrlQOS": {
              "enable": true
              "catRangeStartPercent": 0,
              "catRangeEndPercent": 30,
@@ -207,7 +207,7 @@ annotations:
   # To enable memory QoS for the containers in a pod, set the value to auto. 
   koordinator.sh/memoryQoS: '{"policy": "auto"}'
   # To disable memory QoS for the containers in a pod, set the value to none. 
-  #koordinator.sh/memoryQoS: '{"policy": "none"}'
+  #koordinator.sh/memoryQOS: '{"policy": "none"}'
 ```
 
 2. Use a ConfigMap to enable memory QoS for all the containers in a cluster.
@@ -223,12 +223,12 @@ data:
     {
       "clusterStrategy": {
         "lsClass": {
-           "memoryQoS": {
+           "memoryQOS": {
              "enable": true
            }
          },
         "beClass": {
-           "memoryQoS": {
+           "memoryQOS": {
              "enable": true
            }
          }
