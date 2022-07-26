@@ -151,7 +151,7 @@ data:
   resource-qos-config: |-
     {
       "clusterStrategy": {
-        "lsClass": {
+        "ls": {
            "resctrlQoS": {
              "enable": true,
              "catRangeStartPercent": 0,
@@ -159,9 +159,9 @@ data:
              "MBAPercent": 100
            }
          },
-        "beClass": {
+        "be": {
            "resctrlQoS": {
-             "enable": true
+             "enable": true,
              "catRangeStartPercent": 0,
              "catRangeEndPercent": 30,
              "MBAPercent": 100
