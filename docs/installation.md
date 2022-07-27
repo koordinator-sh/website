@@ -2,6 +2,12 @@
 
 Since v0.1.0 (alpha/beta), Koordinator requires **Kubernetes version >= 1.18**.
 
+Koordinator need collect metrics from kubelet read-only port(default is disabled).
+you can get more info form [here](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/).
+
+For full features, koordinator requires **linux kernel 4.19** or higher.
+
+
 ## Install with helms
 
 Koordinator can be simply installed by helm v3.5+, which is a simple command-line tool and you can get it from [here](https://github.com/helm/helm/releases).
