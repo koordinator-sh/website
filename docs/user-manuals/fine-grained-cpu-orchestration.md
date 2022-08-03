@@ -101,10 +101,6 @@ New configurations will take effect after the koord-scheduler restarts.
 
 > Fine-grained CPU Orchestration allows pods to bind CPUs exclusively. To use fine-grained CPU orchestration, pods should set a label of [QoS Class](/docs/architecture/qos#definition)) and specify the cpu binding policy.
 
-<!--
-TODO: binding policy may not be required by default. to be done in v0.6.
--->
-
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -122,10 +118,11 @@ spec:
       name: nginx-lsr
       labels:
         app: nginx-lsr
-        koordinator.sh/qosClass: LSR # set the QoS class as LSR
-      annotations:
-        # set binding policy as FullPCPUs (prefer allocating full physical CPUs of the same core)
-        scheduling.koordinator.sh/resource-spec: '{"preferredCPUBindPolicy": "FullPCPUs"}'
+        koordinator.sh/qosClass: LSR # set the QoS class as LSR, the binding policy is FullPCPUs by default
+        # in v0.5, binding policy should be specified.
+        # e.g. to set binding policy as FullPCPUs (prefer allocating full physical CPUs of the same core):
+        #annotations:
+          #scheduling.koordinator.sh/resource-spec: '{"preferredCPUBindPolicy": "FullPCPUs"}'
     spec:
       schedulerName: koord-scheduler # use the koord-scheduler
       containers:
@@ -221,13 +218,13 @@ processors of the **different** core.
 
 ```yaml
   labels:
-    # koordinator QoS class of the pod. ('LSR', 'LSE')
+    # koordinator QoS class of the pod. (use 'LSR' or 'LSE' for binding CPUs)
     koordinator.sh/qosClass: LSR
   annotations:
     # `resource-spec` indicates the specification of resource scheduling, here we need to set `preferredCPUBindPolicy`.
     # `preferredCPUBindPolicy` indicating the CPU binding policy of the pod ('None', 'FullPCPUs', 'SpreadByPCPUs')
-    # - None(default): perform no exclusive policy
-    # - FullPCPUs: a bin-packing binding policy, prefer allocating full physical cores (SMT siblings)
+    # - None: perform no exclusive policy
+    # - FullPCPUs(default): a bin-packing binding policy, prefer allocating full physical cores (SMT siblings)
     # - SpreadByPCPUs: a spread binding policy, prefer allocating logical cores (SMT threads) evenly across physical cores (SMT siblings)
     scheduling.koordinator.sh/resource-spec: '{"preferredCPUBindPolicy": "FullPCPUs"}'
 ```
