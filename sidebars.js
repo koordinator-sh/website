@@ -42,6 +42,7 @@ const sidebars = {
         'user-manuals/colocation-profile',
         'user-manuals/load-aware-scheduling',
         'user-manuals/fine-grained-cpu-orchestration',
+        'user-manuals/resource-reservation',
       ],
     },
     {
@@ -53,6 +54,7 @@ const sidebars = {
         'designs/runtime-proxy',
         'designs/load-aware-scheduling',
         'designs/fine-grained-cpu-orchestration',
+        'designs/resource-reservation',
       ],
     },
     {
