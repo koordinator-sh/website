@@ -43,6 +43,7 @@ const sidebars = {
         'user-manuals/load-aware-scheduling',
         'user-manuals/fine-grained-cpu-orchestration',
         'user-manuals/resource-reservation',
+        'user-manuals/pod-migration-job',
       ],
     },
     {
@@ -55,6 +56,8 @@ const sidebars = {
         'designs/load-aware-scheduling',
         'designs/fine-grained-cpu-orchestration',
         'designs/resource-reservation',
+        'designs/pod-migration-job',
+        'designs/descheduler-framework',
       ],
     },
     {
