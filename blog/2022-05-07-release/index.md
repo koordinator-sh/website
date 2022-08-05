@@ -161,7 +161,7 @@ data:
          },
         "beClass": {
            "resctrlQOS": {
-             "enable": true
+             "enable": true,
              "catRangeStartPercent": 0,
              "catRangeEndPercent": 30,
              "MBAPercent": 100
