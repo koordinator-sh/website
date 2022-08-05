@@ -76,7 +76,7 @@ The resource reservation mechanism can help solve or optimize the problems in th
 
 - Please check out our [user manual](/docs/user-manuals/resource-reservation) for a detailed introduction and
 tutorial.
-- For more information, please see [Design: Resource Reservation](../designs/resource-reservation).
+- For more information, please see [Design: Resource Reservation](/docs/designs/resource-reservation)
 
 ## Pod Migration Job
 
@@ -130,7 +130,7 @@ Events:
 
 - Please check out our [user manual](/docs/user-manuals/pod-migration-job) for a detailed introduction and
 tutorial.
-- For more information, please see [Design: PodMigrationJob](../designs/pod-migration-job).
+- For more information, please see [Design: PodMigrationJob](/docs/designs/pod-migration-job).
 
 ## Descheduling Framework
 
@@ -148,7 +148,7 @@ At present, we have implemented the main body of the framework, including the Mi
 
 The current framework is still in the early stage of rapid evolution, and there are still many details that need to be improved. Everyone who is interested is welcome to participate in the construction together. We hope that more people can be more assured and simpler to realize the descheduling capabilities they need.
 
-- For more information, please see [Design: descheduling framework](../designs/descheduling-framework).
+- For more information, please see [Design: descheduling framework](/docs/designs/descheduler-framework).
 - For specific implementation, please see [pkg/descheduler](https://github.com/koordinator-sh/koordinator/tree/main/pkg/descheduler).
 
 ## About GPU Scheduling
