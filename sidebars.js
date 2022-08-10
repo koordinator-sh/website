@@ -44,6 +44,7 @@ const sidebars = {
         'user-manuals/fine-grained-cpu-orchestration',
         'user-manuals/resource-reservation',
         'user-manuals/pod-migration-job',
+        'user-manuals/cpu-suppress',
       ],
     },
     {
