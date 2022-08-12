@@ -127,25 +127,25 @@ data:
       "clusterStrategy": {
         "lsrClass": {
             "cpuQOS": {
-                "enable": "true",
+                "enable": true,
                 "groupIdentity": 2
             }
         },
         "lsClass": {
             "cpuQOS": {
-                "enable": "true",
+                "enable": true,
                 "groupIdentity": 2
             }
         },
         "beClass": {
             "cpuQOS": {
-                "enable": "true",
+                "enable": true,
                 "groupIdentity": -1
             }
         },
         "systemClass": {
             "cpuQOS": {
-                "enable": "true",
+                "enable": true,
                 "groupIdentity": 2
             }
         }
