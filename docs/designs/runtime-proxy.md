@@ -81,6 +81,7 @@ All the plugin config files should be put to `/etc/runtime/hookserver.d` with `.
     "failure-policy": "Ignore",
     "runtime-hooks": [
         "PreRunPodSandbox",
+        "PreCreateContainer",
         "PreStartContainer"
     ]
 }
