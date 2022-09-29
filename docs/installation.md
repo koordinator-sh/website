@@ -113,7 +113,7 @@ kubelet <other options> \
 Under docker scenario, to make koord-runtime-proxy a proxy between kubelet and dockerd, kubelet parameters should be altered as shown below:
 
 ```
-kubelet <other options> --docker-endpoint=/var/run/koord-runtimeproxy/runtimeproxy.sock
+kubelet <other options> --docker-endpoint=unix:///var/run/koord-runtimeproxy/runtimeproxy.sock
 ```
 
 
