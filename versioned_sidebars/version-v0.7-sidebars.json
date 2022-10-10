@@ -29,7 +29,10 @@
         "user-manuals/load-aware-scheduling",
         "user-manuals/fine-grained-cpu-orchestration",
         "user-manuals/resource-reservation",
-        "user-manuals/pod-migration-job"
+        "user-manuals/pod-migration-job",
+        "user-manuals/fine-grained-device-scheduling",
+        "user-manuals/gang-scheduling",
+        "user-manuals/multi-hierarchy-elastic-quota-management"
       ]
     },
     {
@@ -43,7 +46,10 @@
         "designs/fine-grained-cpu-orchestration",
         "designs/resource-reservation",
         "designs/pod-migration-job",
-        "designs/descheduler-framework"
+        "designs/descheduler-framework",
+        "designs/fine-grained-device-scheduling",
+        "designs/gang-scheduling",
+        "designs/multi-hierarchy-elastic-quota-management"
       ]
     },
     {
