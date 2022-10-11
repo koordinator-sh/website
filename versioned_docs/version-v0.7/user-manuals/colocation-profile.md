@@ -129,9 +129,9 @@ spec:
     image: nginx:1.15.1
     resources:
         limits:
-          koordinator.sh/batch-cpu: "1000"
-          koordinator.sh/batch-memory: 3456Mi
+          kubernetes.io/batch-cpu: "1000"
+          kubernetes.io/batch-memory: 3456Mi
         requests:
-          koordinator.sh/batch-cpu: "1000"
-          koordinator.sh/batch-memory: 3456Mi
+          kubernetes.io/batch-cpu: "1000"
+          kubernetes.io/batch-memory: 3456Mi
 ```
