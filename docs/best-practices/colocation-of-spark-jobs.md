@@ -48,7 +48,7 @@ This will show similar content as following:
 NAME                      STATUS      ATTEMPTS   START                    FINISH                 AGE
 spark-tc-complex          RUNNING     1          2022-03-30T09:11:22Z     <no value>             14s
 ```
-Now, all pods submitted to namespace `spark-demo` will be switched to colocation mode, check spark-driver pod as below for example. We can see the protocols like`koordinator.sh/qosClass: BE` and `koordinator.sh/batch-cpu` are successfully injected to pod by Colocation Profile.
+Now, all pods submitted to namespace `spark-demo` will be switched to colocation mode, check spark-driver pod as below for example. We can see the protocols like`koordinator.sh/qosClass: BE` and `kubernetes.io/batch-cpu` are successfully injected to pod by Colocation Profile.
 ```
 apiVersion: v1
 kind: Pod
@@ -68,11 +68,11 @@ spec:
 	  - local:///opt/spark/examples/jars/spark-examples_2.12-3.2.1-tc1.2.jar
    	  resources:
 		limits:
-		  koordinator.sh/batch-cpu: "1000"
-		  koordinator.sh/batch-memory: 3456Mi
+		  kubernetes.io/batch-cpu: "1000"
+		  kubernetes.io/batch-memory: 3456Mi
 		requests:
-		  koordinator.sh/batch-cpu: "1000"
-		  koordinator.sh/batch-memory: 3456Mi
+		  kubernetes.io/batch-cpu: "1000"
+		  kubernetes.io/batch-memory: 3456Mi
   ...
 ```
 
