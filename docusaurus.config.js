@@ -63,18 +63,18 @@ const config = {
     ],
   ],
 
-  // i18n: {
-  //   defaultLocale: 'en',
-  //   locales: ['en', 'zh'],
-  //   localeConfigs: {
-  //     en: {
-  //       label: 'English',
-  //     },
-  //     zh: {
-  //       label: '简体中文',
-  //     },
-  //   },
-  // },
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en', 'zh-Hans'],
+    localeConfigs: {
+      en: {
+        label: 'English',
+      },
+      'zh-Hans': {
+        label: '简体中文',
+      },
+    },
+  },
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */

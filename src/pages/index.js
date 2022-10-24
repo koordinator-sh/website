@@ -56,7 +56,7 @@ function HomepageHeader() {
             aria-label="Star facebook/metro on GitHub">
             Star
           </GitHubButton>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <p className="hero__subtitle"><Translate>{siteConfig.tagline}</Translate></p>
 
         <div
             className={clsx(styles.heroButtons, 'name', 'margin-vert--md')}>
