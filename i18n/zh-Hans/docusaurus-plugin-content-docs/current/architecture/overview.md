@@ -19,7 +19,7 @@ Koordinator Manager以Deployment的形式部署，通常由两个实例组成，
 
 目前，提供了三个组件:
 
-- Colocation Profile，用于支持混部而不需要修改工作负载。用户只需要在集群中做少量的配置，原来的工作负载就可以在混部模式下运行，了解更多关于[Colocation Profile](.../user-manuals/colocation-profile.md)。
+- Colocation Profile，用于支持混部而不需要修改工作负载。用户只需要在集群中做少量的配置，原来的工作负载就可以在混部模式下运行，了解更多关于[Colocation Profile](../user-manuals/colocation-profile.md)。
 - SLO控制器，用于资源overcommit配置管理，根据节点混部时的运行状态，动态调整集群的overcommit配置比例。该控制器的核心职责是管理混部时的SLO，如智能识别出集群中的异常节点并降低其权重，动态调整混部时的水位和压力策略，从而保证集群中Pod的稳定性和吞吐量。
 - Recommender（即将推出），它使用histograms来统计和预测工作负载的资源使用细节，用来预估工作负载的峰值资源需求，从而支持更好地分散热点，提高混部的效率。此外，资源profiling还将用于简化用户资源规范化配置的复杂性，如支持VPA。
 
