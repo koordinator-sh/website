@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkkoordinator_sh=self.webpackChunkkoordinator_sh||[]).push([[1060],{7896:function(s){s.exports=JSON.parse('{"allTagsPath":"/zh-Hans/blog/tags","slug":"/zh-Hans/blog/tags/orchestration","name":"orchestration","count":3,"permalink":"/zh-Hans/blog/tags/orchestration"}')}}]);
