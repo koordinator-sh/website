@@ -1,34 +1,36 @@
-# Resource Model
+# 资源模型
 
-Colocation is a set of resource scheduling solutions for the fine grained orchestration of latency sensitive workloads with the big data computing workloads. It needs to solve two major problems:
+混部是一套资源调度解决方案，用于对延迟敏感的工作负载与大数据计算工作负载进行精细化协调。它需要解决两个主要问题:
 
-1. How to schedule resources for latency sensitive workloads to meet performance and long-tail latency requirements, the key points are resource scheduling strategies and QoS-aware strategies.
-2. How to schedule and arrange big data computing workloads to meet the needs of jobs for computing resources at a lower cost. The key is how to achieve reasonable resource overcommitment and QoS protection in extreme abnormal scenarios.
-
-
-## Definition
+1. 如何为延迟敏感的工作负载调度资源，以满足性能和长尾延迟的要求，关键点是资源调度策略和QoS感知策略。
+2. 如何调度和安排大数据计算工作负载，以较低的成本满足任务对计算资源的需求。关键是如何在极端异常情况下实现合理的资源超额配置和QoS保护。
+## 定义
 
 ![Resource Model](/img/resource-model.png)
 
-The above figure is the Koordinator colocation resource model, the basic idea is to use those allocated but unused resources to run low-priority pods. Four lines as shown:
-1. limit: gray, the amount of resources requested by the high-priority Pod, corresponding to the Pod request of kubernetes.
-2. usage: red, the amount of resources actually used by the Pod, the horizontal axis is the time line, and the red line is the fluctuation curve of the Pod load over time.
-3. short-term reservation: dark blue, which is based on the resource usage of usage in the past (shorter) period, and the estimation of its resource usage in the future period of time. The difference between reservation and limit is the allocated unused ( resources that will not be used in the future) can be used to run short-lived batch pods.
-4. long-term reservation: light blue, similar to short-term reservation but the estimated historical period of use is longer. The resources from reservation to limit can be used for pods with a longer life cycle, compared with the predicted value of short-term, fewer resources available but more stability.
+上图是Koordinator的混部资源模型，其基本思想是利用那些已分配但未使用的资源来运行低优先级的pod。如图所示，有四条线:
 
-The entire co-located resource scheduling building is constructed based on the resource model shown above, which can not only meet the resource requirements of various workloads, but also make full use of the idle resources of the cluster.
+1. limit：灰色，高优先级Pod所请求的资源量，对应于kubernetes的Pod请求。
+2. usage：红色，Pod实际使用的资源量，横轴为时间线，红线为Pod负载随时间变化的波动曲线。
+3. short-term reservation：深蓝色，这是基于过去（较短）时期内的资源使用量，对未来一段时间内其资源使用量的估计。预留和限制的区别在于，分配的未使用（未来不会使用的资源）可以用来运行短期执行的批处理pod。
+4. long-term reservation：浅蓝色，与short-term reservation类似，但估计的历史使用期更长。从保留到限制的资源可以用于生命周期较长的pod，与短期的预测值相比，可用的资源较少，但更稳定。
 
-## SLO Description
+整个混部资源调度是基于上图所示的资源模型构建的，不仅可以满足各种工作负载的资源需求，还可以充分利用集群的闲置资源。
 
-A Pod resource SLO running in a cluster consists of two concepts, Priority and QoS:
-- Priority, the resource priority, represents the priority of the request being scheduled. Typically, Priority affects the relative position of the request in the scheduler pending queue.
-- QoS, which represents the quality of service when the Pod runs. Such as cgroups cpu shares, cfs quota, LLC, memory bandwidth, OOM Priority, etc.
+## SLO描述
 
-It should be noted that Priority and QoS are two-dimensional concepts, but in real business scenarios, there will be some constraints between the two (not all combinations are legal).
+在集群中运行的Pod资源SLO由两个概念组成，即优先级和QoS。
 
-## What's Next
+* 优先级，即资源的优先级，代表了请求资源被调度的优先级。通常情况下，优先级会影响pod在调度器待定队列中的相对位置。
 
-Here are some recommended next steps:
+* QoS，代表Pod运行时的服务质量。如cgroups cpu share、cfs配额、LLC、内存、OOM优先级等等。
 
-- Learn Koordinator's [Priority](./priority).
-- Learn Koordinator's [QoS](./qos).
+需要注意的是，Priority和QoS是两个维度的概念，但在实际业务场景中，两者之间会有一些约束（不是所有的组合都是合法的）。
+
+## 下一步是什么
+
+以下是推荐下一步阅读的内容:
+
+* 学习Koordinator的[优先级](./priority)。
+* 学习Koordinator的[QoS](./qos.md)。
+
