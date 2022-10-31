@@ -48,6 +48,7 @@ const sidebars = {
         'user-manuals/gang-scheduling',
         'user-manuals/multi-hierarchy-elastic-quota-management',
         'user-manuals/cpu-suppress',
+        'user-manuals/cpu-burst',
       ],
     },
     {
