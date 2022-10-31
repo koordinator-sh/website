@@ -1,32 +1,31 @@
 # QoS
 
-QoS is used to express the running quality of the Pod on the node, such as the way to obtain resources, the proportion of resources obtained, and the QoS guarantee policy.
+QoS用于表达节点上Pod的运行质量，如获取资源的方式、获取资源的比例、QoS保障策略等。
 
-## Definition
+## 定义
 
-There are five types of QoS supported by the Koordinator scheduling system:
+Koordinator调度系统支持的QoS有五种类型:
 
-QoS	| feature |	Description
+QoS | 特点 | 说明
 --- | ---- | -------------
-SYSTEM |	system process, resource constrained	| For system services such as DaemonSets, the latency needs to be guaranteed but it needs to limit the resource usage limit of all containers running on the node to ensure that system processes do not occupy too many resources
-LSE(Latency Sensitive Exclusive) | reserve resources and organizing co-located pods to share resources | Rarely used, common in middleware-type applications, generally in independent resource pools
-LSR(Latency Sensitive Reserved)	 | reserve resources for better certainty	    |  Similar to Guaranteed by the community, CPU cores are bound
-LS(Latency Sensitive)	         | share resources for better resilience to burst traffic	    |  Typical QoS level for microservice workloads to achieve better resource elasticity and more flexible resource adjustment capabilities
-BE(Best Effort)	                 | share resource exclude LSE, the quality of resource operation is limited, or even killed in extreme cases |	Typical QoS level for batch jobs, stable computing throughput within a certain period, low-cost resources
+SYSTEM | 系统进程，资源受限 | 对于DaemonSets等系统服务，需要保证延迟，但需要限制节点上运行的所有容器的资源使用限制，以确保系统进程不占用过多的资源
+LSE(Latency Sensitive Exclusive) | 保留资源并组织同QoS的pod共享资源 | 很少使用，常见于中间件类应用，一般在独立的资源池中使用
+LSR(Latency Sensitive Reserved) | 预留资源以获得更好的确定性 | 类似于社区的Guaranteed，CPU核被绑定
+LS(Latency Sensitive) | 共享资源，对突发流量有更好的弹性 | 微服务工作负载的典型QoS级别，实现更好的资源弹性和更灵活的资源调整能力
+BE(Best Effort) | 共享不包括LSE的资源，资源运行质量有限，甚至在极端情况下被杀死 | 批量作业的典型QoS水平，在一定时期内稳定的计算吞吐量，低成本资源
 
+## Koordinator QoS与Kubernetes QoS的对比
 
-## Koordinator QoS vs. Kubernetes QoS
+从[定义](#定义)部分可以看出，Koordinator的QoS比Kubernetes的QoS更复杂，因为在混部场景下，我们需要对延迟敏感的工作负载的QoS进行微调，以满足混部时性能的需求。
 
-As seen in the [Definition](#definition) section, Koordinator's QoS is more complicated than Kubernetes QoS, because in colocation scenarios, we need to fine-tune the QoS for latency-sensitive workloads to meet the needs of co-located performance.
+Koordinator和Kubernetes QoS之间是有对应关系的:
 
-There is a correspondence between Koordinator and Kubernetes QoS:
+Koordinator QoS | Kubernetes QoS
+--------------- | --------------
+SYSTEM  | ---
+LSE | Guaranteed
+LSR | Guaranteed
+LS | Guaranteed/Burstable
+BE | BestEffort
 
-Koordinator QoS | Kubernetes QoS 
---------------- | -------------- 
-SYSTEM |  --- 
-LSE | Guaranteed 
-LSR | Guaranteed 
-LS | Guaranteed/Burstable 
-BE | BestEffort 
-
-Koordlet triggers corresponding resource isolation and QoS guarantee according to Pod's Priority and QoS definition.
+Koordlet根据Pod的优先级和QoS定义，触发相应的资源隔离和QoS保证。
