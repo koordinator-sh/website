@@ -55,7 +55,7 @@ $ helm install/upgrade koordinator /PATH/TO/CHART
 ## Install koord-runtime-proxy
 
 koord-runtime-proxy acts as a proxy between kubelet and containerd(dockerd under dockershim scenario), which is designed to intercept CRI request, and apply some resource management policies, such as setting different cgroup parameters by pod priorities under hybrid workload orchestration scenario, applying new isolation policies for latest Linux kernel, CPU architecture, and etc.
-For pods that do not want hook servers processing (such as addon pods), you can skip them by adding runtimeproxy.koordinator.sh/skip-hookserver=true to the pod label.
+For pods that do not want hook servers processing (such as addon pods), you can skip them by adding `runtimeproxy.koordinator.sh/skip-hookserver=true` to the pod label.
 
 ### 1、Get binary
 
