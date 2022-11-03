@@ -32,6 +32,6 @@
 
 以下是推荐下一步阅读的内容:
 
-* 学习Koordinator的[优先级](./priority)。
-* 学习Koordinator的[QoS](./qos.md)。
+* 学习 Koordinator 的[优先级](./priority)。
+* 学习 Koordinator 的[QoS](./qos.md)。
 

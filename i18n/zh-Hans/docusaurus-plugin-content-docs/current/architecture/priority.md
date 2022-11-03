@@ -84,5 +84,5 @@ spec:
 
 以下是推荐下一步阅读的内容:
 
-- 学习Koordinator的[资源模型](./resource-model)。
-- 学习Koordinator的[QoS](./qos)。
+- 学习 Koordinator 的[资源模型](./resource-model)。
+- 学习 Koordinator 的[QoS](./qos)。
