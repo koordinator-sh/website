@@ -1,32 +1,31 @@
 # GangScheduling
 
-## Introduction
-We provide Gang mechanism for the scheduler to control pods binding opportunity. User can declare a resource-collection-minimum number, 
-only when assigned-resources reach the given limitation can trigger the binding. We provide `Strict` and `NonStrict` to 
-control the resource-accumulation-process by a configuration. We also provide a two-level Gang description for better matching 
-the real scenario, which is different from community.
+## 简介
+Koord-dscheduler 提供了 Gang Scheduling 满足 All-or-Nothing 调度需求。用户可以声明最小资源集合数，只有当已经完成调度资源数超过前面声明当前最小资源集合数才能触发节点绑定。
+同时提供 `Strict` 和 `NonStrict` 两个参数用于控制资源累积过程，区别于其他社区方案将提供 two-level Gang 描述用于更好匹配真实场景。
 
-## Setup
+## 设置
 
-### Prerequisite
+### 前置条件
 
 - Kubernetes >= 1.18
 - Koordinator >= 0.70
 
-### Installation
+### 安装
 
-Please make sure Koordinator components are correctly installed in your cluster. If not, please refer to [Installation](/docs/installation).
+请确保 Kubernetes 集群已经安装 Koordinator 组件，如果没有安装，请参阅 [安装](/docs/installation)。
 
-### Configurations
+### 配置
 
-GangScheduling is *Enabled* by default. You can use it without any modification on the koord-scheduler config.
+GangScheduling 特性默认*开启*，无需修改 koord-scheduler 配置进行开启。
 
-## Use GangScheduling
+## GangScheduling 使用手册
 
-### Quick Start
+### 快速开始
 
-#### apply gang through gang crd
-1.create pod-group
+#### Gang CRD 方式
+
+1.创建 pod-group 资源
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
 kind: PodGroup
@@ -44,7 +43,7 @@ $ kubectl get pgs -n default
   gang-example   13s
 ```
 
-2.create child pod1
+2.创建子资源 pod1
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -80,7 +79,7 @@ $ kubectl get pod -n default
   pod-example1   0/1     Pending   0          7s
 ```
 
-3.create child pod2
+3.创建子资源 pod2
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -136,8 +135,8 @@ status:
   scheduled: 2
 ```
 
-#### apply gang through annotation
-1.create child pod1
+#### Pod Annotaion 方式
+1.创建子资源 pod1
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -174,7 +173,7 @@ $ kubectl get pod -n default
   pod-example1   0/1     Pending   0          7s
 ```
 
-2.create child pod2
+2.创建子资源 pod2
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -231,7 +230,7 @@ status:
   scheduled: 2
 ```
 
-#### device resource debug api:
+#### Gang 调度调试接口:
 ```bash
 $ kubectl -n koordinator-system get lease koord-scheduler --no-headers | awk '{print $2}' | cut -d'_' -f1 | xargs -I {} kubectl -n koordinator-system get pod {} -o wide --no-headers | awk '{print $6}'
   10.244.0.64
@@ -269,8 +268,8 @@ $ curl 10.244.0.64:10251/apis/v1/plugins/Coscheduling/gang/default/gang-example
 }
 ```
 
-#### advanced configuration for gang
-1.apply through pod-group.
+#### Gang 调度高级配置
+1.PodGroup Annotation 方式
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -289,11 +288,11 @@ spec:
   
 ```
 
-- `gang.scheduling.koordinator.sh/total-number` specifies the total children number of the gang. If not specified,it will be set with the `minMember`
-- `gang.scheduling.koordinator.sh/mode` defines the Gang Scheduling operation when failed scheduling. Support `Strict\NonStrict`, default is `Strict`
-- `gang.scheduling.koordinator.sh/groups` defines which gangs are bundled as a group. The gang will go to bind only all gangs in one group meet the conditions
+- `gang.scheduling.koordinator.sh/total-number` 用于配置 gang 内子资源总数。如果未配置，则使用 `minMember` 配置。
+- `gang.scheduling.koordinator.sh/mode` 用于配置 Gang 调度失败处理策略。支持 `Strict\NonStrict` 两种模式，默认为 `Strict` 。
+- `gang.scheduling.koordinator.sh/groups` 用于配置支持多个 gang 为一组完成 Gang 调度，用于支持多个 gang 之间有依赖关系的场景。
 
-2.apply through pod annotations.
+2.Pod Annotation 方式
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -327,13 +326,14 @@ spec:
     terminationMessagePolicy: File
   restartPolicy: Always
 ```
-- `gang.scheduling.koordinator.sh/total-number` specifies the total children number of the gang. If not specified,it will be set with the `gang.scheduling.koordinator.sh/min-available`
-- `gang.scheduling.koordinator.sh/mode` defines the Gang Scheduling operation when failed scheduling. Support `Strict\NonStrict`, default is `Strict`
-- `gang.scheduling.koordinator.sh/groups` defines which gangs are bundled as a group. The gang will go to bind only all gangs in one group meet the conditions
-- `gang.scheduling.koordinator.sh/waiting-time` specifies gang's max wait time in Permit Stage.
 
-#### advanced configuration for scheduler
-you can modify `koord-scheduler-config.yaml` in helm to adjust `Coscheduling` configuration as below:
+- `gang.scheduling.koordinator.sh/total-number` 用于配置 gang 内子资源总数。如果未配置，则使用 `gang.scheduling.koordinator.sh/min-available` 配置。
+- `gang.scheduling.koordinator.sh/mode` 用于配置 Gang 调度失败处理策略。支持 `Strict\NonStrict` 两种模式，默认为 `Strict` 。
+- `gang.scheduling.koordinator.sh/groups` 用于配置支持多个 gang 为一组完成 Gang 调度，用于支持多个 gang 之间有依赖关系的场景。
+- `gang.scheduling.koordinator.sh/waiting-time` 用于配置自第一个 Pod 进入 Permit 阶段依赖的最大等待时间。
+
+#### 调度器高级配置
+您可以在 helm 中修改 `koord-scheduler-config.yaml` 来调整 `Coscheduling` 配置，如下所示：
 
 ```yaml
 apiVersion: v1
