@@ -1,0 +1,64 @@
+{
+  "docs": [
+    {
+      "type": "category",
+      "label": "Getting Started",
+      "collapsed": false,
+      "items": [
+        "introduction",
+        "installation"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Architecture",
+      "collapsed": false,
+      "items": [
+        "architecture/overview",
+        "architecture/resource-model",
+        "architecture/priority",
+        "architecture/qos"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "User Manuals",
+      "collapsed": false,
+      "items": [
+        "user-manuals/colocation-profile",
+        "user-manuals/load-aware-scheduling",
+        "user-manuals/fine-grained-cpu-orchestration",
+        "user-manuals/resource-reservation",
+        "user-manuals/pod-migration-job",
+        "user-manuals/fine-grained-device-scheduling",
+        "user-manuals/gang-scheduling",
+        "user-manuals/multi-hierarchy-elastic-quota-management"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Design Details",
+      "collapsed": true,
+      "items": [
+        "designs/koordlet-overview",
+        "designs/runtime-proxy",
+        "designs/load-aware-scheduling",
+        "designs/fine-grained-cpu-orchestration",
+        "designs/resource-reservation",
+        "designs/pod-migration-job",
+        "designs/descheduler-framework",
+        "designs/fine-grained-device-scheduling",
+        "designs/gang-scheduling",
+        "designs/multi-hierarchy-elastic-quota-management"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Best Practices",
+      "collapsed": false,
+      "items": [
+        "best-practices/colocation-of-spark-jobs"
+      ]
+    }
+  ]
+}
