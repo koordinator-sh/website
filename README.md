@@ -2,6 +2,12 @@
 
 This website is built using [Docusaurus 2](https://docusaurus.io/), a modern static website generator.
 
+## Localization README
+
+| Language                |
+| ----------------------- |
+| [Chinese](README-zh.md) |
+
 ## Contributing
 
 You are very welcome to contribute docs. All documentation is in the docs directory, and the writing style can refer to the existing documentation.
