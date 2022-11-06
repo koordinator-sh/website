@@ -2,17 +2,24 @@
 
 Load Aware Scheduling 是 koord-scheduler 根据每个节点的实时负载平衡 Pod 调度的能力.
 
-## 简介
+## Introduction
 
-负载均衡是资源调度中的常见问题. 未充分利用的节点会给集群带来很大的资源浪费, 而过度使用的节点可能会导致性能下降. 他们都不是有效的资管管理.
+Load balancing is a common issue in resource scheduling. Under-utilized nodes bring much resource waste to the
+cluster, while over-utilized nodes are likely to cause performance degradation. Neither of them is suitable for
+efficient resource management.
 
-原生 Kubernetes scheduler 调度程序根据请求和节点分配来调度 Pod，既不考虑实时负载，也不考虑估计使用量。 当我们想要平衡每个节点上的 Pod 调度，使负载与原生调度器相同时，我们需要为应用程序设置精确的资源需求。 此外，由于 Koordinator 启用资源过度使用以实现更好的资源效率，我们需要一种机制来降低性能下降的概率并避免过度使用。
+The native Kubernetes scheduler schedules pods based on the requests and the allocation of nodes, considering neither
+the real-time load nor the estimated usage. When we want to balance the pod scheduling on each node and make the loads
+even with the native scheduler, we need to set precise resource requirements for the applications. Moreover, since
+Koordinator enables resource overcommitment to achieve better resource efficiency, we need a mechanism to reduce the
+probability of performance degradation and avoid over-utilization.
 
-Koord-scheduler 可以通过与 koordlet 协作来检索节点指标。它能够根据节点利用率平衡在线 pod（LSE/LSR/LS）和离线 pod（BE）的调度。
+Koord-scheduler can retrieve node metrics by cooperating with the koordlet. It provides the ability to balance the
+scheduling of both the online (LSE/LSR/LS) pods and offline (BE) pods based on node utilization.
 
-![图片](/img/load-aware-scheduling-arch.svg)
+![image](/img/load-aware-scheduling-arch.svg)
 
-想要了解更多信息，请参阅 [设计：负载感知调度](/docs/designs/load-aware-scheduling).
+For more information, please see [Design: Load Aware Scheduling](/docs/designs/load-aware-scheduling).
 
 ## 设置
 

@@ -105,7 +105,7 @@ spec:
           memory: "3456Mi"
 ```
 
-创建这个 pod，现在你会发现它被注入了 Koordinator QoS、Koordinator Priority 等.
+Create this pod and now you will find it's injected with Koordinator QoS, Koordinator Priority etc.
 
 ```bash
 $ kubectl get pod test-pod -o yaml

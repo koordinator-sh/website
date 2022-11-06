@@ -10,9 +10,9 @@ Load Aware Scheduling 是 koord-scheduler 根据每个节点的实时负载平�
 
 Koord-scheduler 可以通过与 koordlet 协作来检索节点指标。它能够根据节点利用率平衡在线 pod（LSE/LSR/LS）和离线 pod（BE）的调度。
 
-![图片](/img/load-aware-scheduling-arch.svg)
+![image](/img/load-aware-scheduling-arch.svg)
 
-想要了解更多信息，请参阅 [设计：负载感知调度](/docs/designs/load-aware-scheduling).
+For more information, please see [Design: Load Aware Scheduling](/docs/designs/load-aware-scheduling).
 
 ## 设置
 

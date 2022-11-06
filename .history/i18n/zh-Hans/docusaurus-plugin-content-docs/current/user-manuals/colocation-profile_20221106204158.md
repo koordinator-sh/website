@@ -29,28 +29,28 @@ $ helm install koordinator https://... --set featureGates="PodMutatingWebhook=fa
 
 - **namespaceSelector**: 如果命名空间与选择器匹配，则决定是否改变/验证 Pod. LabelSelector 默认为空, 它将匹配所有内容.
 
-- **selector**: 如果 Pod 与选择器匹配，则决定是否改变/验证 Pod。 默认为空的 LabelSelector，它将匹配所有内容.
+- **selector**: decides whether to mutate/validate Pods if the Pod matches the selector. Default to the empty LabelSelector, which will match everything.
 
-- **qosClass** (*required*): 描述了Pod正在运行的协调器QoS的类型。该值将作为标签koordinator.sh/qosClass注入Pod。选项为`LSE`, `LSR`, `LS`, `BE`, 和 `SYSTEM`. 有关更多信息，请查看 [此处](../architecture/qos).
+- **qosClass** (*required*): describes the type of Koordinator QoS that the Pod is running. The value will be injected into Pod as label koordinator.sh/qosClass. Options are `LSE`, `LSR`, `LS`, `BE`, and `SYSTEM`. For more information, please check [here](../architecture/qos).
 
-- **priorityClassName** (*required*): priorityClassName 和 PriorityClass 中定义的优先级值将被注入Pod. 选项为 `koordinator-prod`, `koordinator-mid`, `koordinator-batch`, 和 `koordinator-free`. 有关更多信息，请查看 [此处] [here](../architecture/priority).
+- **priorityClassName** (*required*): the priorityClassName and the priority value defined in PriorityClass will be injected into the Pod. Options are `koordinator-prod`, `koordinator-mid`, `koordinator-batch`, and `koordinator-free`. For more information, please check [here](../architecture/priority).
 
-- **koordinatorPriority**: Koordinator 还提供了 Pod 级别的子优先级 sub-priority. 优先级值将作为标签 koordinator.sh/priority 注入 Pod. 各个 Koordinator 组件通过 KoordinatorPriority 和 PriorityClassName 中的优先级值来确定 Koordinator 中 Pod 的优先级. 值越高，优先级越高
+- **koordinatorPriority**: defines the Pod sub-priority in Koordinator. The priority value will be injected into Pod as label koordinator.sh/priority. Various Koordinator components determine the priority of the Pod in the Koordinator through KoordinatorPriority and the priority value in PriorityClassName. Higher the value, higher the priority.
 
-- **labels**: 描述需要注入 `Pod.Labels` 的 k/v 键值对 .
+- **labels**: describes the k/v pair that needs to inject into `Pod.Labels`.
 
-- **annotations**: 描述了需要注入 `Pod.Annotations` 的 k/v 键值对.
+- **annotations**: describes the k/v pair that needs to inject into `Pod.Annotations`.
 
-- **schedulerName**: 如果指定，则 pod 将由指定的调度程序调度.
+- **schedulerName**: if specified, the pod will be dispatched by specified scheduler.
 
-- **patch**: 表示用户想要注入 Pod 的 Pod 模板补丁.
+- **patch**: indicates Pod Template patching that user would like to inject into the Pod.
 
 
-## 例子
+## Example
 
-### 创建 ClusterColocationProfile
+### Create ClusterColocationProfile
 
-下面的 `profile.yaml` 文件描述了在 Namepspace 中使用标签 `koordinator.sh/enable-colocation=true` 修改 Pod 并注入 Koordinator QoS、Koordinator Priority 等.
+The `profile.yaml` file below describes to modify Pod in Namepspace with label `koordinator.sh/enable-colocation=true` and inject Koordinator QoS, Koordinator Priority etc.
 
 ```yaml
 apiVersion: config.koordinator.sh/v1alpha1
@@ -77,13 +77,13 @@ spec:
       terminationGracePeriodSeconds: 30
 ```
 
-基于 YAML 文件创建 ClusterColocationProfile:
+Create a ClusterColocationProfile based on the YAML file:
 
 ```bash
 $ kubectl apply -f profile.yaml
 ```
 
-### 验证 ClusterColocationProfile 是否有效
+### Verify ClusterColocationProfile works
 
 ```yaml
 apiVersion: v1
@@ -105,7 +105,7 @@ spec:
           memory: "3456Mi"
 ```
 
-创建这个 pod，现在你会发现它被注入了 Koordinator QoS、Koordinator Priority 等.
+Create this pod and now you will find it's injected with Koordinator QoS, Koordinator Priority etc.
 
 ```bash
 $ kubectl get pod test-pod -o yaml

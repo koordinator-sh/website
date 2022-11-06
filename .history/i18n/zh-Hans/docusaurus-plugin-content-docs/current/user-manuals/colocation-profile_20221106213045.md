@@ -50,7 +50,7 @@ $ helm install koordinator https://... --set featureGates="PodMutatingWebhook=fa
 
 ### 创建 ClusterColocationProfile
 
-下面的 `profile.yaml` 文件描述了在 Namepspace 中使用标签 `koordinator.sh/enable-colocation=true` 修改 Pod 并注入 Koordinator QoS、Koordinator Priority 等.
+The `profile.yaml` file below describes to modify Pod in Namepspace with label `koordinator.sh/enable-colocation=true` and inject Koordinator QoS, Koordinator Priority etc.
 
 ```yaml
 apiVersion: config.koordinator.sh/v1alpha1
@@ -77,13 +77,13 @@ spec:
       terminationGracePeriodSeconds: 30
 ```
 
-基于 YAML 文件创建 ClusterColocationProfile:
+Create a ClusterColocationProfile based on the YAML file:
 
 ```bash
 $ kubectl apply -f profile.yaml
 ```
 
-### 验证 ClusterColocationProfile 是否有效
+### Verify ClusterColocationProfile works
 
 ```yaml
 apiVersion: v1
@@ -105,7 +105,7 @@ spec:
           memory: "3456Mi"
 ```
 
-创建这个 pod，现在你会发现它被注入了 Koordinator QoS、Koordinator Priority 等.
+Create this pod and now you will find it's injected with Koordinator QoS, Koordinator Priority etc.
 
 ```bash
 $ kubectl get pod test-pod -o yaml

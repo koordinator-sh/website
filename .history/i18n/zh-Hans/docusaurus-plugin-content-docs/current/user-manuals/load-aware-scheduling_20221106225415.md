@@ -12,7 +12,7 @@ Koord-scheduler 可以通过与 koordlet 协作来检索节点指标。它能够
 
 ![图片](/img/load-aware-scheduling-arch.svg)
 
-想要了解更多信息，请参阅 [设计：负载感知调度](/docs/designs/load-aware-scheduling).
+For more information, please see [Design: Load Aware Scheduling](/docs/designs/load-aware-scheduling).
 
 ## 设置
 
