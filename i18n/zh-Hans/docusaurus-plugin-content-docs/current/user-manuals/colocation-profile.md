@@ -2,9 +2,9 @@
 sidebar_position: 1
 ---
 
-# Colocation Profile
+# 混部简介
 
-## Motivation
+## 出发点
 
 如果现有集群中的工作负载想要通过 Koordinator 共存，则需要修改现有的 Controller/Operator 以支持 Koordinator 定义的 QoS 类、优先级和资源模型等协议。
 为了降低 Koordinator 混部系统的使用门槛，让大家可以简单快速的灰度和使用混部技术获得收益, 因此 Koordinator 提供了一个 `ClusterColocationProfile` CRD, 通过 webhook 修改和验证新创建的 Pod，注入 `ClusterColocationProfile` 中描述的字段
