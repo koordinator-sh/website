@@ -49,6 +49,7 @@ const sidebars = {
         'user-manuals/multi-hierarchy-elastic-quota-management',
         'user-manuals/cpu-suppress',
         'user-manuals/cpu-burst',
+        'user-manuals/memory-qos',
       ],
     },
     {
