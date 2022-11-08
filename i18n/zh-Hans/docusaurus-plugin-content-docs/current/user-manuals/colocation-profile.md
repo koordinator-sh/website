@@ -2,11 +2,11 @@
 sidebar_position: 1
 ---
 
-# 混部简介
+# Colocation Profile
 
-## 出发点
+## Motivation
 
-如果现有集群中的工作负载想要通过 Koordinator 共存，则需要修改现有的 Controller/Operator 以支持 Koordinator 定义的 QoS 类、优先级和资源模型等协议。
+如果现有集群中的工作负载想要通过 Koordinator 进行混合部署，则需要修改现有的 Controller/Operator 以支持 Koordinator 定义的 QoS 类、优先级和资源模型等协议。
 为了降低 Koordinator 混部系统的使用门槛，让大家可以简单快速的灰度和使用混部技术获得收益, 因此 Koordinator 提供了一个 `ClusterColocationProfile` CRD, 通过 webhook 修改和验证新创建的 Pod，注入 `ClusterColocationProfile` 中描述的字段
 
 
@@ -14,9 +14,9 @@ sidebar_position: 1
 
 ![image](/img/clustercolocationprofile-arch.png)
 
-## 特性门控
+## Feature Gates
 
-ClusterColocationProfile mutating/validating 功能默认是打开的, 如果想要关闭,请设置 feature-gates:
+ClusterColocationProfile mutating/validating 功能默认是打开的, 如果想要关闭,请设置 Feature Gates:
 
 ```bash
 $ helm install koordinator https://... --set featureGates="PodMutatingWebhook=false\,PodValidatingWebhook=false"
@@ -105,7 +105,7 @@ spec:
           memory: "3456Mi"
 ```
 
-创建这个 pod，现在你会发现它被注入了 Koordinator QoS、Koordinator Priority 等.
+创建这个 Pod，现在你会发现它被注入了 Koordinator QoS、Koordinator Priority 等.
 
 ```bash
 $ kubectl get pod test-pod -o yaml
