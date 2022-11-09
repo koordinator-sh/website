@@ -5,9 +5,17 @@ const lightCodeTheme = require('prism-react-renderer/themes/github');
 const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const versions = require('./versions.json');
 
-function getLatestReleaseVersionName() {
+function getNextVersionName() {
+  const expectedPrefix = 'v1.';
+
   const lastReleasedVersion = versions[0];
-  return lastReleasedVersion;
+  if (!lastReleasedVersion.includes(expectedPrefix)) {
+    throw new Error(
+      'this code is only meant to be used during the 2.0 phase.',
+    );
+  }
+  const version = parseInt(lastReleasedVersion.replace(expectedPrefix, ''), 10);
+  return `${expectedPrefix}${version + 1}`;
 }
 
 
@@ -41,10 +49,13 @@ const config = {
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
           includeCurrentVersion: true,
-          lastVersion: `${getLatestReleaseVersionName()}`,
+          lastVersion: undefined,
+          onlyIncludeVersions: (() => {
+            return ['current', ...versions.slice(0, 3)];
+          })(),
           versions: {
             current: {
-              label: 'latest',
+              label: `${getNextVersionName()} 🚧`,
             },
           },
         },

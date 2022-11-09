@@ -23,7 +23,7 @@
     {
       "type": "category",
       "label": "User Manuals",
-      "collapsed": false,
+      "collapsed": true,
       "items": [
         "user-manuals/colocation-profile",
         "user-manuals/load-aware-scheduling",
@@ -55,7 +55,7 @@
     {
       "type": "category",
       "label": "Best Practices",
-      "collapsed": false,
+      "collapsed": true,
       "items": [
         "best-practices/colocation-of-spark-jobs"
       ]
