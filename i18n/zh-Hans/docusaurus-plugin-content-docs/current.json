@@ -1,8 +1,4 @@
 {
-  "version.label": {
-    "message": "latest",
-    "description": "The label for version current"
-  },
   "sidebar.docs.category.Getting Started": {
     "message": "快速开始",
     "description": "快速开始"

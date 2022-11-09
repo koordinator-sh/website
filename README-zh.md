@@ -6,9 +6,23 @@
 
 非常欢迎您贡献文档。所有中文文档都在 `/i18n/zh-Hans/docusaurus-plugin-content-docs` 目录中，书写风格可以参考现有的文档。
 
+重点注意:
+
+- 如果你添加的是下个版本中将会发布功能的文件，请添加：
+  - 英文文档到 `docs/`
+  - 中文文档到 `i18n/zh-Hans/docusaurus-plugin-content-docs/current`
+- 如果你添加的是当前稳定版本包含的功能文档（例如 v1.0），请添加：
+  - 英文文档到 `docs/` 和 `versioned_docs/version-v1.0` 两个地方
+  - 中文文档到 `i18n/zh-Hans/docusaurus-plugin-content-docs/current` 和 `i18n/zh-Hans/docusaurus-plugin-content-docs/version-v1.0` 两个地方
+
 您可以使用以下命令在本地调试文档：
+
 ```
-npm run start -- --locale zh-Hans
+# EN
+$ npm run start
+
+# ZH
+$ npm run start -- --locale zh-Hans
 ```
 
 当你的 PR 被合并时, 机器人会自动构建发布到 `gh-pages` 分支并且最终可在 [koordinator.sh](https://koordinator.sh) 查看。
@@ -25,3 +39,11 @@ npm run start -- --locale zh-Hans
 - 注意中英文标点符号。
 - 注意链接，中文的文档里对应的链接也用中文链接。
 - `PR` 命名规范 `Translate <翻译文件相对路径>`，如 `Translate i18n/zh-Hans/docusaurus-plugin-content-docs/current/introduction.md`。
+
+## 版本发布
+
+```
+$ npm run docusaurus docs:version v1.x
+```
+
+它会自动从中英文的 current 目录拷贝出来一份新版本的文档目录。
