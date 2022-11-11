@@ -1,6 +1,6 @@
 # Overview
 
-This topic describes the architecture, components, and core concepts associated with Koordinator deployments to Kubernetes. Koordinator consists of two control planes ([Koordinator Scheduler](#koordinator-scheduler)/[Koordinator Manager](#koordinator-manager)) and one DaemonSet component ([Koordlet](#koordlet)). 
+This topic describes the architecture, components, and core concepts associated with Koordinator deployments to Kubernetes. Koordinator consists of two control planes ([Koordinator Scheduler](#koordinator-scheduler)/[Koordinator Manager](#koordinator-manager)) and one DaemonSet component ([Koordlet](#koordlet)).
 Koordinator adds co-location capabilities on top of the original kubernetes, and maintains the compatibility of the original kubernetes workloads.
 
 ![Architecture](/img/architecture.png)
