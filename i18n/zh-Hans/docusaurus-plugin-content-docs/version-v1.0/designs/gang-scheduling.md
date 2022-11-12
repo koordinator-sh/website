@@ -1,84 +1,69 @@
 # GangScheduling
 
-## Summary
-This proposal provides Gang mechanism for the scheduler to control pods binding opportunity. User can declare a resource-collection-minimum number, 
-only when assigned-resources reach the given limitation can trigger the binding. We provide `Strict` and `NonStrict` to 
-control the resource-accumulation-process by a configuration. We also provide a two-level Gang description for better matching 
-the real scenario, which is different from community.
+## 概览
+Koord-dscheduler 提供了 Gang Scheduling 满足 All-or-Nothing 调度需求。用户可以声明最小资源集合数（resource-collection-minimum），只有当已经完成调度资源数（assigned-resources）超过前面声明当前最小资源集合数才能触发节点绑定。
+同时提供 `Strict` 和 `NonStrict` 两个参数用于控制 resource-accumulation-process ，区别于其他社区方案将提供 two-level Gang 描述用于更好匹配真实场景。
 
-## Motivation
-In AI scenarios, lots of jobs need Gang scheduling. The community have lots of related implements such as `Coscheduling` or `vocalno`.
-We received lots of inspirations in the design process from them.
+## 动机
+在 AI 场景中很多任务都需要使用 Gang scheduling，社区已经有很多相关实现，比如 `Coscheduling` 、 `Vocalno`，设计过程中我们从社区项目中得到了很多灵感。
 
-### Compared with competitors
+### 竞品对标
 
 #### Coscheduling
-1. `Coscheduling` implement a new queue-sort interface and other methods to let one Gang's pods get out of the queue in order as much as possible.
-If a pod failed to be scheduled, the requests that have been successfully scheduled in this round of Gang scheduling cycle will be rolled back,
-and the remaining pods waiting for scheduling will be rejected in PreFilter check until this scheduling cycle passed. 
-For example, there is a Gang requires 10 tasks to be scheduled, if first 5 tasks allocated, the 6th task failed to be scheduled,
-`Coscheduling` will roll-back first 5 tasks and ignore the remaining 4 tasks in this Gang scheduling cycle. `Coscheduling` simply use a 
-global time interval to control the Gang scheduling cycle. The first defect is that the uniform time interval will cause 
-some problems. If the time configuration is too long, it will lead to useless waiting; If the time configuration is too short, 
-it will lead to useless scheduling. Secondly, it is very difficult for a large job to meet all resource requests at one time. 
-This mechanism will lead to a very low probability of full resources, and eventually make the job starve to death. We call this process as `Strict`.
+1. `Coscheduling` 主要通过实现新型队列排序（queue-sort）接口以及其他方法将一组 Gang pod 尽量有序得出队。
+  举个🌰 ，我们有 10 个任务需要进行 Gang 调度，前面 5 个任务已经调度成功，此时第 6 个任务调度失败，`Coscheduling` 将会回滚前面 5 个已经完成调度的任务，同时会跳过后面 4 个调度中的任务。
 
-2. Some jobs have complex Gang requirements. For example, a job has several roles. Each role will have several pods 
-and its own Gang conditions. Jobs also need different roles to form different GangGroups. All pods in a GangGroup can 
-trigger the bind process only after all roles in a GangGroup meet their Gang conditions. The `Coscheduling` can't meet
-this requirement.
+2. `Coscheduling` 会简单得使用一个全局间隔时间作为 Gang 调度周期。该设计会带来两个问题：
+   1. 问题一，如果配置间隔太长会带来无效等待，如果太短会带来无效调度。
+   2. 问题二，如果待调度分组任务很多，此时大概率会出现周期内无法完成调度，出现调度超时的情况。 
+   
+   对于上面的场景，我们的设计中称为 `Strict`，此场景下调度会严格按照既定配置的周期时间进行工作。
 
-### Goals
-1. Define API to announce Gang scheduling configuration.
+3. 有些任务需要复杂的 Gang 要求。例如，一个任务有几个规则，每个规则都有几个 pod 以及自身的 Gang 条件，任务也需要不同的规则来组成不同的 GangGroups。
+一个 GangGroup 中的所有 pod 只有在 GangGroup 中的所有规则都满足 Gang 条件后才触发绑定过程。`Coscheduling` 不能满足这个需求。
 
-2. Provides a scheduler plugin to achieve Gang scheduling ability.
+### 目标
+1. 定义 Gang 调度配置。
 
-### Non Goals and Future Work
-1. Provide ability to solve Gang resource deadlock problems with `NonStrict`.
+2. 提供调度器插件实现 Gang 调度。
 
-## Proposal
+### 非目标/未来工作
+1. 提供使用 `NonStrict` 解决 Gang 资源死锁问题的能力。
 
-### Key concept
+## 方案
 
-#### Strict and NonStrict
+### 核心概念
 
-As mentioned above, in `Strict`, if a pod failed to be scheduled, the pods that have been successfully scheduled in 
-this scheduling cycle will be rolled back, and the remaining pods waiting for scheduling will be rejected in 
-PreFilter check util this scheduling cycle passed. We call this mode is `Strict`.
+#### Strict / NonStrict
 
-In `NonStrict`, if a pod failed to be scheduled, it has no impact on any other pod. We will continue to accumulate 
-the allocated pod until the condition of Gang is met. This process is friendly to Gangs with large number of pods, but it 
-will increase the risk of resource deadlock between Gangs. For example, the quota of the quota group is 10(quota will be proposed later), 
-and the user submits three Gangs with 5 pods. Due to various plugin constraints, Gang1\2\3 may allocate resources of 3\3\4 respectively. 
-Since the quota group's quota is full, there will be no new resource scheduling. We call this is resource deadlock of resource Gang.
-In future proposal, we will try to fix this problem.
+`Strict` 模式，如果其中一个 pod 调度失败，当前调度周期内，其他已经调度成功的 pod 将会被取消调度，同时正在调度中的 pod 将会在 PreFilter 阶段被拒绝调度。
+
+`NonStrict` 模式，如果其中一个 pod 调度失败，并不会影响其他 pod 参与调度，会继续累计已经被调度的 pod 直到符合 Gang 调度条件。此模式对于 pod 比较多的情况比较友好，但是会增加不同 Gang 调度之间资源死锁的风险。
+> 举个🌰 ，如果当前资源配额为 10，此时用户提交三组 Gang 调度任务 pod 数都为 5，由于各种条件限制，Gang 调度 1/2/3 任务分别调度起来 pod 数量为 3/3/4，
+> 此时当前资源组配额已经耗尽，不会有新到 pod 完成调度，三组 Gang 调度任务就会一直出于等待状态，这就是上面说到到资源死锁情况，目前还没有这个问题。
 
 #### GangGroup
-As mentioned above, Some jobs have complex Gang requirements. For example, a job has several roles. Each role will have several pods 
-and its own Gang conditions. Jobs also need different roles to form different GangGroups. All pods in a GangGroup can 
-trigger the bind process only after all roles in a GangGroup meet their Gang conditions. So we introduce `GangGroup` concept,
-which allow user to bundle different Gangs together.
+
+`GangGroup`，有些任务需要复杂的 Gang 要求。例如，一个任务有几个规则，每个规则都有几个 pod 以及自身的 Gang 条件，任务也需要不同的规则来组成不同的 GangGroups。
+一个 GangGroup 中的所有 pod 只有在 GangGroup 中的所有规则都满足 Gang 条件后才触发绑定过程。`GangGroup` 则允许我们将不同 Gangs 进行聚合。
 
 #### After Gang
-It should be noted that, if the resource accumulation conditions of Gang are met, then some pods failed in the process of binding,
-or some bound pods are preempted\rescheduled, should the constraints of Gang still be effective in the process of resource reallocation? 
-Because the initial purpose of Gang is to require pods to be pulled up at the same time, if some pods have been pulled up, 
-then the subsequent Gang behavior is meaningless. Therefore, when once Gang has been satisfied, all subsequent resource allocations 
-are no longer constrained by Gang rules, and their performance is similar to ordinary pod.
 
-As mentioned above, `WaitTime` is the max wait time since first pod comes to permit stage. If `WaitTime` is timeout, 
-scheduler will roll back all assumed pods, update each pod's annotation with `gang.scheduling.koordinator.sh/timeout=true`, and
-won't schedule these pods anymore. User should pay attention to this status and delete pods timely.
+注意⚠️，如果满足 Gang 调度资源积累条件，随后一些 pod 在 binding 阶段失败，或者一些已经绑定的 pod 被抢占或者重新调度，这种情况下 Gang 的约束在资源重新分配过程中是否依然有效？
+
+答案：应该有效。因为 Gang 的设计初衷要求所有 pod 需要同时被拉起，如果只有其中一些 pod 被拉起，那么后续操作继续执行 Gang 调度策略将失去意义。因此，一旦 Gang 策略已经满足，后续所有的资源分配将不受 Gang 规则约束，后续将使用默认调度进行 pod 调度。
+
+#### WaitTime
+
+`WaitTime` 自第一个 pod 进入 permit 阶段依赖的最大等待时间。如果 `WaitTime` 已经超时，调度器将会回滚所有已经调度完成的 pod，并且更新所有 pod annotation `gang.scheduling.koordinator.sh/timeout=true`，调度器将不会再调度这些 pod。用户需要注意这种情况并及时删除此类 pod。
 
 ### API
-#### Definition
+#### 定义
 
-Our original intention is to improve and enhance the ability of the community's original `PodGroup`, so we will be 
-compatible with the way the community declares the `PodGroup`. We also provide a lighting way to just use annotations to 
-use Gang feature.
+我们设计的初衷是优化以及增强社区原有的 `PodGroup` 能力，所以我们的 `PodGroup` 定义会兼容社区设计。我们会提供通过使用更新 annotation 方式使用 Gang 调度特性。
 
-#### CRD way
-User can use `PodGroup` CRD in community to declare a gang:
+#### CRD 方式
+用户可以使用社区 `PodGroup` CRD 声明 Gang：
 ```go
 type PodGroup struct {
     metav1.TypeMeta `json:",inline"`
@@ -93,29 +78,26 @@ type PodGroupSpec struct {
     ScheduleTimeoutSeconds *int32 `json:"scheduleTimeoutSeconds,omitempty"`
 }
 ```
-Pod should use `pod-group.scheduling.sigs.k8s.io` in label to associate with `PodGroup`.
+Pod 需要添加 label `pod-group.scheduling.sigs.k8s.io` 来关联 `PodGroup` 配置。
 
-Also, we introduce some optional definitions as below:
+同时，我们也可以使用以下可选配置：
 ```yaml
 gang.scheduling.koordinator.sh/total-number
 gang.scheduling.koordinator.sh/mode        
 gang.scheduling.koordinator.sh/groups
 ```
-- `gang.scheduling.koordinator.sh/name` indicates the gang's name, it should be emphasized that the name should be in the form of RFC 1123 
+- `gang.scheduling.koordinator.sh/name` 配置 Gang 调度器名称, 名称需要符合 RFC 1123 规范。
 
-- `gang.scheduling.koordinator.sh/total-number` helps to calculate Gang scheduling cycle in `strict mode`, you can 
-find more detail in `Data-Structure` chapter. Default equals to `gang.scheduling.koordinator.sh/min-available`.
+- `gang.scheduling.koordinator.sh/total-number` 当前配置仅作用于 `Strict` 模式， 详情请参考 `Data-Structure` 部分。默认与 `gang.scheduling.koordinator.sh/min-available` 一致。
 
-- `gang.scheduling.koordinator.sh/mode` determines `Strict` or `NonStrict`. Default is `Strict`.
+- `gang.scheduling.koordinator.sh/mode` 选项 `Strict` 或者 `NonStrict`。 默认配置为 `Strict`。
 
-- `gang.scheduling.koordinator.sh/groups` describes GangGroups. Default is empty, which means don't need to form a `GangGroup` with others,
-and the gangs in one gangGroup can from different namespaces.
+- `gang.scheduling.koordinator.sh/groups` 用于配置 GangGroups 名称。默认为空，表示不需要与其他资源合并到 GangGroups，同一个 GangGroups 的 Gangs 可以来自于不同的 namespace。
 
-`gang.scheduling.koordinator.sh/total-number`, `gang.scheduling.koordinator.sh/mode`, `gang.scheduling.koordinator.sh/gang-groups` should be found in
-`PodGroup`'s annotation if needed.
+`PodGroup` annotation 可以包含 `gang.scheduling.koordinator.sh/total-number`， `gang.scheduling.koordinator.sh/mode`， `gang.scheduling.koordinator.sh/gang-groups`。
 
-##### Example
-When user apply a basic gang, the example is as follows:
+##### 示例
+基础 Gang 调度配置如下:
 ```yaml
 apiVersion: v1alpha1
 kind: PodGroup
@@ -131,8 +113,7 @@ spec:
   scheduleTimeoutSeconds: 600
 ```
 
-Let's assume a job has two roles: A and B, each role has several pods. podA belongs to roleA, podB belongs to roleB.
-roleA and roleB belongs to one GangGroup, the example is as follows:
+创建一个任务包含两个策略：A 和 B，每个策略包含一些 pod。PodA 属于 roleA，PodB 属于 roleB。roleA、roleB 归属于同一个 GangGroup，示例如下：
 ```yaml
 apiVersion: v1alpha1
 kind: PodGroup
@@ -152,21 +133,20 @@ spec:
   scheduleTimeoutSeconds: 600
 ```
 
-It should be noted that, if use Gang feature by `CRD way`, user should let high level operator maintain Gang CRD life circle 
-like handling `update/create/delete` events. Also, from a Scheduler perspective, scheduler should handle receive-order-issue's 
-between Gang CRD and pod. For example, if pods arrive to scheduler before Gang CRD, we have to build a fake Gang data structure 
-temporarily to collect all related pods, and need to suspend the scheduling of pods until parse the configuration from real Gang CRD.
+注意：如果用户使用 `CRD way`，需要集群管理员提前将 PodGroup 策略部署到集群，否则会出现带有 Gang 配置的 Pod 进行调度时，找不到对应的 Gang 策略 PodGroup 配置。
+此外，从调度的角度来看，调度应该处理 Gang CRD 和 Pod 之间的任务顺序问题。 例如，如果 Pod 在 Gang CRD 之前到达调度，我们必须构建一个假 Gang 数据结构
+临时收集所有相关的 Pod，需要暂停 Pod 的调度，直到从真正的 Gang CRD 解析配置。
 
-#### Annotation way
+#### Annotation 方式
 ```yaml
 gang.scheduling.koordinator.sh/name           
 gang.scheduling.koordinator.sh/min-available
 ```
 
-The upper definitions are indispensable. We are compatible with `pod-group.scheduling.sigs.k8s.io`, `pod-group.scheduling.sigs.k8s.io/name` 
-and `pod-group.scheduling.sigs.k8s.io/min-available` in community. We also support new definitions to declare Gang's name and minimum number.
+以上配置为必填，同时我们兼容社区 annotation `pod-group.scheduling.sigs.k8s.io`， `pod-group.scheduling.sigs.k8s.io/name`以及 `pod-group.scheduling.sigs.k8s.io/min-available` 。
 
-Also, we introduce some optional definitions as below, most are mentioned above:
+
+此外，我们还支持以下可选配置：
 ```yaml
 gang.scheduling.koordinator.sh/waiting-time
 gang.scheduling.koordinator.sh/total-number
@@ -174,20 +154,18 @@ gang.scheduling.koordinator.sh/mode
 gang.scheduling.koordinator.sh/groups
 ```
 
-- `gang.scheduling.koordinator.sh/waiting-time` represents max wait time since first pod comes to permit stage. Default is a global config.
+- `gang.scheduling.koordinator.sh/waiting-time` 自第一个 pod 进入 permit 阶段依赖的最大等待时间。默认值可以在全局配置中设置。
 
-- `gang.scheduling.koordinator.sh/total-number` helps to calculate Gang scheduling cycle in `strict mode`, you can 
-find more detail in `Data-Structure` chapter. Default equals to `gang.scheduling.koordinator.sh/min-available`.
+- `gang.scheduling.koordinator.sh/total-number` 当前配置仅作用于 `Strict` 模式， 详情请参考 `Data-Structure` 部分。默认与 `gang.scheduling.koordinator.sh/min-available` 一致。
 
-- `gang.scheduling.koordinator.sh/mode` determines `Strict` or `NonStrict`. Default is `Strict`.
+- `gang.scheduling.koordinator.sh/mode` 选项 `Strict` 或者 `NonStrict`。 默认配置为 `Strict`。
 
-- `gang.scheduling.koordinator.sh/groups` describes GangGroups. Default is empty, which means don't need to form a `GangGroup` with others.
+- `gang.scheduling.koordinator.sh/groups` 用于配置 GangGroups 名称。默认为空，表示不需要与其他资源合并到 GangGroups，同一个 GangGroups 的 Gangs 可以来自于不同的 namespace。
 
-It should be noted that, the annotation mode's parameter will overwrite CRD's mode if both exist.
-And gangGroup should be announced with " gangNamespace" + "/" + "gangName "
+注意⚠️，如果同时通过 CRD 和 annotation 方式进行配置，该 annotation 配置将会覆盖 CRD 配置。同时， GangGroup 名称格式为 " gangNamespace" + "/" + "gangName "
 
-##### Example
-When user apply a basic gang, the example is as follows:
+##### 示例
+基础 Gang 调度配置如下:
 ```yaml
 metadata:
    annotations:
@@ -195,8 +173,7 @@ metadata:
     gang.scheduling.koordinator.sh/min-available: 5
 ```
 
-Let's assume a job has two roles: A and B, each role has several pods. PodA belongs to roleA, podB belongs to roleB.
-roleA and roleB belongs to one GangGroup, the example is as follows:
+创建一个任务包含两个策略：A 和 B，每个策略包含一些 Pod。PodA 属于 roleA，PodB 属于 roleB。roleA、roleB 归属于同一个 GangGroup，示例如下：
 ```yaml
 metadata:
    annotations:
@@ -216,8 +193,7 @@ metadata:
      gang.scheduling.koordinator.sh/groups: ["namespaceA/gang-a", "namespaceB/gang-b"]
 ```
 
-Assuming a job has two roles: A and B, each role has several pods. podA belongs to roleA, podB belongs to roleB.
-roleA and roleB belongs to different GangGroup, the example as follows:
+创建一个任务包含两个策略：A 和 B，每个策略包含一些 Pod。PodA 属于 roleA，PodB 属于 roleB。roleA、roleB 归属于不同 GangGroup，示例如下：
 ```yaml
 metadata:
   annotations:
@@ -237,20 +213,16 @@ metadata:
      gang.scheduling.koordinator.sh/groups: ""
 ```
 
-### Implementation Details
-#### QueueSortPlugin
+### 详细设计
+#### QueueSortPlugin 
 
-We design an independent plugin to implement the `QueueSort` extension point separately, so that we can integrate 
-queue sort logic of all plugins, and register them at one time.
+我们单独设计调度器插件用于实现 `QueueSort` 拓展点，这样就可以将队列排序逻辑集成到所有插件，并且只需要注册一次。
 
-In this proposal, we implement the Less function to gather pods belong to same Gang. The specific queuing rule is:
+当前方案中，我们实现 Less 方法汇总属于相同 Gang 的 pod。具体排序规则为：
 
-1. Firstly, compare the priorities of the two pods, the higher priority is at the front of the queue.
-
-2. Secondly, compare creationTimestamp of two pods, if pod belongs to a Gang, then we compare creationTimestamp of the Gang, 
-the one created first will be at the front of the queue.
-
-3. Finally, compare pod's namespace, if pod belongs to a Gang, then we compare Gang name. 
+1. 比较两个 pod 的优先级配置，优先级越高的 pod 优先入队。
+2. 比较两个 pod 的创建时间戳，如果 pod 归属于同一个 Gang 配置，我们比较 Gang 配置创建时间，谁先创建则优先入队。
+3. 比较 pod 的 namespace，如果 pod 归属某一个 Gang 配置，则比较 Gang 名称。
 
 ```go
 type QueueSortPlugin interface{
@@ -279,28 +251,25 @@ type Gang struct {
 }
 ```
 
-We design the Gang to record Gang status in scheduler memory. We can get the children pods from "Children" field, and the 
-`BoundChildren, WaitingForBindChildren` store the pods binding status, which is used to check if the pods can pass permit stage.
+Gang，用于记录 Gang 调度状态到调度器缓存。
 
-Once Permit stage passed, we will set `ResourceSatisfied=true`, as mentioned above in `After Gang` chapter, this variable is
-used for judging whether gang has been satisfied. when handle failover case, if any pod in Gang has been bound, we set `ResourceSatisfied=true`.
+- `Children`，用于记录归属于当前 Gang 的 pod 列表。
+- `BoundChildren`，`WaitingForBindChildren` 用于记录已经出于 binding 状态的 pod，用于检查 pod 是否已经通过 permit 阶段。
+- `ResourceSatisfied`，用于标记当前 pod 是否通过调度 Permit 阶段，如果通过则为 true。该字段主要用于判断当前 Gang 调度是否满足条件。
+- `scheduleCycle`，`childrenScheduleRoundMap`，前面两个字段主要用于控制 Gang 调度周期。
+> 举个🌰 ，调度伊始 `scheduleCycle` 字段为 1，`childrenScheduleRoundMap` 中所有 pod 值为 0。
+> 所有 pod 进入 PreFilter 阶段时，将会判断 `childrenScheduleRoundMap` 中 pod 值是否小于 `scheduleCycle` 值；
+> 如果上一步校验通过，则将 `childrenScheduleRoundMap` 值设置为 `scheduleCycle` 的值，并通过当前校验；
+> 反之则说明当前 pod 在本轮调度周期内已经完成调度，需要拒绝本次调度。
+> 根据 `totalChildrenNum` 字段，当所有 pod 都通过 PreFilter 阶段，说明当前调度周期所有 pod 已经完成调度，`scheduleCycle` 需要累加 1，说明开启新一轮调度周期。
+- `scheduleCycleValid`，当前 Gang 中任意 pod 在 Filter 阶段失败，scheduleCycleValid 将设置为 true，只有所有 pod 全部通过 Filter 阶段，该字段才会设置为 true。
+  `scheduleCycleValid=false` 此场景下所有 pod 将不会进行调度，同时所有调度中都 pod 将被在 PreFilter 阶段被拒绝，当新一轮调度周期开启时，`scheduleCycleValid` 才会被设置为 true。
 
-We especially explain `scheduleCycle` and `childrenScheduleRoundMap` field. These fields control Gang's scheduling cycle. For example,
-at the beginning, `scheduleCycle` is 1, and each pod's cycle in `childrenScheduleRoundMap` is 0. When each pod comes to PreFilter, 
-we will check if the pod's value in `childrenScheduleRoundMap` is smaller than Gang's `scheduleCycle`, If result is positive, 
-we set the pod's cycle in `childrenScheduleRoundMap` equal with `scheduleCycle` and pass the check. If result is negative, means
-the pod has been scheduled in this cycle, so we should reject it. With `totalChildrenNum`'s help, when the last pod comes to make all 
-`childrenScheduleRoundMap`'s values equal to `scheduleCycle`, Gang's `scheduleCycle` will be added by 1, which means a new schedule cycle.
-
-We continue to explain `scheduleCycleValid` field, during the scheduling,  When a pod failed at Filter stage, we will set ScheduleCycleValid to 
-false in PostFilter stage, which means any pod in this Gang shouldn't be scheduled until it is set to "true",
-and the remaining pods should be rejected in PreFilter stage. Only When `scheduleCycle` added by 1, we will reset the `scheduleCycleValid` to true.
-
-It should be emphasized that `scheduleCycle\scheduleCycleValid\childrenScheduleRoundMap` only work in `Strict`. 
+注意⚠️ ，`scheduleCycle\scheduleCycleValid\childrenScheduleRoundMap` 仅作用于 `Strict` 模式。
 
 ##### GangPlugin
 
-this is the framework of the Plugin,we cache the Gang info above in the gangCache.
+在调度器框架 Plugin 结构提基础上，增加 gangCache 用于缓存 Gang 信息。
 ```go
 type GangPlugin struct {
     frameworkHandler            framework.Handle
@@ -310,7 +279,7 @@ type GangPlugin struct {
     gangCache                   map[string]*Gang
 }
 ```
-during the whole kubernetes shceduling process,we only need to realize our logic into four extention points as below:
+当启动 kubernetes 调度器时，我们仅需要将我们当逻辑挂载到以下 4 个扩展点：
 ```go
 var(
 	_ framework.PreFilterPlugin = &GangScheduling{}
@@ -328,58 +297,51 @@ type GangScheduling interface{
 ```
 ###### **PreFilter**
 
-if `NonStrict`, we only do step1 and step2:
+`NonStrict` 模式，我们仅处理 步骤一和二：
 
-- Check whether childes in Gang has met the requirements of minimum number under each Gang, and reject the pod if negative.
+- 校验 Gang 下包含所有 pod 是否符合最小数，如果不符合则拒绝当前 pod。
 
-- Check whether the Gang has been timeout(check the pod's annotation,later introduced at Permit section), and reject the pod if positive.
-
-- Check whether the Gang has met the `scheduleCycleValid` check, and reject the pod if negative.
-
-- Try update `scheduleCycle`, `scheduleCycleValid`, `childrenScheduleRoundMap` as mentioned above.
-
+- 校验 Gang 是否超时，如果超时则拒绝当前 pod。
+  
+- 校验 Gang scheduleCycleValid 字段是否为 true，如果为 false 则拒绝当前 pod。
+  
+- 尝试更新 `scheduleCycle`， `scheduleCycleValid`， `childrenScheduleRoundMap` 字段。
 
 ###### **PostFilter**
 
-At this point means the pod didn't pass the Filter Plugin, we should:
+到达当前阶段说明 pod 没有通过 Filter 校验，操作如下：
 
-- If `Strict`, we will set `scheduleCycleValid` to false and release all assumed pods.
+- 如果 `Strict` 模式，设置 `scheduleCycleValid` 字段为 false，同时释放所有已经完成调度的 pod。
 
-- If `NonStrict`, we will do nothing.
+- 如果 `NonStrict` 模式则不做任何操作。
 
 ###### **Permit**
 
-Any pod passes Filter stage will come to this stage. Scheduler will calculate all Gangs in GangGroup whether the current 
-number of assumed-pods in each Gang meets the Gang's minimum requirement.
+到达当前阶段说明 pod 已经通过 Filter 校验，调度器插件将会计算 GangGroup 下所有 Gang 已经完成调度 pod 数量是否满足 Gang 最小值。
 
-- If Gang don't meet the bind-condition, we will give the pod a "Wait" Status with a timeout duration, and the bind 
-goroutine will keep waiting until the wait is timeout or passed. Then we will run the `ActiveGang` method, it can put all 
-the pods belong to the Gang which in `schedulableQueue` or `backoffQueue` back to `activeQueue`, so that the pod of Gang 
-can be continuously scheduled as much as possible. 
+- 如果 Gang 不符合 bind 条件，我们会将 pod 状态修改为 "Wait" 并配置超时时间，同时 bind 协程一直保持等待直到超时或者通过校验。
+  随后，我们会执行 `ActiveGang` 操作，该操作会将归属于 Gang 的 pod 从 `schedulableQueue` 或者 `backoffQueue` 队列中迁移到 `activeQueue` 队列，
+  如此操作之后，pod 将会被尽快尽享调度。
 
-It should be noted that, in community, scheduler limit maximum timeout value under 15 min, we may need to hook RunPermitPlugins 
-to enlarge the timeout when 15 minutes is not enough. Now we record as a known-issue.
+> 注意⚠️ ，社区调度器中，调度周期最长不能超过 15 分钟，我们则需要通过改写 RunPermitPlugins 将调度周期配置超过 15 分钟。
 
-- If Gang meet the bind-condition, we will give every waiting pod a "Success" status, which will let the bind goroutine of
-each pod leave the waiting status and continue to run. Also, as mentioned above, we will set Gang's `ResourceSatisfied` to true.
+- 如果 Gang 符合 bind 条件，我们将等待中 pod 状态修改为 "Success"，此时 bind 协程将结束等待并执行后续操作，并将 Gang 对象中 `ResourceSatisfied` 设置为 true。
 
 ###### **Un-reserve**
 
-Both permit stage is timeout and binding failed will lead the pod to un-reserve stage, we can distinguish from Gang's "ResourceSatisfied" field,
-if the field is true means binding failed, else means the Gang is timeout.
+如果 permit 阶段超时且 binding 阶段失败，此时调度阶段将会流转到 un-reserve 阶段，我们通过 Gang 对象中 `ResourceSatisfied` 值判断，如果此时值为 true 说明 binding 阶段失败，反之则说明 Gang 超时。
 
-- When permit stage is timeout, we will give an annotation like `gang.scheduling.koordinator.sh/timeout=true` to all the pods 
-belong to the Gang and will release the resource of all the assumed pods. The Gang will not be scheduled anymore, 
-user should manually handle the timeout event.
+- 如果 permit 阶段超时，我们将在所有 Gang 下所有 pod annotation 中增加 `gang.scheduling.koordinator.sh/timeout=true`，同时释放所有已经调度成功的 pod。
+  此时，Gang 下所有 pod 将永远不会再进行调度，用户需要手动处理 permit 超时问题。
 
-- When binding failed, as mentioned above, the collection of Gang's resource is over, we will do nothing except roll back
-the failed pod resource.
+- 如果 binding 阶段失败，Gang 资源累计操作将会结束，随后会回滚所有失败的 pod 。
 
 ###### **Init**
 
-We will register pod's event handler to watch pod event for updating Gang.
+我们将 watch pod 事件，并根据事件类型持续更新 Gang。
 
-## Unsolved Problems
+## 未解问题
 
-## Alternatives
-User can choose use Gang by `Strict` and `NonStrict` case by case.
+## 可选性
+
+用户可以根据具体场景选择使用 Gang `Strict` 或者 `NonStrict` 模式。
