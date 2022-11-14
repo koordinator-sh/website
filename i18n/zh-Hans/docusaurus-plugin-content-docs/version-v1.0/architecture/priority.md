@@ -1,32 +1,33 @@
-# Priority
+# 优先级
 
-Koordinator defines a set of specifications on top of kubernetes priority class, and extends a dimension of priority to support fine-grained colocation.
+Koordinator 在 Kubernetes 优先级类型的基础上定义了一套规范，并扩展了优先级的一个维度以对混部场景的细粒度支持。
 
-## Definition
+## 定义
 
-Priority is represented by numbers, and four classes are currently defined:
+优先级用数字表示，目前定义了四个类:
 
-PriorityClass |	Priority Ranges |	 Description
------ |   -----------   |  --------   
-koord-prod  |	[9000, 9999]	| Selling requires planning resources quota in advance, and success is guaranteed within quota
-koord-mid	  | [7000, 7099]	| Selling requires planning resources quota in advance, and success is guaranteed within quota
-koord-batch | [5000, 5999]	| Selling requires planning resources quota in advance, and quota borrowing is allowed generally
-koord-free  | [3000, 3999]	| Resource quota is not guaranteed, and the total allocatable resource depends on the total idle resources of the cluster
+PriorityClass|优先级范围|描述
+----- | ----------- | --------
+koord-prod | [9000, 9999] | 需要提前规划资源配额，并且保证在配额内成功。
+koord-mid  | [7000, 7099]  | 需要提前规划资源配额，并且保证在配额内成功。
+koord-batch | [5000, 5999] | 需要提前规划资源配额，一般允许借用配额。
+koord-free | [3000, 3999] | 不保证资源配额，可分配的资源总量取决于集群的总闲置资源。
 
-There is some white space between PriorityClass to support possible future extensions.
+PriorityClass 目前留有一些暂未使用的区间，以支持未来可能的扩展。
 
+## 约束
 
-## Constraints
+Koordinator 将不同类型的工作负载匹配到不同的优先级:
 
-Koordinator matches different types of workloads to different priorities:
-- koord-prod, running typical latency sensitive services, generally referring to types of services that require a "real-time" response, such as a typical service called by clicking a button in the mobile APP.
-- koord-mid, corresponding to the available resources estimated by the appeal long-term reservation, typically used to run some real-time computing, AI training jobs, such as tensorflow/pytorch, etc.
-- koord-batch, corresponding to the available resources estimated by the appeal short-term reservation, run typical offline batch jobs, generally referring to offline analysis type jobs, such as day-level big data reports, non-interactive SQL queries.
-- koord-free, run low-priority offline batch jobs, generally refers to not making resource budgets, using idle resources to complete as much as possible, such as developers submitting a job for testing purposes.
+- koord-prod，运行典型的延迟敏感型服务，一般是指需要 "实时 "响应的服务类型，比如通过点击移动APP中的按钮调用的典型服务。
+- koord-mid，对应于长周期的可用资源，一般用于运行一些实时计算、人工智能训练任务/作业，如 tensorflow/pytorch 等。
+- koord-batch，对应于的短周期可用资源，运行典型的离线批处理作业，一般指离线分析类作业，如日级大数据报告、非交互式 SQL 查询。
+- koord-free，运行低优先级的离线批处理作业，一般指不做资源预算，利用闲置资源尽量完成，如开发人员为测试目提交的作业。
 
-## Koordinator Priority vs. Kubernetes Priority
+## Koordinator 优先级与 Kubernetes优先级的对比
 
-Koordinator initializes four PriorityClasses in the kubernetes cluster:
+Koordinator 在 Kubernetes 集群中部署时会初始化这四个 PriorityClass。
+
 ```
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
@@ -57,11 +58,11 @@ value: 3000
 description: "This priority class should be used for free service pods only."
 ```
 
-Inside each PriorityClass, Koordinator allows users to set Pod colocation priorities for fine-grained resource scheduling.
+在每个 PriorityClass 内，Koordinator 允许用户为精细化资源调度设置混部 Pod 的优先级。
 
-## Examples
+## 示例
 
-The following YAML is an example of a Pod configuration that uses the PriorityClass and Priority created in the preceding example.
+下面的 YAML 是一个 Pod 配置的例子，它使用了前面例子中创建的 PriorityClass 和优先级。
 
 ```
 apiVersion: v1
@@ -79,9 +80,9 @@ spec:
   priorityClassName: koord-batch
 ```
 
-## What's Next
+## 下一步是什么
 
-Here are some recommended next steps:
+以下是推荐下一步阅读的内容:
 
-- Learn Koordinator's [Resource Model](./resource-model).
-- Learn Koordinator's [QoS](./qos).
+- 学习 Koordinator 的[资源模型](./resource-model)。
+- 学习 Koordinator 的[QoS](./qos)。
