@@ -2,53 +2,50 @@
 sidebar_position: 1
 ---
 
-# Colocation of Spark Jobs
-Apache Spark is an analysis engine for large-scale data processing, which is widely used in Big Data, SQL Analysis and Machine Learning scenarios. This tutorial provides a quick practice guide about running Spark jobs in colocation mode with other latency sensitive applications by Koordinator, which is helpful for improving cluster resource utilization. For more details about how to use, compose, and work with Koordinator colocation, please refer to the [Introduction](../)
-
-## Requirements
-### Koordinator Components
-Before submitting Spark jobs as colocate mode, you need to ensure all Koordinator components have already been successfully installed. Please follow the step in [Installation](../installation) guide.
-
-### Install Kubernetes Operator for Apache Spark 
-To simplify running of Spark jobs in Cluster, we import the Kubernetes Operator for Apache Spark in this practice, which uses Kubernetes custom resource for managing Spark applications.
-
-With the help of Helm [chart](https://github.com/koordinator-sh/koordinator/tree/main/examples/spark-operator-chart), Kubernetes Operator for Apache Spark can be easily installed using the command below.
+# Spark任务混部
+Apache Spark是一个被广泛应用在大数据、SQL分析和机器学习场景下的大规模数据处理的分析引擎。本教程提供了在Koordinator的混部模式下Spark任务和延迟敏感性的应用服务快速的实践操作说明，帮助提高集群资源的利用率。更多使用、编写和Koordinator混部方面的细节，请参阅[简介](../)。
+## 需求
+### Koordinator 组件
+在混部的模块下提交Spark任务，需要确保所有的Koordinator 组件都已经成功的安装完成。请跟随安装指引[Installation](../installation)的步骤操作。
+### 为Apache Spark安装Kubernetes Operator
+为了简化在集群中运行Spark任务，我们在本次实践中采用基于Kubernetes上自定义资源的Operator来管理Spark的应用程序。
+通过Helm [chart](https://github.com/koordinator-sh/koordinator/tree/main/examples/spark-operator-chart)的帮助，Apache Spark在Kubernetes上的Operator可以采用如下命令很简单的完成安装。
 ```
 $ helm install koord-spark-operator ./spark-operator-chart/ --namespace spark-operator
 ```
 
-Installing the chart will create a namespace `spark-operator` and if doesn't exist, besides, helm will create a spark-operator Deployment and set up RBAC role for it. After the installation, you should see the operator in running successfully by checking the status of helm release.
+安装过程中chart会在集群中创建一个namespace为`spark-operator`的命名空间（如果集群中不存在该命名空间），此外helm还将会为其创建一个spark-operator的Deployment资源以及设置配套的RBAC role。在安装完成之后，你应该可以通过helm的状态命令检查到该operator发布成功运行的信息。
 ```
 $ helm status --namespace spark-operator koord-spark-operator
 ```
 
-## Run Spark Applications with Koordinator
-Due to the mechanism that Spark driver pod needs a Kubernetes service account to manage executor pods, the service account must be authorized with appropriate permissions. Run the following command to create namespace `spark-demo` and service account `spark` before submitting jobs.
+## 在Koordinator中运行Spark应用程序
+由于机制要求，Spark operator需要拥有Kubernetes的相应权限的service account来进行pod的生命周期操作。在提交任务之前，运行如下的命令创建名为`spark-demo`的namespace和service account为`spark`的资源。
 ```
 $ kubectl apply -f examples/spark-jobs/service-account.yaml
 ```
 
-Next, run the following command to create Colocation Profile so that all pods submitted following in namespace `spark-demo` will run in colocation mode. See this [tutorial](../user-manuals/colocation-profile) to learn more about Colocation Profile.
+接下来，运行如下的命令来创建混部的配置文件资源，所有提交在`spark-demo`的namespace空间的pod都会运行在混部的模式下。如果想更多了解混部配置，可以参考本教程中有关该部分的介绍。
 ```
 $ kubectl apply -f examples/spark-jobs/cluster-colocation-profile.yaml
 ```
 
-Submit a Spark TC example job to namespace `spark-demo` with the command:
+提交一个Spark TC实例的job到命名空间为spark-demo的命令如下：
 ```
 $ kubectl apply -f examples/spark-jobs/spark-tc-complex.yaml
 ```
 
-Then, check the status of Spark application by running the following command.
+随后，检查Spark TC实例应用程序的运行状态的命令如下：
 ```
 $ kubectl get sparkapplication -n spark-demo spark-tc-complex
 ```
 
-This will show similar content as following:
+之后将会展示类似的内容如下：
 ```
 NAME                      STATUS      ATTEMPTS   START                    FINISH                 AGE
 spark-tc-complex          RUNNING     1          2022-03-30T09:11:22Z     <no value>             14s
 ```
-Now, all pods submitted to namespace `spark-demo` will be switched to colocation mode, check spark-driver pod as below for example. We can see the protocols like`koordinator.sh/qosClass: BE` and `kubernetes.io/batch-cpu` are successfully injected to pod by Colocation Profile.
+现在，所有被提交到命名空间`spark-demo`的pod将会被切换到混部的模式，采用如下方式检查spark-driver实例的pod。我们可以看到`koordinator.sh/qosClass: BE` 和`kubernetes.io/batch-cpu` 的内容是从混部的配置文件中成功的注入到pod内的值。
 ```
 apiVersion: v1
 kind: Pod
@@ -76,10 +73,10 @@ spec:
   ...
 ```
 
-## Evaluation
-With the help of Koordinator, when pods resource usage is idle, resources already requested can be reallocated to other colocation pods by the overcommitment model, which can significantly improve the resource utilization of cluster.
+## 评估效果
+在Koordinator的帮助下，当pod资源使用空闲，在overcommitment模式下已经被请求分配的资源会被重新分配，这种方式可以显著的提升集群的资源利用率。
 
-In our experiment environment, before the Spark job submitted, we can see the cluster allocatable resources run out while the actual resource usage is in low level.
+在我们的集群环境中，可以看到在Spark任务被提交之前集群可分配的资源耗尽了，但是实际资源使用率处于较低的水平。
 ```
 $ kubectl describe node
     Allocated resources:
@@ -92,7 +89,7 @@ $ kubectl top node
     cn-hangzhou.your-node-2   		1620m         			20.25%
 ```
 
-After submit the Spark job in colocation mode, those unused resources will be reallocated through `batch priority` to Spark pods, so that we can make the cluster a higher utilization level.
+在混部模式下提交Spark任务，这些未被使用的资源将会通过`batch priority`批处理任务优先级被重新分配给Spark的任务，如此我们可以使集群达到更高的资源利用率水平。
 ```
 $ kubectl top node
 NAME                      		CPU(cores)   		    CPU%
