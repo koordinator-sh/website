@@ -14,6 +14,10 @@ LSR(Latency Sensitive Reserved) | 预留资源以获得更好的确定性 | 类�
 LS(Latency Sensitive) | 共享资源，对突发流量有更好的弹性 | 微服务工作负载的典型QoS级别，实现更好的资源弹性和更灵活的资源调整能力
 BE(Best Effort) | 共享不包括 LSE 的资源，资源运行质量有限，甚至在极端情况下被杀死 | 批量作业的典型 QoS 水平，在一定时期内稳定的计算吞吐量，低成本资源
 
+## QoS CPU 编排隔离与共享
+
+![img](/img/qos-cpu-orchestration.png)
+
 ## Koordinator QoS与 Kubernetes QoS 的对比
 
 从[定义](#定义)部分可以看出，Koordinator 的 QoS 比 Kubernetes 的 QoS 更复杂，因为在混部场景下，我们需要对延迟敏感的工作负载的 QoS 进行微调，以满足混部时性能的需求。

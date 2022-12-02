@@ -60,20 +60,22 @@ As the application scaling or rolling deployment, the best-fit allocatable space
 
 1. Only supports the CPU allocation mechanism of the Pod dimension.
 1. Koordinator divides the CPU on the machine into `CPU Shared Pool`, `statically exclusive CPUs` and `BE CPU Shared Pool`. 
-    1. The `CPU Shared Pool` is the set of CPUs on which any containers in `K8s Burstable` and `Koordinator LSE` Pods run. Containers in `K8s Guaranteed` pods with `fractional CPU requests` also run on CPUs in the shared pool. The shared pool contains all unallocated CPUs in the node but excluding CPUs allocated by K8s Guaranteed, LSE and LSR Pods. If kubelet reserved CPUs, the shared pool includes the reserved CPUs. 
+    1. The `CPU Shared Pool` is the set of CPUs on which any containers in `K8s Burstable` and `Koordinator LS` Pods run. Containers in `K8s Guaranteed` pods with `fractional CPU requests` also run on CPUs in the shared pool. The shared pool contains all unallocated CPUs in the node but excluding CPUs allocated by K8s Guaranteed, LSE and LSR Pods. If kubelet reserved CPUs, the shared pool includes the reserved CPUs. 
     1. The `statically exclusive CPUs` are the set of CPUs on which any containers in `K8s Guaranteed`, `Koordinator LSE` and `LSR` Pods that have integer CPU run. When K8s Guaranteed, LSE and LSR Pods request CPU, koord-scheduler will be allocated from the `CPU Shared Pool`.
-    1. The `BE CPU Shared pool` is the set of CPUs on which any containers in `K8s BestEffort` and `Koordinator BE` Pods run. The `BE CPU Shared Pool` contains all CPUs in the node but excluding CPUs allocated by K8s Guaranteed and Koordinator Pods.
+    1. The `BE CPU Shared pool` is the set of CPUs on which any containers in `K8s BestEffort` and `Koordinator BE` Pods run. The `BE CPU Shared Pool` contains all CPUs in the node but excluding CPUs allocated by `K8s Guaranteed` and `Koordinator LSE` Pods.
 
 ### Koordinator QoS CPU orchestration principles
 
-1. The Request and Limit of LSE/LSR Pods **MUST BE** equal and the CPU value **MUST BE** an integer multiple of 1000.
-1. The CPUs allocated by the LSE Pod are completely **exclusive** and **MUST NOT BE** shared. If the node is hyper-threading architecture, only the logical core dimension is guaranteed to be isolated, but better isolation can be obtained through the `CPUBindPolicyFullPCPUs` policy.
+1. The Request and Limit of LSE/LSR Pods **MUST** be equal and the CPU value **MUST** be an integer multiple of 1000.
+1. The CPUs allocated by the LSE Pod are completely **exclusive** and **MUST NOT** be shared. If the node is hyper-threading architecture, only the logical core dimension is guaranteed to be isolated, but better isolation can be obtained through the `CPUBindPolicyFullPCPUs` policy.
 1. The CPUs allocated by the LSR Pod only can be shared with BE Pods.
-1. LS Pods bind the CPU shared pool that is **exclusive** with LSE/LSR Pods.
-1. BE Pods bind all CPUs in the node **exclusive** with LSE Pods.
+1. LS Pods bind the CPU shared pool, **excluding** CPUs allocated by LSE/LSR Pods.
+1. BE Pods bind all CPUs in the node, **excluding** CPUs allocated by LSE Pods.
 1. The K8s Guaranteed Pods already running is equivalent to Koordinator LSR if kubelet enables the CPU manager `static` policy.
 1. The K8s Guaranteed Pods already running is equivalent to Koordinator LS if kubelet enables the CPU manager `none` policy.
 1. Newly created K8s Guaranteed Pod without Koordinator QoS specified will be treated as LS.
+
+![img](/img/qos-cpu-orchestration.png)
 
 ### Compatible kubelet CPU management policies
 
@@ -82,7 +84,7 @@ As the application scaling or rolling deployment, the best-fit allocatable space
 
 ### Take over kubelet CPU management policies
 
-Because the CPU reserved by kubelet mainly serves K8s BestEffort and Burstable Pods. But Koordinator will not follow the policy. The K8s Burstable Pods should use the CPU Shared Pool, and the K8s BestEffort Pods should use the `BE CPU Shared Pool`. The Koordinator LSE and LSR Pods can allocate from the CPU reserved by the kubelet.
+Because the CPU reserved by kubelet mainly serves K8s BestEffort and Burstable Pods. But Koordinator will not follow the policy. The K8s Burstable Pods should use the CPU Shared Pool, and the K8s BestEffort Pods should use the `BE CPU Shared Pool`.
 
 1. For K8s Burstable and Koordinator LS Pods:
     1. When the koordlet starts, calculates the `CPU Shared Pool` and applies the shared pool to all Burstable and LS Pods in the node, that is, updating their cgroups to set cpuset. The same logic is executed when LSE/LSR Pods are creating or destroying. 
@@ -144,11 +146,11 @@ const (
    - `CPUBindPolicyFullPCPUs` is a bin-packing policy, similar to the `full-pcpus-only=true` option defined by the kubelet, that allocate full physical cores. However, if the number of remaining logical CPUs in the node is sufficient but the number of full physical cores is insufficient, the allocation will continue. This policy can effectively avoid the noisy neighbor problem.
    - `CPUBindPolicySpreadByPCPUs` is a spread policy. If the node enabled Hyper-Threading, when this policy is adopted, the scheduler will evenly allocate logical CPUs across physical cores. For example, the current node has 8 physical cores and 16 logical CPUs. When a Pod requires 8 logical CPUs and the `CPUBindPolicySpreadByPCPUs` policy is adopted, the scheduler will allocate an logical CPU from each physical core. This policy is mainly used by some latency-sensitive applications with multiple different peak-to-valley characteristics. It can not only allow the application to fully use the CPU at certain times, but will not be disturbed by the application on the same physical core. So the noisy neighbor problem may arise when using this policy.
    - `CPUBindPolicyConstrainedBurst` a special policy that mainly helps K8s Burstable/Koordinator LS Pod get better performance. When using the policy, koord-scheduler is filtering out Nodes that have NUMA Nodes with suitable CPU Shared Pool by Pod Limit. After the scheduling is successful, the scheduler will update `scheduling.koordinator.sh/resource-status` in the Pod, declaring the `CPU Shared Pool` to be bound. The koordlet binds the CPU Shared Pool of the corresponding NUMA Node according to the `CPU Shared Pool`
-   - If `kubelet.koordinator.sh/cpu-manager-policy` in `NodeResourceTopology` has option `full-pcpus-only=true`, or `node.koordinator.sh/cpu-bind-policy` in the Node with the value `PCPUOnly`, the koord-scheduler will check whether the number of CPU requests of the Pod meets the `SMT-alignment` requirements, so as to avoid being rejected by the kubelet after scheduling. koord-scheduler will avoid such nodes if the Pod uses the `CPUBindPolicySpreadByPCPUs` policy or the number of logical CPUs mapped to the number of physical cores is not an integer.
+   - If `kubelet.koordinator.sh/cpu-manager-policy` in `NodeResourceTopology` has option `full-pcpus-only=true`, or `node.koordinator.sh/cpu-bind-policy` in the Node with the value `FullPCPUsOnly`, the koord-scheduler will check whether the number of CPU requests of the Pod meets the `SMT-alignment` requirements, so as to avoid being rejected by the kubelet after scheduling. koord-scheduler will avoid such nodes if the Pod uses the `CPUBindPolicySpreadByPCPUs` policy or the number of logical CPUs mapped to the number of physical cores is not an integer.
 - The `CPUExclusivePolicy` defines the CPU exclusive policy, it can help users to avoid noisy neighbor problems. The specific values are defined as follows:
    - `CPUExclusivePolicyNone` or empty value does not perform any isolate policy. It is completely determined by the scheduler plugin configuration.
    - `CPUExclusivePolicyPCPULevel`. When allocating logical CPUs, try to avoid physical cores that have already been applied for by the same exclusive policy. It is a supplement to the `CPUBindPolicySpreadByPCPUs` policy. 
-   - `CPUExclusivePolicyNUMANodeLevel`. When allocating logical CPUs, try to avoid NUMA Nodes that has already been applied for by the same exclusive policy. If there is no NUMA Node that satisfies the policy, downgrade to `PCPU` policy.
+   - `CPUExclusivePolicyNUMANodeLevel`. When allocating logical CPUs, try to avoid NUMA Nodes that has already been applied for by the same exclusive policy. If there is no NUMA Node that satisfies the policy, downgrade to `CPUExclusivePolicyPCPULevel` policy.
 
 For the ARM architecture, `CPUBindPolicy` only support `CPUBindPolicyFullPCPUs`, and `CPUExclusivePolicy` only support `CPUExclusivePolicyNUMANodeLevel`.
 

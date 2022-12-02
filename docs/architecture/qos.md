@@ -14,6 +14,10 @@ LSR(Latency Sensitive Reserved)	 | reserve resources for better certainty	    | 
 LS(Latency Sensitive)	         | share resources for better resilience to burst traffic	    |  Typical QoS level for microservice workloads to achieve better resource elasticity and more flexible resource adjustment capabilities
 BE(Best Effort)	                 | share resource exclude LSE, the quality of resource operation is limited, or even killed in extreme cases |	Typical QoS level for batch jobs, stable computing throughput within a certain period, low-cost resources
 
+## QoS CPU Orchestration
+
+![img](/img/qos-cpu-orchestration.png)
+
 
 ## Koordinator QoS vs. Kubernetes QoS
 
