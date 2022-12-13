@@ -1,113 +1,112 @@
-# Fine-grained CPU orchestration
+# 精细化 CPU 编排
 
-## Summary
+## 摘要
 
-This proposal defines the fine-grained CPU orchestration for Koordinator QoS in detail, and how to be compatible with the existing design principles and implementations of K8s. This proposal describes the functionality that koordlet, koord-runtime-proxy and koord-scheduler need to enhance.
+该提案详细定义了 Koordinator QoS 的细粒度 CPU 编排，以及如何兼容 K8s 现有的设计原则和实现， 描述了 Koordlet、koord-runtime-proxy 和 koord-scheduler 需要增强的功能。
 
-## Motivation
+## 动机
 
-An increasing number of systems leverage a combination of CPUs and hardware accelerators to support latency-critical execution and high-throughput parallel computation. These include workloads in fields such as telecommunications, scientific computing, machine learning, financial services and data analytics. Such hybrid systems comprise a high performance environment.
+越来越多的系统利用 CPU 和硬件加速器的组合来支持延迟关键性的执行和高吞吐量并行计算。其中包括电信、科学计算、机器学习、金融服务和数据分析等领域的工作负载。这种混合系统构成高性能环境。
 
-In order to extract the best performance, optimizations related to CPU isolation, NUMA-locality are required.
+为了获得最佳性能，需要实现 CPU 隔离、NUMA-locality 相关的优化。
 
-### Goals
+### 目标
 
-1. Improve the CPU orchestration semantics of Koordinator QoS.
-1. Determine compatible kubelet policies.
-1. Clarify how koordlet should enhance CPU scheduling mechanism.
-1. Provide a set of API such as CPU bind policies, CPU exclusive policies, NUMA topology alignment policies, NUMA topology information, etc. for applications and cluster administrator to support complex CPU orchestration scenarios.
-1. Provide the CPU orchestration optimization API.
+1. 改进 Koordinator QoS 的 CPU 编排定义。
+1. 明确兼容 Kubelet CPU Manager Policy的策略。
+1. 阐明 Koordlet 应如何增强 CPU 调度机制。
+1. 为应用和集群管理员提供一套 API 支持复杂的CPU编排场景，例如 CPU 绑定策略、CPU 独占策略、NUMA 拓扑对齐策略和NUMA 拓扑信息等
+1. 提供优化 CPU 编排的 API。
 
-### Non-Goals/Future Work
+### 非目标/未来工作
 
-1. Describe specific design details of koordlet/koord-runtime-proxy.
-1. Describe specific design details of CPU descheduling mechanism.
+1. 描述 Koordlet/koordlet-runtime-proxy 的具体设计细节。
+1. 描述 CPU 重调度机制的具体设计细节。
 
 
-## Design Overview
+## 设计概述
 
 ![image](/img/cpu-orchestration-seq-uml.svg)
 
-When koordlet starts, koordlet gather the NUMA topology information from kubelet include NUMA Topology, CPU Topology, kubelet cpu management policy, kubelet allocated CPUs for Guaranteed Pods etc., and update to the NodeResourceTopology CRD. The latency-sensitive applications are scaling, the new Pod can set Koordinator QoS with LSE/LSR, CPU Bind policy and CPU exclusive policy to require koord-scheduler to allocate best-fit CPUs to get the best performance. When koord-scheduler scheduling the Pod, koord-scheduler will filter Nodes that satisfied NUMA Topology Alignment policy, and select the best Node by scoring, allocating the CPUs in Reserve phase, and records the result to Pod annotation when PreBinding. koordlet hooks the kubelet CRI request to replace the CPUs configuration parameters with the koord-scheduler scheduled result to the runtime such as configure the cgroup.
+当 Koordlet 启动时，Koordlet 从 Kubelet 收集 NUMA 拓扑信息，包括 NUMA 拓扑、CPU 拓扑、Kubelet CPU 管理策略、Kubelet 为 Guaranteed Pod 分配的 CPU 等，并更新到节点资源拓扑 CRD。当延迟敏感的应用程序扩容时，可以为新Pod设置 Koordinator QoS LSE/LSR、CPU绑定策略和 CPU独占策略，要求 koord-scheduler 分配最适合的 CPU 以获得最佳性能。当 koord-scheduler 调度 Pod 时，koord-scheduler 会过滤满足 NUMA 拓扑对齐策略的节点，并通过评分选择最佳节点，在 Reserve 阶段分配 CPU，并在 PreBinding 时将结果记录到 Pod Annotation。Koordlet 通过 Hook Kubelet CRI 请求，替换通过 koord-scheduler 调度的 CPU 配置参数到运行时，例如配置 cgroup。
 
-## User stories
+## 用户故事
 
-### Story 1
+### 故事 1
 
-Compatible with kubelet's existing CPU management policies. The CPU manager policy `static` allows pods with certain resource characteristics to be granted increased CPU affinity and exclusivity in the node. If enabled the `static` policy, the cluster administrator must configure the kubelet reserve some CPUs. There are some options for `static` policy. If the `full-pcpus-only(beta, visible by default)` policy option is specified, the `static` policy will always allocate full physical cores. If the `distribute-cpus-across-numa(alpha, hidden by default)` option is specified, the `static` policy will evenly distribute CPUs across NUMA nodes in cases where more than one NUMA node is required to satisfy the allocation.
+兼容 Kubelet 现有的 CPU 管理策略。CPU 管理器 `static` 策略允许具有某些资源特征的 Pod 在节点中被授予更高的 CPU 亲和性和排他性。如果启用 `static` 策略，集群管理员必须配置 Kubelet 保留一些 CPU。 `static` 策略有一些选项，如果指定了 full-pcpus-only(beta, 默认可见) 策略选项，则 `static` 策略将始终分配完整的物理内核。如果指定了 distribute-cpus-across-numa(alpha, 默认不可见) 选项，在需要多个 NUMA 节点来满足分配的情况下， `static` 策略将在 NUMA 节点之间平均分配 CPU。
+### 故事 2
 
-### Story 2
+同样，应该兼容社区中现有的 K8s Guaranteed Pod 的语义。静态策略分配给 K8s Guaranteed Pod 的 CPU 不会共享给默认的 BestEffort Pod，所以相当于 LSE。但是当节点的负载比较低时，LSR Pod 分配的 CPU 应该与 BestEffort 的工作负载共享，以获得经济效益。
 
-Similarly, the semantics of the existing K8s Guaranteed Pods in the community should be compatible. The cpu cores allocated to K8s Guaranteed Pods with `static` policy will not share to the default best effort Pods, so it is equivalent to LSE. But when the load in the node is relatively low, the CPUs allocated by LSR Pods should be shared with best effort workloads to obtain economic benefits. 
+### 故事 3
 
-### Story 3
+拓扑管理器是一个 Kubelet 组件，旨在协调负责这些优化的组件集。引入拓扑管理器后，在工作节点具有不同的 NUMA 拓扑，并且该拓扑中具有不同资源量的集群中启动 Pod 的问题成为现实。Pod 可以调度在资源总量足够的节点上，但是资源分布不能满足合适的拓扑策略。
 
-The Topology Manager is a kubelet component that aims to coordinate the set of components that are responsible for these optimizations. After Topology Manager was introduced the problem of launching pod in the cluster where worker nodes have different NUMA topology and different amount of resources in that topology became actual. The Pod could be scheduled in the node where the total amount of resources is enough, but resource distribution could not satisfy the appropriate Topology policy. 
+### 故事 4
 
-### Story 4
+调度器支持协调编排多个延迟敏感的应用程序。例如，支持延迟敏感的应用程序多个实例在 CPU 维度上互斥，并且延迟敏感的应用和一般应用在 CPU 维度亲和。这样可以降低成本并保证运行质量。
 
-The scheduler can coordinate the arrangement between latency-sensitive applications. For example, the same latency-sensitive applications can be mutually exclusive in the CPU dimension, and latency-sensitive applications and general applications can be deployed in the CPU dimension affinity. Costs can be reduced and runtime quality can be guaranteed.
+### 故事 5
 
-### Story 5
+在基于 NUMA 拓扑分配 CPU 时，用户希望有不同的分配策略。例如 bin-packing 优先，或者分配最空闲的 NUMA 节点。
 
-When allocating CPUs based on NUMA topology, users want to have different allocation strategies. For example, bin-packing takes precedence, or assigns the most idle NUMA Node.
+### 故事 6
 
-### Story 6
+随着应用程序的伸缩或滚动，最适合的可分配空间会逐渐变得碎片化，这会导致一些策略的分配效果不好，影响应用程序的运行时效果。
 
-As the application scaling or rolling deployment, the best-fit allocatable space will gradually become fragmented, which will lead to the bad allocation effect of some strategies and affect the runtime effect of the application. 
+## CPU 编排原则
 
-## CPU orchestration principles
+1. 仅支持 Pod 维度的 CPU 分配机制。
+1. Koordinator 将机器上的 CPU 分为 `CPU Shared Pool`，`statically exclusive CPUs` 和 `BE CPU Shared Pool`。
+    1. `CPU Shared Pool` 是一组共享 CPU 池，K8s Burstable 和 Koordinator LS Pod 中的任何容器都可以在其上运行。K8s Guaranteed `fractional CPU requests` 的 Pod 也可以运行在 `CPU Shared Pool` 中，`CPU Shared Pool` 包含节点中所有未分配的 CPU，但不包括由 K8s Guaranteed、LSE 和 LSR Pod 分配的 CPU。如果 Kubelet 保留 CPU，则 `CPU Shared Pool` 包括保留的 CPU。
+    1. `statically exclusive CPUs` 是指分配给 K8s Guaranteed、Koordinator LSE/LSR Pods 使用的一组独占 CPU。当 K8s Guaranteed、LSE 和 LSR Pods 请求 CPU 时，koord-scheduler 将从 `CPU Shared Pool` 中分配。
+    1. `BE CPU Shared pool` 是一组 `K8s BestEffort` 和 `Koordinator BE` 的 Pod 都可运行的 CPU 池。`BE CPU Shared pool` 包含节点中的所有 CPU，但不包括由 K8s Guaranteed 和 Koordinator LSE Pod 分配的 CPU。
+    
+### Koordinator QoS CPU 编排原则
 
-1. Only supports the CPU allocation mechanism of the Pod dimension.
-1. Koordinator divides the CPU on the machine into `CPU Shared Pool`, `statically exclusive CPUs` and `BE CPU Shared Pool`. 
-    1. The `CPU Shared Pool` is the set of CPUs on which any containers in `K8s Burstable` and `Koordinator LS` Pods run. Containers in `K8s Guaranteed` pods with `fractional CPU requests` also run on CPUs in the shared pool. The shared pool contains all unallocated CPUs in the node but excluding CPUs allocated by K8s Guaranteed, LSE and LSR Pods. If kubelet reserved CPUs, the shared pool includes the reserved CPUs. 
-    1. The `statically exclusive CPUs` are the set of CPUs on which any containers in `K8s Guaranteed`, `Koordinator LSE` and `LSR` Pods that have integer CPU run. When K8s Guaranteed, LSE and LSR Pods request CPU, koord-scheduler will be allocated from the `CPU Shared Pool`.
-    1. The `BE CPU Shared pool` is the set of CPUs on which any containers in `K8s BestEffort` and `Koordinator BE` Pods run. The `BE CPU Shared Pool` contains all CPUs in the node but excluding CPUs allocated by `K8s Guaranteed` and `Koordinator LSE` Pods.
-
-### Koordinator QoS CPU orchestration principles
-
-1. The Request and Limit of LSE/LSR Pods **MUST** be equal and the CPU value **MUST** be an integer multiple of 1000.
-1. The CPUs allocated by the LSE Pod are completely **exclusive** and **MUST NOT** be shared. If the node is hyper-threading architecture, only the logical core dimension is guaranteed to be isolated, but better isolation can be obtained through the `CPUBindPolicyFullPCPUs` policy.
-1. The CPUs allocated by the LSR Pod only can be shared with BE Pods.
-1. LS Pods bind the CPU shared pool, **excluding** CPUs allocated by LSE/LSR Pods.
-1. BE Pods bind all CPUs in the node, **excluding** CPUs allocated by LSE Pods.
-1. The K8s Guaranteed Pods already running is equivalent to Koordinator LSR if kubelet enables the CPU manager `static` policy.
-1. The K8s Guaranteed Pods already running is equivalent to Koordinator LS if kubelet enables the CPU manager `none` policy.
-1. Newly created K8s Guaranteed Pod without Koordinator QoS specified will be treated as LS.
-
+1. LSE/LSR Pod 的 Request 和 Limit 必须相等，CPU 值必须是 1000 的整数倍。
+1. LSE Pod 分配的 CPU 是完全独占的，不得共享。如果节点是超线程架构，只保证逻辑核心维度是隔离的，但是可以通过 `CPUBindPolicyFullPCPUs` 策略获得更好的隔离。
+1. LSR Pod 分配的 CPU 只能与 BE Pod 共享。
+1. LS Pod 绑定了与 LSE/LSR Pod **独占**之外的共享 CPU 池。
+1. BE Pod 绑定使用节点中除 LSE Pod 独占之外的所有 CPU 。
+1. 如果 Kubelet 启用 CPU 管理器静态策略，则已经运行的 K8s Guaranteed Pods 等效于 Koordinator LSR。
+1. 如果 Kubelet 启用 CPU manager None 策略，则 K8s Guaranteed Pods 已经运行相当于 Koordinator LS。
+1. 新创建但未指定 Koordinator QoS 的 K8s Guaranteed Pod 等效于 Koordinator LS。
+   
 ![img](/img/qos-cpu-orchestration.png)
 
-### Compatible kubelet CPU management policies
+### Kubelet CPU Manager Policy 兼容原则
 
-1. If kubelet set the CPU manager policy options `full-pcpus-only=true` / `distribute-cpus-across-numa=true`, and there is no new CPU bind policy defined by Koordinator in the node, follow the semantics of these parameters defined by the kubelet.
-1. If kubelet set the Topology manager policy, and there is no new NUMA Topology Alignment policy defined by Koordinator in the node, follow the semantics of these parameters defined by the kubelet. 
+1. 如果 Kubelet 设置 CPU 管理器策略选项 `full-pcpus-only=true/distribute-cpus-across-numa=true`，并且节点中没有 Koordinator 定义的新 CPU 绑定策略，则遵循 Kubelet 定义的这些参数的定义。
+1. 如果 Kubelet 设置了拓扑管理器策略，并且节点中没有 Koordinator 定义的新的 NUMA Topology Alignment 策略，则遵循 Kubelet 定义的这些参数的定义。
 
-### Take over kubelet CPU management policies
+### 接管 Kubelet CPU 管理策略
 
-Because the CPU reserved by kubelet mainly serves K8s BestEffort and Burstable Pods. But Koordinator will not follow the policy. The K8s Burstable Pods should use the CPU Shared Pool, and the K8s BestEffort Pods should use the `BE CPU Shared Pool`.
+因为 Kubelet 预留的 CPU 主要服务于 K8s BestEffort 和 Burstable Pods。但 Koordinator 不会遵守该策略。K8s Burstable Pods 应该使用 `CPU Shared Pool`，而 K8s BestEffort Pods 应该使用 `BE CPU Shared Pool`。Koordinator LSE 和 LSR Pod 不会从被 Kubelet 预留的 CPU 中分配的。
 
-1. For K8s Burstable and Koordinator LS Pods:
-    1. When the koordlet starts, calculates the `CPU Shared Pool` and applies the shared pool to all Burstable and LS Pods in the node, that is, updating their cgroups to set cpuset. The same logic is executed when LSE/LSR Pods are creating or destroying. 
-    1. koordlet ignore the CPUs reserved by kubelet, and replace them with CPU Shared Pool defined by Koordinator. 
-1. For K8s BestEffort and Koordinator BE Pods:
-    1. If kubelet reserved CPUs, the best effort Pods use the reserved CPUs first.
-    1. koordlet can use all CPUs in the node but exclude the CPUs allocated by K8s Guaranteed and Koordinator LSE Pods that have integer CPU. It means that if koordlet enables the CPU Suppress feature should follow the constraint to guarantee not affecting LSE Pods. Similarly, if kubelet enables the CPU manager policy with `static`, the K8s Guaranteed Pods should also be excluded. 
-1. For K8s Guaranteed Pods:
-    1. If there is `scheduling.koordinator.sh/resource-status` updated by koord-scheduler in the Pod annotation, then replace the CPUSet in the kubelet CRI request, including Sandbox/Container creating stage.
-    1. kubelet sometimes call `Update` method defined in CRI to update container cgroup to set new CPUs, so koordlet and koord-runtime-proxy need to hook the method.
-1. Automatically resize CPU Shared Pool
-    1. koordlet automatically resize `CPU Shared Pool` based on the changes such as Pod creating/destroying. If `CPU Shared Pool` changed, koordlet should update cgroups of all LS/K8s Burstable Pods with the CPUs of shared pool. 
-    1. If the corresponding `CPU Shared Pool` is specified in the annotation `scheduling.koordinator.sh/resource-status` of the Pod, koordlet need to bind only the CPUs of the corresponding pool when configuring the cgroup.
+1. 对于 K8s Burstable 和 Koordinator LS Pod：
+    1. 当 Koordlet 启动时，计算 `CPU Shared Pool` 并将共享池应用到节点中的所有 Burstable 和 LS Pod，即通过更新它们的 cgroups 来设置 cpuset。在创建或销毁 LSE/LSR Pod 时执行相同的逻辑。
+    1. Koordlet 会忽略 Kubelet 预留的 CPU，将其替换为 Koordinator 定义的 `CPU Shared Pool`。
+1. 对于 K8s BestEffort 和 Koordinator BE Pod：
+    1. 如果 Kubelet 预留了 CPU，BestEffort Pod 会首先使用预留的 CPU。
+    1. Koordlet 可以使用节点中的所有 CPU，但不包括由具有整数 CPU 的 K8s Guaranteed 和 Koordinator LSE Pod 分配的 CPU。这意味着如果 Koordlet 启用 CPU Suppress 功能，则应遵循约束以保证不会影响 LSE Pod。同样，如果 Kubelet 启用了静态 CPU 管理器策略，则也应排除 K8s Guaranteed Pod。
+1. 对于 K8s Guaranteed Pod：
+    1. 如果 Pod 注解中有 koord-scheduler 更新的 `scheduling.koordinator.sh/resource-status`，Sandbox/Container 创建阶段，则会替换 Kubelet CRI 请求中的 CPUSet。
+    1. Kubelet 有时会调用 CRI 中定义的 Update 方法来更新容器 cgroup 以设置新的 CPU，因此 Koordlet 和 koord-runtime-proxy 需要 Hook 该方法。
+1. 自动调整 `CPU Shared Pool` 大小
+    1. Koordlet 会根据 Pod 创建/销毁等变化自动调整 `CPU Shared Pool` 的大小。如果 `CPU Shared Pool` 发生变化，Koordlet 应该更新所有使用共享池的 LS/K8s Burstable Pod 的 cgroups。
+    1. 如果 Pod 的注解 `scheduling.koordinator.sh/resource-status` 中指定了对应的 `CPU Shared Pool`，Koordlet 在配置 cgroup 时只需要绑定对应共享池的 CPU 即可。
 
-The takeover logic will require koord-runtime-proxy to add new extension points, and require koordlet to implement a new runtime hook plugin. When koord-runtime-proxy is not installed, these takeover logic will also be able to be implemented.
+接管逻辑要求 koord-runtime-proxy 添加新的扩展点并且 Koordlet 实现新的运行时插件的 Hook 。当没有安装 koord-runtime-proxy 时，这些接管逻辑也将能够实现。
 
-## CPU orchestration API
+## CPU 编排 API
 
-### Application CPU orchestration API
+### 应用程序 CPU 编排 API
 
-#### Resource spec
+#### Resource Spec
 
-The annotation `scheduling.koordinator.sh/resource-spec` is a resource allocation API defined by Koordinator. The user specifies the desired CPU orchestration policy by setting the annotation. In the future, we can also extend and add resource types that need to be supported as needed. The scheme corresponding to the annotation value is defined as follows:
+注解 `scheduling.koordinator.sh/resource-spec` 是 Koordinator 定义的资源分配 API。用户通过设置注解来指定所需的 CPU 编排策略。未来，我们还可以根据需要扩展和添加需要支持的资源类型。注解对应的 Struct 定义如下：
 
 ```go
 // ResourceSpec describes extra attributes of the compute resource requirements.
@@ -141,24 +140,24 @@ const (
 )
 ```
 
-- The `CPUBindPolicy` defines the CPU binding policy. The specific values are defined as follows:
-   - `CPUBindPolicyNone` or empty value does not perform any bind policy. It is completely determined by the scheduler plugin configuration.
-   - `CPUBindPolicyFullPCPUs` is a bin-packing policy, similar to the `full-pcpus-only=true` option defined by the kubelet, that allocate full physical cores. However, if the number of remaining logical CPUs in the node is sufficient but the number of full physical cores is insufficient, the allocation will continue. This policy can effectively avoid the noisy neighbor problem.
-   - `CPUBindPolicySpreadByPCPUs` is a spread policy. If the node enabled Hyper-Threading, when this policy is adopted, the scheduler will evenly allocate logical CPUs across physical cores. For example, the current node has 8 physical cores and 16 logical CPUs. When a Pod requires 8 logical CPUs and the `CPUBindPolicySpreadByPCPUs` policy is adopted, the scheduler will allocate an logical CPU from each physical core. This policy is mainly used by some latency-sensitive applications with multiple different peak-to-valley characteristics. It can not only allow the application to fully use the CPU at certain times, but will not be disturbed by the application on the same physical core. So the noisy neighbor problem may arise when using this policy.
-   - `CPUBindPolicyConstrainedBurst` a special policy that mainly helps K8s Burstable/Koordinator LS Pod get better performance. When using the policy, koord-scheduler is filtering out Nodes that have NUMA Nodes with suitable CPU Shared Pool by Pod Limit. After the scheduling is successful, the scheduler will update `scheduling.koordinator.sh/resource-status` in the Pod, declaring the `CPU Shared Pool` to be bound. The koordlet binds the CPU Shared Pool of the corresponding NUMA Node according to the `CPU Shared Pool`
-   - If `kubelet.koordinator.sh/cpu-manager-policy` in `NodeResourceTopology` has option `full-pcpus-only=true`, or `node.koordinator.sh/cpu-bind-policy` in the Node with the value `FullPCPUsOnly`, the koord-scheduler will check whether the number of CPU requests of the Pod meets the `SMT-alignment` requirements, so as to avoid being rejected by the kubelet after scheduling. koord-scheduler will avoid such nodes if the Pod uses the `CPUBindPolicySpreadByPCPUs` policy or the number of logical CPUs mapped to the number of physical cores is not an integer.
-- The `CPUExclusivePolicy` defines the CPU exclusive policy, it can help users to avoid noisy neighbor problems. The specific values are defined as follows:
-   - `CPUExclusivePolicyNone` or empty value does not perform any isolate policy. It is completely determined by the scheduler plugin configuration.
-   - `CPUExclusivePolicyPCPULevel`. When allocating logical CPUs, try to avoid physical cores that have already been applied for by the same exclusive policy. It is a supplement to the `CPUBindPolicySpreadByPCPUs` policy. 
-   - `CPUExclusivePolicyNUMANodeLevel`. When allocating logical CPUs, try to avoid NUMA Nodes that has already been applied for by the same exclusive policy. If there is no NUMA Node that satisfies the policy, downgrade to `CPUExclusivePolicyPCPULevel` policy.
+- `CPUBindPolicy` 定义CPU绑定策略。具体取值定义如下：
+   - `CPUBindPolicyNone` 或空值不执行任何绑定策略。它完全由调度程序插件配置决定。
+   - `CPUBindPolicyFullPCPUs` 是一种 bin-packing 策略，类似于 Kubelet 定义的 `full-pcpus-only=true` 选项，用于分配完整的物理内核。但是，如果节点中剩余的逻辑 CPU 数量足够，但完整的物理核心数量不足，则继续分配。该策略可以有效避免扰邻（noisy neighbor）问题。
+   - `CPUBindPolicySpreadByPCPUs` 是一种打散（Spread）策略。如果节点启用了超线程，当采用该策略时，调度器将在物理内核之间均匀的分配逻辑 CPU。例如，当前节点有 8 个物理内核和 16 个逻辑 CPU。当一个 Pod 需要 8 个逻辑 CPU 并且采用 `CPUBindPolicySpreadByPCPUs` 策略时，调度器会从每个物理核中分配一个逻辑 CPU。该策略主要用于一些具有多种不同峰谷特性的延迟敏感型应用程序。它不仅可以让应用程序在特定时间充分使用 CPU，而且不会被同一物理内核上的应用程序所干扰。所以在使用这个策略时可能会出现扰邻（noisy neighbor）问题。
+   - `CPUBindPolicyConstrainedBurst` 主要帮助 K8s Burstable/Koordinator LS Pod 获得更好性能的特殊策略。使用该策略时，koord-scheduler 会根据 Pod 限制过滤掉具有合适 CPU 共享池的 NUMA 节点的节点。调度成功后，调度器会更新 Pod 中的 `scheduling.koordinator.sh/resource-status`，声明要绑定的 `CPU Shared Pool`。Koordlet 根据 `CPU Shared Pool` 绑定对应 NUMA Node 的 `CPU Shared Pool`。
+   - 如果 `NodeResourceTopology` 中的 `kubelet.koartiator.sh/cpu-manager-policy` 选项为 `full-pcpus-only=true`，或者 Node 中的 `node.koordator.sh/cpubind-policy` 的值为 `FullPCPUsOnly`，则 koord-scheduler 会检查实例的 CPU 请求数是否满足 SMT 对齐要求，以避免调度后被 Kubelet 拒绝。如果 Pod 使用 `CPUBindPolicySpreadByPCPUs` 策略或映射到物理核心数的逻辑 CPU 数量不是整数，koord-scheduler 将避免调度此类节点。
+- `CPUExclusivePolicy` 定义了 CPU 独占策略，它可以帮助解决扰邻（noisy neighbor）问题。具体值定义如下
+   - `CPUExclusivePolicyNone` 或空值不执行任何隔离策略。它完全由调度程序插件配置决定。
+   - `CPUExclusivePolicyPCPULevel` 在分配逻辑CPU时，尽量避开已经被同一个独占策略申请的物理核。它是对 `CPUBindPolicySpreadByPCPUs` 策略的补充。
+   - `CPUExclusivePolicyNUMANodeLevel` 在分配逻辑 CPU 时，尽量避免 NUMA 节点已经被相同的独占策略申请。如果没有满足策略的 NUMA 节点，则降级为 `CPUExclusivePolicyPCPULevel` 策略。
 
-For the ARM architecture, `CPUBindPolicy` only support `CPUBindPolicyFullPCPUs`, and `CPUExclusivePolicy` only support `CPUExclusivePolicyNUMANodeLevel`.
+对于ARM架构，`CPUBindPolicy` 只支持 `CPUBindPolicyFullPCPUs` ，`CPUExclusivePolicy` 只支持 `CPUExclusivePolicyNUMANodeLevel` 。
 
-#### Resource status
+#### Resource Status
 
-The annotation `scheduling.koordinator.sh/resource-status` represents resource allocation result. koord-scheduler patch Pod with the annotation before binding to node. koordlet uses the result to configure cgroup.
+注解 `scheduling.koordinator.sh/resource-status` 表示资源分配结果。 koord-scheduler 在绑定 Pod 到节点之前修改注解。 Koordlet 使用结果来配置 cgroup。
 
-The scheme corresponding to the annotation value is defined as follows:
+注解值对应的方案定义如下：
 
 ```go
 type ResourceStatus struct {
@@ -167,12 +166,12 @@ type ResourceStatus struct {
 }
 ```
 
-- `CPUSet` represents the allocated CPUs. When LSE/LSR Pod requested, koord-scheduler will update the field. It is Linux CPU list formatted string. For more details, please refer to [doc](http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS).
-- `CPUSharedPools` represents the desired CPU Shared Pools used by LS Pods. If the Node has the label `node.koordinator.sh/numa-topology-alignment-policy` with `Restricted/SingleNUMANode`, koord-scheduler will find the best-fit NUMA Node for the LS Pod, and update the field that requires koordlet uses the specified CPU Shared Pool. It should be noted that the scheduler does not update the `CPUSet` field in the `CPUSharedPool`, koordlet binds the CPU Shared Pool of the corresponding NUMA Node according to the `SocketID` and `NodeID` fields in the `CPUSharedPool`.
+- `CPUSet` 表示分配的 CPU。当 LSE/LSR Pod 请求时，koord-scheduler 将更新该字段。它是 Linux CPU 列表格式的字符串。更多详细信息，[请参阅文档](http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS) 。
+- `CPUSharedPools` 表示 LS Pod 使用的所需 CPU 共享池。如果节点的标签 `node.koordinator.sh/numa-topology-alignment-policy` 带有 `Restricted/SingleNUMANode`，koord-scheduler 将为 LS Pod 找到最适合的 NUMA 节点，并更新需要 Koordlet 使用指定 `CPU Shared Pool` 的字段。需要注意的是，调度器不会更新 `CPU Shared Pool` 中的 CPUSet 字段，Koordlet 根据 `CPU Shared Pool` 中的 `SocketID` 和 `NodeID` 字段绑定对应 NUMA 节点的 `CPU Shared Pool`。
 
-#### Example
+#### 例子
 
-The following specific example:
+具体例子：
 
 ```yaml
 apiVersion: v1
@@ -194,49 +193,49 @@ spec:
   ...
 ```
 
-### Node CPU orchestration API
+### 节点 CPU 编排 API
 
-From the perspective of cluster administrators, it is necessary to support some APIs to control the CPU orchestration behavior of nodes.
+从集群管理员的角度来看，需要提供一些 API 来控制节点的 CPU 编排行为。
 
-#### CPU bind policy
+#### CPU 绑定策略
 
-The label `node.koordinator.sh/cpu-bind-policy` constrains how to bind CPU logical CPUs when scheduling. 
+标签 `node.koordinator.sh/cpu-bind-policy` 限制了调度时如何绑定 CPU、逻辑 CPU。
 
-The following is the specific value definition:
-- `None` or empty value does not perform any policy.
-- `FullPCPUsOnly` requires that the scheduler must allocate full physical cores. Equivalent to kubelet CPU manager policy option `full-pcpus-only=true`. 
+具体的取值定义：
+- `None` 或空值不执行任何策略
+- `FullPCPUsOnly` 要求调度程序必须分配完整的物理内核。等效于 Kubelet CPU 管理器策略选项 `full-pcpus-only=true`。
 
-If there is no `node.koordinator.sh/cpu-bind-policy` in the node's label, it will be executed according to the policy configured by the Pod or koord-scheduler.
+如果 Node 的 Label 中没有 `node.koordinator.sh/cpu-bind-policy`，则按照 Pod 或 koord-scheduler 配置的策略执行。
 
-#### NUMA allocate strategy
+#### NUMA 分配策略
 
-The label `node.koordinator.sh/numa-allocate-strategy` indicates how to choose satisfied NUMA Nodes when scheduling. The following is the specific value definition:
-- `MostAllocated` indicates that allocates from the NUMA Node with the least amount of available resource.
-- `LeastAllocated` indicates that allocates from the NUMA Node with the most amount of available resource.
-- `DistributeEvenly` indicates that evenly distribute CPUs across NUMA Nodes.
+标签 `node.koordinator.sh/numa-allocate-strategy` 表示在调度时如何选择满意的 NUMA 节点。下面是具体的值定义：
+- `MostAllocated` 表示从可用资源最少的 NUMA 节点分配。
+- `LeastAllocated` 表示从可用资源最多的 NUMA 节点分配。
+- `DistributeEvenly` 表示在 NUMA 节点上平均分配 CPU。
 
-If the cluster administrator does not set label `node.koordinator.sh/numa-allocate-strategy` on Node, but `kubelet.koordinator.sh/cpu-manager-policy` in `NodeResourceTopology` has option `distribute-cpus-across-numa=true`, then follow the semantic allocation of `distribute-cpus-across-numa`. 
+如果集群管理员没有在Node上设置标签 `node.koordinator.sh/numa-allocate-strategy`，但是 `NodeResourceTopology` 中的 `kubelet.koordinator.sh/cpu-manager-policy` 有选项 `distribute-cpus-across-numa=true`，然后按照 `distribute-cpus-across-numa` 的定义分配。
 
-If there is no `node.koordinator.sh/numa-allocate-strategy` in the node's label and no `kubelet.koordinator.sh/cpu-manager-policy` with `distribute-cpus-across-numa` option in `NodeResourceTopology`, it will be executed according to the policy configured by the koord-scheduler.
+如果节点的标签中没有 `node.koordinator.sh/numa-allocate-strategy` 并且 `NodeResourceTopology` 中没有带有 `Distribute-cpus-across-numa` 选项的 `kubelet.koordinator.sh/cpu-manager-policy`，它将根据 koord-scheduler 配置的策略执行。
 
-If both `node.koordinator.sh/numa-allocate-strategy` and `kubelet.koordinator.sh/cpu-manager-policy` are defined, `node.koordinator.sh/numa-allocate-strategy` is used first.
+如果同时定义了 `node.koordinator.sh/numa-allocate-strategy` 和 `kubelet.koordinator.sh/cpu-manager-policy`，则首先使用 `node.koordinator.sh/numa-allocate-strategy`。
 
-#### NUMA topology alignment policy
+#### NUMA 拓扑对齐策略
 
-The label `node.koordinator.sh/numa-topology-alignment-policy` represents that how to aligning resource allocation according to the NUMA topology. The policy semantic follow the K8s community. Equivalent to the field `TopologyPolicies` in `NodeResourceTopology`, and the topology policies `SingleNUMANodePodLevel` and `SingleNUMANodeContainerLevel` are mapping to `SingleNUMANode` policy. 
+标签 `node.koordinator.sh/numa-topology-alignment-policy` 表示如何根据 NUMA 拓扑对齐资源分配。策略语义遵循 K8s 社区。相当于 `NodeResourceTopology` 中的 `TopologyPolicies` 字段，拓扑策略 `SingleNUMANodePodLevel` 和 `SingleNUMANodeContainerLevel` 映射到 `SingleNUMANode` 策略。
 
-- `None` is the default policy and does not perform any topology alignment.
-- `BestEffort` indicates that preferred select NUMA Node that is topology alignment, and if not, continue to allocate resources to Pods.
-- `Restricted` indicates that each resource requested by a Pod on the NUMA Node that is topology alignment, and if not, koord-scheduler will skip the node when scheduling.
-- `SingleNUMANode` indicates that all resources requested by a Pod must be on the same NUMA Node, and if not, koord-scheduler will skip the node when scheduling.
+- `None` 是默认策略，不执行任何拓扑对齐。
+- `BestEffort` 表示优先选择拓扑对齐的 NUMA Node，如果没有，则继续为 Pods 分配资源。
+- `Restricted` 表示每个 Pod 在 NUMA 节点上请求的资源是拓扑对齐的，如果不是，koord-scheduler 会在调度时跳过该节点。
+- `SingleNUMANode` 表示一个 Pod 请求的所有资源都必须在同一个 NUMA 节点上，如果不是，koord-scheduler 调度时会跳过该节点。
 
-If there is no `node.koordinator.sh/numa-topology-alignment-policy` in the node's label and `TopologyPolicies=None` in `NodeResourceTopology`, it will be executed according to the policy configured by the koord-scheduler.
+如果节点的 Label 中没有 `node.koordinator.sh/numa-topology-alignment-policy`，并且 `NodeResourceTopology中的TopologyPolicies=None`，则按照 koord-scheduler 配置的策略执行。
 
-If both `node.koordinator.sh/numa-topology-alignment-policy` in Node and `TopologyPolicies=None` in `NodeResourceTopology` are defined, `node.koordinator.sh/numa-topology-alignment-policy` is used first.
+如果同时定义了 Node 中的 `node.koordinator.sh/numa-topology-alignment-policy` 和 `NodeResourceTopology` 中的 `TopologyPolicies=None`，则首先使用 `node.koordinator.sh/numa-topology-alignment-policy`。
 
-#### Example
+#### 例子
 
-The following specific example:
+具体例子：
 
 ```yaml
 apiVersion: v1
@@ -251,34 +250,34 @@ spec:
   ...
 ```
 
-### NodeResourceTopology CRD
+### 节点资源拓扑 CRD
 
-The node resource information to be reported mainly includes the following categories:
+需要上报的节点资源信息主要包括以下几类：
 
-- NUMA Topology, including resources information, CPU information such as logical CPU ID, physical Core ID, NUMA Socket ID and NUMA Node ID and etc. 
-- The topology manager scopes and policies configured by kubelet.
-- The CPU manager policies and options configured by kubelet.
-- Pod bound CPUs allocated by kubelet or koord-scheduler, including K8s Guaranteed Pods, Koordinator LSE/LSR Pods but except the LS/BE.
-- CPU Shared Pool defined by koordlet
+- NUMA Topology，包括资源信息、CPU 信息如逻辑 CPU ID、物理 Core ID、NUMA Socket ID 和 NUMA Node ID 等。
+- Kubelet 配置的拓扑管理器范围和策略。
+- Kubelet 配置的 CPU 管理器策略和选项。
+- 由 Kubelet 或 koord-scheduler 分配的 Pod 绑定 CPU，包括 K8s Guaranteed Pod、Koordinator LSE/LSR Pod，但 LS/BE 除外。
+- Kubelet 定义的 `CPU Shared Pool`。
 
-The above information can guide koord-scheduler to better be compatible with the kubelet's CPU management logic, make more appropriate scheduling decisions and help users quickly troubleshoot.
+以上信息可以指导 koord-scheduler 更好地兼容 Kubelet 的 CPU 管理逻辑，做出更合适的调度决策，帮助用户快速排查问题。
 
-#### CRD Scheme definition
+#### CRD 字段定义
 
-We use [NodeResourceTopology](https://github.com/k8stopologyawareschedwg/noderesourcetopology-api/blob/master/pkg/apis/topology/v1alpha1/types.go) CRD to describe the NUMA Topology. The community-defined NodeResourceTopology CRD is mainly used for the following considerations:
+我们使用 [NodeResourceTopology](https://github.com/k8stopologyawareschedwg/noderesourcetopology-api/blob/master/pkg/apis/topology/v1alpha1/types.go) CRD 来描述 NUMA 拓扑。社区定义的 NodeResourceTopology CRD 主要用于以下考虑：
 
-- NodeResourceTopology already contains basic NUMA topology information and kubelet TopologyManager's Scope and Policies information. We can reuse the existing codes.
-- Keep up with the evolution of the community and influence the community to make more changes.
+- NodeResourceTopology 已经包含了基本的 NUMA 拓扑信息和 kubelet TopologyManager 的 Scope 和 Policies 信息。我们可以重用现有的代码。
+- 跟上社区的发展，影响社区做出更多的改变。
 
-#### Compatible
+#### 兼容
 
-In order to be compatible with the existing NodeResourceTopology instances and prevent koordlet from conflicting with existing components, when koordlet creates a NodeResourceTopology, add the prefix `koord-` before the name to distinguish it, and add the label `app.kubernetes.io/managed-by=Koordinator` describes the node is managed by Koordinator.
+为了兼容已有的 NodeResourceTopology 实例，防止 Koordlet 与已有的组件发生冲突，Koordlet 创建 NodeResourceTopology 的时候，在名字前加上前缀 `koord-` 来区分，并添加标签 `app.kubernetes.io/managed-by=Koordinator` 描述节点由 Koordinator 管理。
 
-#### Extension
+#### 扩展
 
-At present, the NodeResourceTopology lacks some information, and it is temporarily written in the NodeResourceTopology in the form of annotations or labels:
+目前 `NodeResourceTopology` 缺少一些信息，暂时以注解或标签的形式写在 `NodeResourceTopology` 中：
 
-- The annotation `kubelet.koordinator.sh/cpu-manger-policy` describes the kubelet CPU manager policy and options. The scheme is defined as follows:
+- 注解 `kubelet.koordinator.sh/cpu-manger-policy` 描述了 Kubelet CPU 管理器策略和选项。方案定义如下
 
 ```go
 const (
@@ -293,7 +292,7 @@ type KubeletCPUManagerPolicy struct {
 
 ```
 
-- The annotation `node.koordinator.sh/cpu-topology` describes the detailed CPU topology. Fine-grained management mechanism needs more detailed CPU topology information. The scheme is defined as follows:
+- 注解 `node.koordinator.sh/cpu-topology` 描述了详细的 CPU 拓扑。精细化的管理机制需要更详细的 CPU 拓扑信息。该方案定义如下：
 
 ```go
 type CPUTopology struct {
@@ -308,7 +307,7 @@ type CPUInfo struct {
 }
 ```
 
-- annotation `node.koordinator.sh/pod-cpu-allocs` describes the CPUs allocated by Koordinator LSE/LSR and K8s Guaranteed Pods. The scheme corresponding to the annotation value is defined as follows:
+- 注解 `node.koordinator.sh/pod-cpu-allocs` 描述了 Koordinator LSE/LSR 和 K8s Guaranteed Pods 分配的 CPU。注解值对应的方案定义如下：
 
 ```go
 type PodCPUAlloc struct {
@@ -321,7 +320,7 @@ type PodCPUAlloc struct {
 type PodCPUAllocs []PodCPUAlloc
 ```
 
-- The annotation `node.koordinator.sh/cpu-shared-pools` describes the CPU Shared Pool defined by Koordinator. The shared pool is mainly used by Koordinator LS Pods or K8s Burstable Pods. The scheme is defined as follows:
+- 注解 `node.koordinator.sh/cpu-shared-pools` 描述了 Koordinator 定义的 CPU 共享池。共享池主要由 Koordinator LS Pods 或 K8s Burstable Pods 使用。该方案定义如下：
 
 ```go
 type NUMACPUSharedPools []CPUSharedPool
@@ -332,19 +331,19 @@ type CPUSharedPool struct {
   CPUSet string `json:"cpuset,omitempty"`
 }
 ```
-The `CPUSet` field is Linux CPU list formatted string. For more details, please refer to [doc](http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS).
+`CPUSet` 字段是 Linux CPU 列表格式的字符串。更多详细信息，[请参阅文档](http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS) 。
 
 
-#### Create/Update NodeResourceTopology
+#### 创建/更新 NodeResourceTopology
 
-- koordlet is responsible for creating/updating NodeResourceTopology
-- It is recommended that koordlet obtain the CPU allocation information of the existing K8s Guaranteed Pod by parsing the CPU state checkpoint file. Or obtain this information through the CRI interface and gRPC provided by kubelet.
-- When the CPU of the Pod is allocated by koord-scheduler, replace the CPUs in the kubelet state checkpoint file.
-- It is recommended that koordlet obtain the CPU manager policy and options from [kubeletConfiguration](https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/).
+- Koordlet 负责创建/更新 `NodeResourceTopology`
+- 建议 Koordlet 通过解析 CPU 状态检查点文件来获取现有 K8s Guaranteed Pod 的 CPU 分配信息。或者通过 Kubelet 提供的 CRI 接口和 gRPC 获取这些信息。
+- 当 koord-scheduler 分配 Pod 的 CPU 时，替换 Kubelet 状态检查点文件中的 CPU。
+- 建议 Koordlet 从 [kubeletConfiguration](https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/) 获取 CPU 管理器策略和选项。
 
-#### Example
+#### 例子
 
-A complete NodeResourceTopology example:
+完整的 `NodeResourceTopology` 示例：
 
 ```yaml
 apiVersion: topology.node.k8s.io/v1alpha1
