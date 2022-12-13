@@ -21,6 +21,7 @@ yarn-error.log*
 
 # editor and IDE paraphernalia
 .idea
+.history
 *.swp
 *.swo
 *~

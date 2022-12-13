@@ -1,45 +1,37 @@
-# Load Aware Scheduling
+# 负载均衡调度
 
-Load Aware Scheduling is an ability of koord-scheduler for balancing pods scheduling based on the real-time load of each node.
+Load Aware Scheduling 是 koord-scheduler 提供的一种调度能力，调度 Pod 时根据节点的负载情况选择合适的节点，均衡节点间的负载情况。
 
-## Introduction
+## 简介
 
-Load balancing is a common issue in resource scheduling. Under-utilized nodes bring much resource waste to the
-cluster, while over-utilized nodes are likely to cause performance degradation. Neither of them is suitable for
-efficient resource management.
+负载均衡是资源调度中的常见问题。 未充分利用的节点会给集群带来很大的资源浪费，而过度使用的节点可能会导致性能下降。这些问题都不能高效的管理和使用资源。
 
-The native Kubernetes scheduler schedules pods based on the requests and the allocation of nodes, considering neither
-the real-time load nor the estimated usage. When we want to balance the pod scheduling on each node and make the loads
-even with the native scheduler, we need to set precise resource requirements for the applications. Moreover, since
-Koordinator enables resource overcommitment to achieve better resource efficiency, we need a mechanism to reduce the
-probability of performance degradation and avoid over-utilization.
+原生 Kubernetes scheduler 根据请求和节点分配来调度 Pod，既不考虑实时负载，也不考虑估计使用量。 当我们期望使用原生调度器均匀的打散 Pod 并保持节点间的负载均衡，我们需要为应用程序设置精确的资源规格。 此外，当 Koordinator 通过超卖机制提升资源使用效率时，我们需要一种机制尽量避免性能回退，并避免负载过高的问题。
 
-Koord-scheduler can retrieve node metrics by cooperating with the koordlet. It provides the ability to balance the
-scheduling of both the online (LSE/LSR/LS) pods and offline (BE) pods based on node utilization.
+Koord-scheduler 可以通过与 koordlet 协作来检索节点指标。它能够根据节点利用率平衡在线 pod（LSE/LSR/LS）和离线 pod（BE）的调度。
 
-![image](/img/load-aware-scheduling-arch.svg)
+![图片](/img/load-aware-scheduling-arch.svg)
 
-For more information, please see [Design: Load Aware Scheduling](/docs/designs/load-aware-scheduling).
+想要了解更多信息，请参阅 [设计：负载感知调度](/docs/designs/load-aware-scheduling)。
 
-## Setup
+## 设置
 
-### Prerequisite
+### 前提条件
 
 - Kubernetes >= 1.18
 - Koordinator >= 0.4
 
-### Installation
+### 安装
 
-Please make sure Koordinator components are correctly installed in your cluster. If not, please refer to [Installation](/docs/installation).
+请确保 Koordinator 组件已正确安装在你的集群中。 如果没有，请参考[安装文档](/docs/installation)。
 
-### Configurations
+### 配置
 
-Load-aware scheduling is *Enabled* by default. You can use it without any modification on the koord-scheduler config.
+默认情况下，负载感知调度是启用的，您可以在不修改 koord-scheduler 配置的情况下使用它。
 
-#### (Optional) Advanced Settings
+#### （可选）高级设置
 
-For users who need deep insight, please configure the rules of load-aware scheduling by modifying the ConfigMap
-`koord-scheduler-config` in the helm chart.
+对于需要深入了解的用户，请通过修改helm chart中的 ConfigMap `koord-scheduler-config` 规则来配置负载感知调度。
 
 ```yaml
 apiVersion: v1
@@ -92,12 +84,12 @@ data:
               memory: 70
 ```
 
-The koord-scheduler takes this ConfigMap as [scheduler Configuration](https://kubernetes.io/docs/reference/scheduling/config/).
-New configurations will take effect after the koord-scheduler restarts.
+koord-scheduler 将 ConfigMap [scheduler Configuration](https://kubernetes.io/docs/reference/scheduling/config/)。
+新配置将在 koord-scheduler 重新启动后生效。
 
-## Use Load Aware Scheduling
+## 使用负载感知调度
 
-1. Deploy a `stress` pod with the YAML file below.
+1. 使用下面的 YAML 文件部署一个 `stress` pod 。
 
 ```yaml
 apiVersion: v1
@@ -138,7 +130,7 @@ $ kubectl create -f stress-demo.yaml
 pod/stress-demo created
 ```
 
-2. Watch the pod status util it becomes running.
+2. 观察pod的状态，直到它开始运行。
 
 ```bash
 $ kubectl get pod stress-demo -w
@@ -146,9 +138,9 @@ NAME          READY   STATUS    RESTARTS   AGE    IP             NODE     NOMINA
 stress-demo   1/1     Running   0          20s    172.20.100.6   node-0   <none>           <none>
 ```
 
-The pod is scheduled on `node-0`.
+这个 pod 调度在 `node-0`。
 
-3. Check the load of each node.
+3. 检查每个node节点的负载。
 
 ```bash
 $ kubectl top node
@@ -157,10 +149,9 @@ node-0   6450m        19%    25091Mi         19%
 node-2   3280m        10%    17535Mi         13%
 node-1   2687m        8%     9631Mi          7%
 ```
+按照以上顺序，当节点 `node-1` 负载最低时节点 `node-0` 的负载最高。
 
-In above order, `node-0` has the highest load, while `node-1` has the lowest load.
-
-4. Deploy an `nginx` deployment with the YAML file below.
+1. 使用下面的 YAML 文件部署 `nginx` deployment。
 
 ```yaml
 apiVersion: apps/v1
@@ -196,7 +187,7 @@ $ kubectl create -f nginx-deployment.yaml
 deployment/nginx created
 ```
 
-5. Check the scheduling results of `nginx` pods.
+5. 检查 `nginx` pods 的调度结果。
 
 ```bash
 $ kubectl get pods | grep nginx
@@ -204,4 +195,4 @@ nginx-7585b886cb-5b6vq   1/1     Running   0       32s     172.20.101.6    node-
 nginx-7585b886cb-4mdlh   1/1     Running   0       32s     172.20.106.20   node-2   <none>         <none>
 ```
 
-Now we can see `nginx` pods get scheduled on the nodes other than `node-0` (node with the highest load).
+现在我们可以看到 `nginx` pods 被调度在 `node-0`  (负载最高的节点) 以外的节点上。
