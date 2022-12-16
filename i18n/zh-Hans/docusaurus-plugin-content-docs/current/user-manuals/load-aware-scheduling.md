@@ -4,11 +4,10 @@ Load Aware Scheduling 是 koord-scheduler 提供的一种调度能力，调度 P
 
 ## 简介
 
-负载均衡是资源调度中的常见问题。 未充分利用的节点会给集群带来很大的资源浪费，而过度使用的节点可能会导致性能下降。这些问题都不能高效的管理和使用资源。
+负载均衡是资源调度中的常见问题。资源未充分利用的节点会带来很大的资源浪费，而过度使用的节点可能会导致性能下降。这些问题都不能高效的管理和使用资源。
+原生 Kubernetes Scheduler 根据 Requests 和节点可分配总量来调度 Pod，既不考虑实时负载，也不估计使用量。 当我们期望使用原生调度器均匀的打散 Pod 并保持节点间的负载均衡，我们需要为应用程序设置精确的资源规格。此外，当 Koordinator 通过超卖机制提升资源使用效率时，我们需要一种机制尽量避免性能回退，并避免负载过高的问题。
 
-原生 Kubernetes scheduler 根据请求和节点分配来调度 Pod，既不考虑实时负载，也不考虑估计使用量。 当我们期望使用原生调度器均匀的打散 Pod 并保持节点间的负载均衡，我们需要为应用程序设置精确的资源规格。 此外，当 Koordinator 通过超卖机制提升资源使用效率时，我们需要一种机制尽量避免性能回退，并避免负载过高的问题。
-
-Koord-scheduler 可以通过与 koordlet 协作来检索节点指标。它能够根据节点利用率平衡在线 pod（LSE/LSR/LS）和离线 pod（BE）的调度。
+koord-scheduler 参考 koordlet 上报的资源利用率数据平衡在线 Pod(LSE/LSR/LS）和离线 Pod（BE）的调度。
 
 ![图片](/img/load-aware-scheduling-arch.svg)
 
@@ -31,7 +30,7 @@ Koord-scheduler 可以通过与 koordlet 协作来检索节点指标。它能够
 
 #### （可选）高级设置
 
-对于需要深入了解的用户，请通过修改helm chart中的 ConfigMap `koord-scheduler-config` 规则来配置负载感知调度。
+对于需要深入了解的用户，请通过修改 Helm Chart 中的 ConfigMap `koord-scheduler-config` 规则来配置负载感知调度。
 
 ```yaml
 apiVersion: v1
@@ -89,7 +88,7 @@ koord-scheduler 将 ConfigMap [scheduler Configuration](https://kubernetes.io/do
 
 ## 使用负载感知调度
 
-1. 使用下面的 YAML 文件部署一个 `stress` pod 。
+1. 使用下面的 YAML 文件部署一个 `stress` Pod。
 
 ```yaml
 apiVersion: v1
@@ -130,7 +129,7 @@ $ kubectl create -f stress-demo.yaml
 pod/stress-demo created
 ```
 
-2. 观察pod的状态，直到它开始运行。
+2. 观察 Pod 的状态，直到它开始运行。
 
 ```bash
 $ kubectl get pod stress-demo -w
@@ -138,7 +137,7 @@ NAME          READY   STATUS    RESTARTS   AGE    IP             NODE     NOMINA
 stress-demo   1/1     Running   0          20s    172.20.100.6   node-0   <none>           <none>
 ```
 
-这个 pod 调度在 `node-0`。
+这个 Pod 调度在 `node-0`。
 
 3. 检查每个node节点的负载。
 
@@ -187,7 +186,7 @@ $ kubectl create -f nginx-deployment.yaml
 deployment/nginx created
 ```
 
-5. 检查 `nginx` pods 的调度结果。
+5. 检查 `nginx` Pods 的调度结果。
 
 ```bash
 $ kubectl get pods | grep nginx

@@ -6,51 +6,50 @@ sidebar_position: 1
 
 ## Motivation
 
-If the workloads in the existing cluster want to be co-located through Koordinator, you need to modify the existing Controller/Operator to support protocols such as the QoS class, priority, and resource model defined by Koordinator.
-In order to avoid repeated construction and make it easier for everyone to obtain the benefits of co-location technology, Koordinator defines `ClusterColocationProfile` CRD, and implements webhook modify and verify newly created Pods, inject the fields described in `ClusterColocationProfile`.
+如果现有集群中的工作负载想要通过 Koordinator 进行混合部署，则需要修改现有的 Controller/Operator 以支持 Koordinator 定义的 QoS Class、优先级和资源模型等协议。为了降低 Koordinator 混部系统的使用门槛，让大家可以简单快速的使用混部技术获得收益，因此 Koordinator 提供了一个 `ClusterColocationProfile` CRD 和 对应的 Webhook 修改和验证新创建的 Pod，注入 `ClusterColocationProfile` 中描述的字段。
 
 
-## Architecture
+## 构架
 
 ![image](/img/clustercolocationprofile-arch.png)
 
-## feature-gates
+## Feature Gates
 
-ClusterColocationProfile mutating/validating feature is turned on by default, if you want to turn it off set feature-gates:
+ClusterColocationProfile mutating/validating 功能默认是打开的，如果想要关闭，请设置 Feature Gates:
 
 ```bash
 $ helm install koordinator https://... --set featureGates="PodMutatingWebhook=false\,PodValidatingWebhook=false"
 ```
 
 
-## Spec definition
+## 规格定义
 
-If you are not familiar with Kubernetes resources please refer to the page [Understanding Kubernetes Objects](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/).
+如果您对 Kubernetes 资源不熟悉，请参考页面 [了解 Kubernetes 对象](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/)。
 
-- **namespaceSelector**: decides whether to mutate/validate Pods if the namespace matches the selector. Default to the empty LabelSelector,  which will match everything.
+- **namespaceSelector**: 如果命名空间与选择器匹配，则决定是否改变/验证 Pod。 LabelSelector 默认为空，它将匹配所有 Namespace。
 
-- **selector**: decides whether to mutate/validate Pods if the Pod matches the selector. Default to the empty LabelSelector, which will match everything.
+- **selector**: 如果 Pod 与选择器匹配，则决定是否改变/验证 Pod。 默认为空的 LabelSelector，它将匹配所有 Pod。
 
-- **qosClass** (*required*): describes the type of Koordinator QoS that the Pod is running. The value will be injected into Pod as label koordinator.sh/qosClass. Options are `LSE`, `LSR`, `LS`, `BE`, and `SYSTEM`. For more information, please check [here](../architecture/qos).
+- **qosClass** (*required*): 描述了 Pod 的 Koordinator QoSClass。该值以标签 `koordinator.sh/qosClass` 的形式更新到 Pod 中。对应的选项为 `LSE`、`LSR`、`LS`、`BE` 和 `SYSTEM`。 有关更多信息，请查看页面[此处](../architecture/qos)。
 
-- **priorityClassName** (*required*): the priorityClassName and the priority value defined in PriorityClass will be injected into the Pod. Options are `koordinator-prod`, `koordinator-mid`, `koordinator-batch`, and `koordinator-free`. For more information, please check [here](../architecture/priority).
+- **priorityClassName** (*required*): 指定要写入到 Pod.Spec.PriorityClassName 中的 Kubenretes PriorityClass. 选项为 `koord-prod`、`koord-mid`、`koord-batch` 和 `koord-free`。有关更多信息，请查看 [此处](../architecture/priority)。
 
-- **koordinatorPriority**: defines the Pod sub-priority in Koordinator. The priority value will be injected into Pod as label koordinator.sh/priority. Various Koordinator components determine the priority of the Pod in the Koordinator through KoordinatorPriority and the priority value in PriorityClassName. Higher the value, higher the priority.
+- **koordinatorPriority**: Koordinator 还提供了 Pod 级别的子优先级 sub-priority。 优先级值将作为标签 `koordinator.sh/priority` 更新到 Pod。 各个 Koordinator 组件通过 KoordinatorPriority 和 PriorityClassName 中的优先级值来确定 Koordinator 中 Pod 的优先级，值越高，优先级越高。
 
-- **labels**: describes the k/v pair that needs to inject into `Pod.Labels`.
+- **labels**: 描述需要注入到 `Pod.Labels` 的 k/v 键值对。
 
-- **annotations**: describes the k/v pair that needs to inject into `Pod.Annotations`.
+- **annotations**: 描述了需要注入到 `Pod.Annotations` 的 k/v 键值对。
 
-- **schedulerName**: if specified, the pod will be dispatched by specified scheduler.
+- **schedulerName**: 如果指定，则 Pod 将由指定的调度器调度。
 
-- **patch**: indicates Pod Template patching that user would like to inject into the Pod.
+- **patch**: 表示用户想要注入 Pod 的 Pod 模板补丁。
 
 
-## Example
+## 例子
 
-### Create ClusterColocationProfile
+### 创建 ClusterColocationProfile
 
-The `profile.yaml` file below describes to modify Pod in Namepspace with label `koordinator.sh/enable-colocation=true` and inject Koordinator QoS, Koordinator Priority etc.
+下面的 `profile.yaml` 文件描述了对所有含有标签 `koordinator.sh/enable-colocation=true` 的 Namespace 下的所有含有标签 `koordinator.sh/enable-colocation=true` 的 Pod 进行修改，注入 Koordinator QoSClass、Koordinator Priority 等。
 
 ```yaml
 apiVersion: config.koordinator.sh/v1alpha1
@@ -77,13 +76,13 @@ spec:
       terminationGracePeriodSeconds: 30
 ```
 
-Create a ClusterColocationProfile based on the YAML file:
+基于 YAML 文件创建 ClusterColocationProfile:
 
 ```bash
 $ kubectl apply -f profile.yaml
 ```
 
-### Verify ClusterColocationProfile works
+### 验证 ClusterColocationProfile 是否生效
 
 ```yaml
 apiVersion: v1
@@ -105,7 +104,7 @@ spec:
           memory: "3456Mi"
 ```
 
-Create this pod and now you will find it's injected with Koordinator QoS, Koordinator Priority etc.
+创建这个 Pod，现在你会发现该 Pod 被注入了 Koordinator QoSClass、Koordinator Priority 等。
 
 ```bash
 $ kubectl get pod test-pod -o yaml
