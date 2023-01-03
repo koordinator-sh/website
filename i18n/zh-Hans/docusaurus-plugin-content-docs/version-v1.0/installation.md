@@ -20,7 +20,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Install the latest version.
-$ helm install koordinator koordinator-sh/koordinator --version 0.7.0
+$ helm install koordinator koordinator-sh/koordinator --version 1.0.0
 ```
 
 ## 使用 Helm 升级
@@ -33,7 +33,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Upgrade the latest version.
-$ helm upgrade koordinator koordinator-sh/koordinator --version 0.7.0 [--force]
+$ helm upgrade koordinator koordinator-sh/koordinator --version 1.0.0 [--force]
 ```
 
 注意：
@@ -58,7 +58,7 @@ koord-runtime-proxy 充当 Kubelet 和 Containerd 之间的代理（Dockershim �
 从 Github 下载：
 ```bash
 $ # select the version
-$ wget https://github.com/koordinator-sh/koordinator/releases/download/v0.7.0/koord-runtime-proxy_0.7.0_linux_x86_64 -O koord-runtime-proxy
+$ wget https://github.com/koordinator-sh/koordinator/releases/download/v1.0.0/koord-runtime-proxy_1.0.0_linux_x86_64 -O koord-runtime-proxy
 $ chmod +x koord-runtime-proxy
 ```
 
@@ -133,7 +133,7 @@ kubelet <other options> --docker-endpoint=unix:///var/run/koord-runtimeproxy/run
 | `manager.log.level`                       | Log level that koord-manager printed                             | `4`                             |
 | `manager.replicas`                        | Replicas of koord-manager deployment                             | `2`                             |
 | `manager.image.repository`                | Repository for koord-manager image                               | `koordinatorsh/koord-manager`   |
-| `manager.image.tag`                       | Tag for koord-manager image                                      | `0.7.0`                         |
+| `manager.image.tag`                       | Tag for koord-manager image                                      | `1.0.0`                         |
 | `manager.resources.limits.cpu`            | CPU resource limit of koord-manager container                    | `1000m`                         |
 | `manager.resources.limits.memory`         | Memory resource limit of koord-manager container                 | `1Gi`                           |
 | `manager.resources.requests.cpu`          | CPU resource request of koord-manager container                  | `500m`                          |
@@ -148,7 +148,7 @@ kubelet <other options> --docker-endpoint=unix:///var/run/koord-runtimeproxy/run
 | `scheduler.log.level`                     | Log level that koord-scheduler printed                           | `4`                             |
 | `scheduler.replicas`                      | Replicas of koord-scheduler deployment                           | `2`                             |
 | `scheduler.image.repository`              | Repository for koord-scheduler image                             | `koordinatorsh/koord-scheduler` |
-| `scheduler.image.tag`                     | Tag for koord-scheduler image                                    | `0.7.0`                         |
+| `scheduler.image.tag`                     | Tag for koord-scheduler image                                    | `1.0.0`                         |
 | `scheduler.resources.limits.cpu`          | CPU resource limit of koord-scheduler container                  | `1000m`                         |
 | `scheduler.resources.limits.memory`       | Memory resource limit of koord-scheduler container               | `1Gi`                           |
 | `scheduler.resources.requests.cpu`        | CPU resource request of koord-scheduler container                | `500m`                          |
@@ -160,7 +160,7 @@ kubelet <other options> --docker-endpoint=unix:///var/run/koord-runtimeproxy/run
 | `scheduler.hostNetwork`                   | Whether koord-scheduler pod should run with hostnetwork          | `false`                         |
 | `koordlet.log.level`                      | Log level that koordlet printed                                  | `4`                             |
 | `koordlet.image.repository`               | Repository for koordlet image                                    | `koordinatorsh/koordlet`        |
-| `koordlet.image.tag`                      | Tag for koordlet image                                           | `0.7.0`                         |
+| `koordlet.image.tag`                      | Tag for koordlet image                                           | `1.0.0`                         |
 | `koordlet.resources.limits.cpu`           | CPU resource limit of koordlet container                         | `500m`                          |
 | `koordlet.resources.limits.memory`        | Memory resource limit of koordlet container                      | `256Mi`                         |
 | `koordlet.resources.requests.cpu`         | CPU resource request of koordlet container                       | `0`                             |
