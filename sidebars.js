@@ -41,6 +41,7 @@ const sidebars = {
       items: [
         'user-manuals/colocation-profile',
         'user-manuals/load-aware-scheduling',
+        'user-manuals/load-aware-descheduling',
         'user-manuals/fine-grained-cpu-orchestration',
         'user-manuals/resource-reservation',
         'user-manuals/pod-migration-job',

@@ -1,43 +1,33 @@
-# Fine-grained CPU Orchestration
+# 精细化 CPU 编排
 
-Fine-grained CPU Orchestration is an ability of koord-scheduler for improving the performance of CPU-sensitive workloads.
+koord-scheduler 为了提升 CPU 密集型工作负载的性能提供了精细化 CPU 编排能力。
 
 ## Introduction
 
-There is an increasing number of systems that leverage a combination of CPUs and hardware accelerators to support
-latency-critical execution and high-throughput parallel computation. A high-performance environment is expected in
-plenty of applications including in telecommunications, scientific computing, machine learning, financial services, and
-data analytics.
+越来越多的系统利用 CPU 和硬件加速器的组合来支持实时计算和高吞吐的并行计算。 许多应用程序都需要高性能环境，包括电信、科学计算、机器学习、金融服务和数据分析。
 
-However, pods in the Kubernetes cluster may interfere with others' running when they share the same physical resources
-and both demand many resources. The sharing of CPU resources is almost inevitable. e.g. SMT threads (i.e. logical
-processors) share execution units of the same core, and cores in the same chip share one last-level cache. The resource
-contention can slow down the running of these CPU-sensitive workloads, resulting in high response latency (RT).
+但是，Kubernetes 集群中的 Pod 在多种资源维度上都是共享的，存在相互干扰的问题。 CPU 资源的共享几乎是不可避免的，例如 SMT 线程（即逻辑处理器）共享同一个物理核，同一个芯片中的物理核共享同一个 L3 缓存。 资源竞争会减慢这些对 CPU 敏感的工作负载的运行质量，从而导致延迟升高。
 
-To improve the performance of CPU-sensitive workloads, koord-scheduler provides a mechanism of fine-grained CPU
-orchestration. It enhances the CPU management of Kubernetes and supports detailed NUMA-locality and CPU exclusions.
+为了提高对 CPU 敏感的工作负载的性能，koord-scheduler 提供了一种精细化的 CPU 编排机制。 它增强了 Kubernetes 的 CPU 管理，并支持详细的 NUMA 局部性和 CPU 排除。
 
-For more information, please see [Design: Fine-grained CPU orchestration](/docs/designs/fine-grained-cpu-orchestration).
+有关详细信息，请参阅[设计：细粒度 CPU 编排](/docs/designs/fine-grained-cpu-orchestration)。
 
-## Setup
+## 设置
 
-### Prerequisite
+### 前置条件
 
 - Kubernetes >= 1.18
-- Koordinator >= 0.5
+- Koordinator >= 0.6
 
-### Installation
+### 安装
 
-Please make sure Koordinator components are correctly installed in your cluster. If not, please refer to [Installation](/docs/installation).
+请确保 Koordinator 组件已正确安装在你的集群中。 如果没有，请参考[安装文档](/docs/installation)。
 
-### Configurations
+### 配置全局参数
 
-Fine-grained CPU orchestration is *Enabled* by default. You can use it without any modification on the koord-scheduler config.
+精细化 CPU 编排能力是默认开启的。用户不需要额外的配置即可使用。
 
-#### (Optional) Advanced Settings
-
-For users who need deep insight, please configure the rules of fine-grained CPU orchestration by modifying the ConfigMap
-`koord-scheduler-config` in the helm chart.
+对于需要深入定制的用户，可以按需修改 Helm Chart 中的配置文件 `koord-scheduler-config` 设置精细化 CPU 编排的参数。
 
 ```yaml
 apiVersion: v1
@@ -56,10 +46,10 @@ data:
           args:
             apiVersion: kubescheduler.config.k8s.io/v1beta2
             kind: NodeNUMAResource
-            # the NUMA allocation strategy ('MostAllocated', 'LeastAllocated')
-            # - MostAllocated: allocate from the NUMA node with the least available resources
-            # - LeastAllocated(default): allocates from the NUMA node with the most available resources
-            numaAllocateStrategy: LeastAllocated
+            # The default CPU Binding Policy. The default is FullPCPUs
+            # If the Pod belongs to LSE/LSR Prod Pods, and if no specific CPU binding policy is set, 
+            # the CPU will be allocated according to the default core binding policy.
+            defaultCPUBindPolicy: FullPCPUs
             # the scoring strategy
             scoringStrategy:
               # the scoring strategy ('MostAllocated', 'LeastAllocated')
@@ -92,14 +82,47 @@ data:
               - name: NodeNUMAResource
 ```
 
-The koord-scheduler takes this ConfigMap as [scheduler Configuration](https://kubernetes.io/docs/reference/scheduling/config/).
-New configurations will take effect after the koord-scheduler restarts.
+koord-descheduler 是通过 Configmap 加载[调度器配置](https://kubernetes.io/docs/reference/scheduling/config/)的。因此需要通过重启调度器才能使用最新的配置。
 
-## Use Fine-grained CPU Orchestration
 
-1. Create an `nginx` deployment with the YAML file below.
+| 字段 | 说明 | 版本 |
+|-------|-------------|---------|
+| defaultCPUBindPolicy | 默认的 CPU 绑定策略。 默认值为 FullPCPUs。 如果 Pod 属于 LSE/LSR Prod Pod，并且没有设置具体的 CPU 绑定策略，CPU 则会按照默认的 CPU 绑定策略进行分配。 可选值为 FullPCPUs 和 SpreadByPCPUs | >= v0.6.0 |
+| scoringStrategy | 打分策略，可选值为 MostAllocated 和 LeastAllocated | >= v0.6.0 |
 
-> Fine-grained CPU Orchestration allows pods to bind CPUs exclusively. To use fine-grained CPU orchestration, pods should set a label of [QoS Class](/docs/architecture/qos#definition)) and specify the cpu binding policy.
+### 按节点配置
+
+用户可以单独的为节点设置不同的 CPU 绑定策略和 NUMA Node 选择策略。
+
+#### CPU 绑定策略
+
+Label `node.koordinator.sh/cpu-bind-policy` 约束了调度时如何按照指定的策略分配和绑定CPU。具体的值定义如下：
+
+| 值 | 描述 | 版本 |
+|-------|-------------|---------|
+| None or empty | 不执行任何策略。 | >= v0.6.0 |
+| FullPCPUsOnly | 要求调度器必须分配完整的物理核。等价于 kubelet CPU manager policy option full-pcpus-only=true. | >= v0.6.0 |
+| SpreadByPCPUs | 要求调度器必须按照物理核维度均匀的分配逻辑核。 | >= v1.1.0 |
+
+如果节点 Label 上没有 `node.koordinator.sh/cpu-bind-policy`，调度器将会按照 Pod 指定的 CPU 绑定策略或者调度器配置的默认策略分配 CPU。
+
+#### NUMA Node 选择策略
+
+Label `node.koordinator.sh/numa-allocate-strategy` 表示调度时应该如何选择 NUMA Node。具体的值定义如下：
+
+| 值 | 描述 | 版本 |
+|-------|-------------|---------|
+| MostAllocated | MostAllocated 表示选择资源剩余最少的 NUMA Node。| >= v.0.6.0 |
+| LeastAllocated | LeastAllocated 表示选择资源剩余最多的NUMA Node。| >= v.0.6.0 |
+
+如果 `node.koordinator.sh/numa-allocate-strategy` 和 `kubelet.koordinator.sh/cpu-manager-policy` 都设置了, 优先使用 `node.koordinator.sh/numa-allocate-strategy`。
+
+
+## 使用精细化 CPU 编排
+
+1. 按照下面的 YAM了 创建 Deployment `nginx`。
+
+> 使用精细化 CPU 编排时，Pod 需要在 Label 中指定具体的 [QoSClass](/docs/architecture/qos#definition) 并指定具体的绑定策略。
 
 ```yaml
 apiVersion: apps/v1
@@ -136,7 +159,7 @@ spec:
       priorityClassName: koord-prod
 ```
 
-2. Deploy the `nginx` deployment and check the scheduling result.
+2. 创建 `nginx` deployment 并检查调度结果。
 
 ```bash
 $ kubectl create -f nginx-deployment.yaml
@@ -147,17 +170,16 @@ nginx-lsr-59cf487d4b-4l7r4   1/1     Running   0       21s     172.20.101.79    
 nginx-lsr-59cf487d4b-nrb7f   1/1     Running   0       21s     172.20.106.119   node-2   <none>         <none>
 ```
 
-3. Check the CPU binding results of pods on `scheduling.koordinator.sh/resource-status` annotations.
+3. 检查 Pod 的 CPU 分配结果 `scheduling.koordinator.sh/resource-status`.
 
 ```bash
 $ kubectl get pod nginx-lsr-59cf487d4b-jwwjv -o jsonpath='{.metadata.annotations.scheduling\.koordinator\.sh/resource-status}'
 {"cpuset":"2,54"}
 ```
 
-We can see that the pod `nginx-lsr-59cf487d4b-jwwjv` binds 2 CPUs, and the IDs are 2,54, which are the logical
-processors of the **same** core.
+我们可以看到 Pod `nginx-lsr-59cf487d4b-jwwjv` 绑定了 2 个逻辑核，对应的逻辑核 ID 分别是 2 和 54，这两个逻辑核属于同一个物理核。
 
-4. Change the binding policy in the `nginx` deployment with the YAML file below.
+4. 更改 `nginx` deployment 的 CPU 绑定策略。
 
 ```yaml
 apiVersion: apps/v1
@@ -193,7 +215,7 @@ spec:
       priorityClassName: koord-prod
 ```
 
-5. Update the `nginx` deployment and check the scheduling result.
+5. 更新 `nginx` deployment 并检查调度结果。
 
 ```bash
 $ kubectl apply -f nginx-deployment.yaml
@@ -204,17 +226,16 @@ nginx-lsr-7fcbcf89b4-ndbks   1/1     Running   0       49s     172.20.101.79    
 nginx-lsr-7fcbcf89b4-9v8b8   1/1     Running   0       49s     172.20.106.119   node-2   <none>         <none>
 ```
 
-6. Check the new CPU binding results of pods on `scheduling.koordinator.sh/resource-status` annotations.
+6. 检查 Pod 最新的 CPU 分配结果 `scheduling.koordinator.sh/resource-status`。
 
 ```bash
 $ kubectl get pod nginx-lsr-7fcbcf89b4-rkrgg -o jsonpath='{.metadata.annotations.scheduling\.koordinator\.sh/resource-status}'
 {"cpuset":"2-3"}
 ```
 
-Now we can see that the pod `nginx-lsr-59cf487d4b-jwwjv` binds 2 CPUs, and the IDs are 2,3, which are the logical
-processors of the **different** core.
+现在我们可以看到 Pod `nginx-lsr-59cf487d4b-jwwjv` 绑定了两个逻辑核，对应的 ID 分别是 2,3, 属于两个不同的物理核。
 
-7. (Optional) Advanced configurations.
+7. (可选) 高级配置.
 
 ```yaml
   labels:

@@ -24,17 +24,15 @@ For more information, please see [Design: Fine-grained CPU orchestration](/docs/
 ### Prerequisite
 
 - Kubernetes >= 1.18
-- Koordinator >= 0.5
+- Koordinator >= 0.6
 
 ### Installation
 
 Please make sure Koordinator components are correctly installed in your cluster. If not, please refer to [Installation](/docs/installation).
 
-### Configurations
+### Global Configuration via plugin args
 
 Fine-grained CPU orchestration is *Enabled* by default. You can use it without any modification on the koord-scheduler config.
-
-#### (Optional) Advanced Settings
 
 For users who need deep insight, please configure the rules of fine-grained CPU orchestration by modifying the ConfigMap
 `koord-scheduler-config` in the helm chart.
@@ -56,10 +54,10 @@ data:
           args:
             apiVersion: kubescheduler.config.k8s.io/v1beta2
             kind: NodeNUMAResource
-            # the NUMA allocation strategy ('MostAllocated', 'LeastAllocated')
-            # - MostAllocated: allocate from the NUMA node with the least available resources
-            # - LeastAllocated(default): allocates from the NUMA node with the most available resources
-            numaAllocateStrategy: LeastAllocated
+            # The default CPU Binding Policy. The default is FullPCPUs
+            # If the Pod belongs to LSE/LSR Prod Pods, and if no specific CPU binding policy is set, 
+            # the CPU will be allocated according to the default core binding policy.
+            defaultCPUBindPolicy: FullPCPUs
             # the scoring strategy
             scoringStrategy:
               # the scoring strategy ('MostAllocated', 'LeastAllocated')
@@ -94,6 +92,40 @@ data:
 
 The koord-scheduler takes this ConfigMap as [scheduler Configuration](https://kubernetes.io/docs/reference/scheduling/config/).
 New configurations will take effect after the koord-scheduler restarts.
+
+| Field | Description | Version |
+|-------|-------------|---------|
+| defaultCPUBindPolicy | The default CPU Binding Policy. The default is FullPCPUs. If the Pod belongs to LSE/LSR Prod Pods, and if no specific CPU binding policy is set, the CPU will be allocated according to the default CPU binding policy. The optional values are FullPCPUs and SpreadByPCPUs | >= v0.6.0 |
+| scoringStrategy | the scoring strategy, including MostAllocated and LeastAllocated | >= v0.6.0 |
+
+### Configure by Node
+
+Users can set CPU binding policy and NUMA Node selection policy separately for Node.
+
+#### CPU bind policy
+
+The label `node.koordinator.sh/cpu-bind-policy` constrains how to bind CPU logical CPUs when scheduling.
+The following is the specific value definition:
+
+| Value | Description | Version |
+|-------|-------------|---------|
+| None or empty value | does not perform any policy| >= v0.6.0 |
+| FullPCPUsOnly | requires that the scheduler must allocate full physical cores. Equivalent to kubelet CPU manager policy option full-pcpus-only=true. | >= v0.6.0 |
+| SpreadByPCPUs | requires that the schedler must evenly allocate logical CPUs across physical cores. | >= v1.1.0 |
+
+If there is no `node.koordinator.sh/cpu-bind-policy` in the node's label, it will be executed according to the policy configured by the Pod or koord-scheduler.
+
+#### NUMA allocate strategy
+
+The label `node.koordinator.sh/numa-allocate-strategy` indicates how to choose satisfied NUMA Nodes when scheduling.  
+The following is the specific value definition:
+
+| Value | Description | Version |
+|-------|-------------|---------|
+| MostAllocated | MostAllocated indicates that allocates from the NUMA Node with the least amount of available resource.| >= v.0.6.0 |
+| LeastAllocated | LeastAllocated indicates that allocates from the NUMA Node with the most amount of available resource.| >= v.0.6.0 |
+
+If both `node.koordinator.sh/numa-allocate-strategy` and `kubelet.koordinator.sh/cpu-manager-policy` are defined, `node.koordinator.sh/numa-allocate-strategy` is used first.
 
 ## Use Fine-grained CPU Orchestration
 

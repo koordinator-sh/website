@@ -23,40 +23,43 @@ In order to extract the best performance, optimizations related to CPU isolation
 1. Describe specific design details of koordlet/koord-runtime-proxy.
 1. Describe specific design details of CPU descheduling mechanism.
 
+## Proposal
 
-## Design Overview
+### Design Overview
 
 ![image](/img/cpu-orchestration-seq-uml.svg)
 
 When koordlet starts, koordlet gather the NUMA topology information from kubelet include NUMA Topology, CPU Topology, kubelet cpu management policy, kubelet allocated CPUs for Guaranteed Pods etc., and update to the NodeResourceTopology CRD. The latency-sensitive applications are scaling, the new Pod can set Koordinator QoS with LSE/LSR, CPU Bind policy and CPU exclusive policy to require koord-scheduler to allocate best-fit CPUs to get the best performance. When koord-scheduler scheduling the Pod, koord-scheduler will filter Nodes that satisfied NUMA Topology Alignment policy, and select the best Node by scoring, allocating the CPUs in Reserve phase, and records the result to Pod annotation when PreBinding. koordlet hooks the kubelet CRI request to replace the CPUs configuration parameters with the koord-scheduler scheduled result to the runtime such as configure the cgroup.
 
-## User stories
+### User stories
 
-### Story 1
+#### Story 1
 
 Compatible with kubelet's existing CPU management policies. The CPU manager policy `static` allows pods with certain resource characteristics to be granted increased CPU affinity and exclusivity in the node. If enabled the `static` policy, the cluster administrator must configure the kubelet reserve some CPUs. There are some options for `static` policy. If the `full-pcpus-only(beta, visible by default)` policy option is specified, the `static` policy will always allocate full physical cores. If the `distribute-cpus-across-numa(alpha, hidden by default)` option is specified, the `static` policy will evenly distribute CPUs across NUMA nodes in cases where more than one NUMA node is required to satisfy the allocation.
 
-### Story 2
+#### Story 2
 
 Similarly, the semantics of the existing K8s Guaranteed Pods in the community should be compatible. The cpu cores allocated to K8s Guaranteed Pods with `static` policy will not share to the default best effort Pods, so it is equivalent to LSE. But when the load in the node is relatively low, the CPUs allocated by LSR Pods should be shared with best effort workloads to obtain economic benefits. 
 
-### Story 3
+#### Story 3
 
 The Topology Manager is a kubelet component that aims to coordinate the set of components that are responsible for these optimizations. After Topology Manager was introduced the problem of launching pod in the cluster where worker nodes have different NUMA topology and different amount of resources in that topology became actual. The Pod could be scheduled in the node where the total amount of resources is enough, but resource distribution could not satisfy the appropriate Topology policy. 
 
-### Story 4
+#### Story 4
 
 The scheduler can coordinate the arrangement between latency-sensitive applications. For example, the same latency-sensitive applications can be mutually exclusive in the CPU dimension, and latency-sensitive applications and general applications can be deployed in the CPU dimension affinity. Costs can be reduced and runtime quality can be guaranteed.
 
-### Story 5
+#### Story 5
 
 When allocating CPUs based on NUMA topology, users want to have different allocation strategies. For example, bin-packing takes precedence, or assigns the most idle NUMA Node.
 
-### Story 6
+#### Story 6
 
 As the application scaling or rolling deployment, the best-fit allocatable space will gradually become fragmented, which will lead to the bad allocation effect of some strategies and affect the runtime effect of the application. 
 
-## CPU orchestration principles
+## Design Details
+
+### Basic CPU orchestration principles
 
 1. Only supports the CPU allocation mechanism of the Pod dimension.
 1. Koordinator divides the CPU on the machine into `CPU Shared Pool`, `statically exclusive CPUs` and `BE CPU Shared Pool`. 
@@ -103,7 +106,7 @@ The takeover logic will require koord-runtime-proxy to add new extension points,
 
 ## CPU orchestration API
 
-### Application CPU orchestration API
+### Application CPU CPU orchestration API
 
 #### Resource spec
 
@@ -119,8 +122,8 @@ type ResourceSpec struct {
 type CPUBindPolicy string
 
 const (
-  // CPUBindPolicyNone does not perform any bind policy
-  CPUBindPolicyNone CPUBindPolicy = "None"
+  // CPUBindPolicyDefault performs the default bind policy that specified in koord-scheduler configuration
+  CPUBindPolicyDefault CPUBindPolicy = "Default"
   // CPUBindPolicyFullPCPUs favor cpuset allocation that pack in few physical cores
   CPUBindPolicyFullPCPUs CPUBindPolicy = "FullPCPUs"
   // CPUBindPolicySpreadByPCPUs favor cpuset allocation that evenly allocate logical cpus across physical cores
@@ -132,8 +135,8 @@ const (
 type CPUExclusivePolicy string
 
 const (
-  // CPUExclusivePolicyNone does not perform any exclusive policy
-  CPUExclusivePolicyNone CPUExclusivePolicy = "None"
+  // CPUExclusivePolicyDefault performs the default exclusive policy that specified in koord-scheduler configuration
+  CPUExclusivePolicyDefault CPUExclusivePolicy = "Default"
   // CPUExclusivePolicyPCPULevel represents mutual exclusion in the physical core dimension 
   CPUExclusivePolicyPCPULevel CPUExclusivePolicy = "PCPULevel"
   // CPUExclusivePolicyNUMANodeLevel indicates mutual exclusion in the NUMA topology dimension
@@ -142,13 +145,13 @@ const (
 ```
 
 - The `CPUBindPolicy` defines the CPU binding policy. The specific values are defined as follows:
-   - `CPUBindPolicyNone` or empty value does not perform any bind policy. It is completely determined by the scheduler plugin configuration.
+   - `CPUBindPolicyDefault` or empty value performs the default bind policy that specified in koord-scheduler configuration.
    - `CPUBindPolicyFullPCPUs` is a bin-packing policy, similar to the `full-pcpus-only=true` option defined by the kubelet, that allocate full physical cores. However, if the number of remaining logical CPUs in the node is sufficient but the number of full physical cores is insufficient, the allocation will continue. This policy can effectively avoid the noisy neighbor problem.
    - `CPUBindPolicySpreadByPCPUs` is a spread policy. If the node enabled Hyper-Threading, when this policy is adopted, the scheduler will evenly allocate logical CPUs across physical cores. For example, the current node has 8 physical cores and 16 logical CPUs. When a Pod requires 8 logical CPUs and the `CPUBindPolicySpreadByPCPUs` policy is adopted, the scheduler will allocate an logical CPU from each physical core. This policy is mainly used by some latency-sensitive applications with multiple different peak-to-valley characteristics. It can not only allow the application to fully use the CPU at certain times, but will not be disturbed by the application on the same physical core. So the noisy neighbor problem may arise when using this policy.
    - `CPUBindPolicyConstrainedBurst` a special policy that mainly helps K8s Burstable/Koordinator LS Pod get better performance. When using the policy, koord-scheduler is filtering out Nodes that have NUMA Nodes with suitable CPU Shared Pool by Pod Limit. After the scheduling is successful, the scheduler will update `scheduling.koordinator.sh/resource-status` in the Pod, declaring the `CPU Shared Pool` to be bound. The koordlet binds the CPU Shared Pool of the corresponding NUMA Node according to the `CPU Shared Pool`
-   - If `kubelet.koordinator.sh/cpu-manager-policy` in `NodeResourceTopology` has option `full-pcpus-only=true`, or `node.koordinator.sh/cpu-bind-policy` in the Node with the value `FullPCPUsOnly`, the koord-scheduler will check whether the number of CPU requests of the Pod meets the `SMT-alignment` requirements, so as to avoid being rejected by the kubelet after scheduling. koord-scheduler will avoid such nodes if the Pod uses the `CPUBindPolicySpreadByPCPUs` policy or the number of logical CPUs mapped to the number of physical cores is not an integer.
+   - If `kubelet.koordinator.sh/cpu-manager-policy` in `NodeResourceTopology` has option `full-pcpus-only=true`, or `node.koordinator.sh/cpu-bind-policy` in the Node with the value `PCPUOnly`, the koord-scheduler will check whether the number of CPU requests of the Pod meets the `SMT-alignment` requirements, so as to avoid being rejected by the kubelet after scheduling. koord-scheduler will avoid such nodes if the Pod uses the `CPUBindPolicySpreadByPCPUs` policy or the number of logical CPUs mapped to the number of physical cores is not an integer.
 - The `CPUExclusivePolicy` defines the CPU exclusive policy, it can help users to avoid noisy neighbor problems. The specific values are defined as follows:
-   - `CPUExclusivePolicyNone` or empty value does not perform any isolate policy. It is completely determined by the scheduler plugin configuration.
+   - `CPUExclusivePolicyDefault` or empty value performs the default exclusive policy that specified in koord-scheduler configuration.
    - `CPUExclusivePolicyPCPULevel`. When allocating logical CPUs, try to avoid physical cores that have already been applied for by the same exclusive policy. It is a supplement to the `CPUBindPolicySpreadByPCPUs` policy. 
    - `CPUExclusivePolicyNUMANodeLevel`. When allocating logical CPUs, try to avoid NUMA Nodes that has already been applied for by the same exclusive policy. If there is no NUMA Node that satisfies the policy, downgrade to `CPUExclusivePolicyPCPULevel` policy.
 
@@ -168,7 +171,7 @@ type ResourceStatus struct {
 ```
 
 - `CPUSet` represents the allocated CPUs. When LSE/LSR Pod requested, koord-scheduler will update the field. It is Linux CPU list formatted string. For more details, please refer to [doc](http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS).
-- `CPUSharedPools` represents the desired CPU Shared Pools used by LS Pods. If the Node has the label `node.koordinator.sh/numa-topology-alignment-policy` with `Restricted/SingleNUMANode`, koord-scheduler will find the best-fit NUMA Node for the LS Pod, and update the field that requires koordlet uses the specified CPU Shared Pool. It should be noted that the scheduler does not update the `CPUSet` field in the `CPUSharedPool`, koordlet binds the CPU Shared Pool of the corresponding NUMA Node according to the `SocketID` and `NodeID` fields in the `CPUSharedPool`.
+- `CPUSharedPools` represents the desired CPU Shared Pools used by LS Pods. If the Node has the label `node.koordinator.sh/numa-topology-alignment-policy` with `Restricted/SingleNUMANode`, koord-scheduler will find the best-fit NUMA Node for the LS Pod, and update the field that requires koordlet uses the specified CPU Shared Pool. It should be noted that the scheduler does not update the `CPUSet` field in the `CPUSharedPool`, koordlet binds the CPU Shared Pool of the corresponding NUMA Node according to the `Socket` and `Node` fields in the `CPUSharedPool`.
 
 #### Example
 
@@ -205,6 +208,7 @@ The label `node.koordinator.sh/cpu-bind-policy` constrains how to bind CPU logic
 The following is the specific value definition:
 - `None` or empty value does not perform any policy.
 - `FullPCPUsOnly` requires that the scheduler must allocate full physical cores. Equivalent to kubelet CPU manager policy option `full-pcpus-only=true`. 
+- `SpreadByPCPUs` requires that the schedler must evenly allocate logical CPUs across physical cores. 
 
 If there is no `node.koordinator.sh/cpu-bind-policy` in the node's label, it will be executed according to the policy configured by the Pod or koord-scheduler.
 
@@ -272,13 +276,13 @@ We use [NodeResourceTopology](https://github.com/k8stopologyawareschedwg/noderes
 
 #### Compatible
 
-In order to be compatible with the existing NodeResourceTopology instances and prevent koordlet from conflicting with existing components, when koordlet creates a NodeResourceTopology, add the prefix `koord-` before the name to distinguish it, and add the label `app.kubernetes.io/managed-by=Koordinator` describes the node is managed by Koordinator.
+The koordlet creates or updates NodeResourceTopology periodically. The name of NodeResourceTopology is same as the name of Node. and add the label `app.kubernetes.io/managed-by=Koordinator` describes the node is managed by Koordinator.
 
 #### Extension
 
 At present, the NodeResourceTopology lacks some information, and it is temporarily written in the NodeResourceTopology in the form of annotations or labels:
 
-- The annotation `kubelet.koordinator.sh/cpu-manger-policy` describes the kubelet CPU manager policy and options. The scheme is defined as follows:
+- The annotation `kubelet.koordinator.sh/cpu-manager-policy` describes the kubelet CPU manager policy and options. The scheme is defined as follows:
 
 ```go
 const (
@@ -289,6 +293,7 @@ const (
 type KubeletCPUManagerPolicy struct {
   Policy  string            `json:"policy,omitempty"`
   Options map[string]string `json:"options,omitempty"`
+  ReservedCPUs string       `json:"reservedCPUs,omitempty"`
 }
 
 ```
@@ -312,10 +317,11 @@ type CPUInfo struct {
 
 ```go
 type PodCPUAlloc struct {
-  Namespace string    `json:"namespace,omitempty"`
-  Name      string    `json:"name,omitempty"`
-  UID       types.UID `json:"uid,omitempty"`
-  CPUSet    string    `json:"cpuset,omitempty"`
+  Namespace        string    `json:"namespace,omitempty"`
+  Name             string    `json:"name,omitempty"`
+  UID              types.UID `json:"uid,omitempty"`
+  CPUSet           string    `json:"cpuset,omitempty"`
+  ManagedByKubelet bool      `json:"managedByKubelet,omitempty"`
 }
 
 type PodCPUAllocs []PodCPUAlloc
@@ -327,8 +333,8 @@ type PodCPUAllocs []PodCPUAlloc
 type NUMACPUSharedPools []CPUSharedPool
 
 type CPUSharedPool struct {
-  Socket int32  `json:"socket,omitempty"`
-  Node   int32  `json:"node,omitempty"`
+  Socket int32  `json:"socket"`
+  Node   int32  `json:"node"`
   CPUSet string `json:"cpuset,omitempty"`
 }
 ```
@@ -351,7 +357,7 @@ apiVersion: topology.node.k8s.io/v1alpha1
 kind: NodeResourceTopology
 metadata:
   annotations:
-    kubelet.koordinator.sh/cpu-manger-policy: |-
+    kubelet.koordinator.sh/cpu-manager-policy: |-
       {
         "policy": "static",
         "options": {
@@ -388,14 +394,15 @@ metadata:
       [
         {
           "namespace": "default",
-          "name": "test-pod",
+          "name": "static-guaranteed-pod",
           "uid": "32b14702-2efe-4be9-a9da-f3b779175846",
-          "cpu": "4-8"
+          "cpu": "4-8",
+          "managedByKubelet": "true"
         }
       ]
   labels:
     app.kubernetes.io/managed-by: Koordinator
-  name: koord-node1
+  name: node1
 topologyPolicies: ["SingleNUMANodePodLevel"]
 zones:
   - name: node-0
