@@ -41,7 +41,7 @@ After pods have been filtered and sorted, the migration operation begins. Before
 ### Prerequisite
 
 - Kubernetes >= 1.18
-- Koordinator >= 1.1.0
+- Koordinator >= 1.1.1
 
 ### Installation
 
@@ -104,20 +104,22 @@ data:
 
 | Field | Description | Version |
 |-------|-------------| --------|
-| numberOfNodes | NumberOfNodes can be configured to activate the strategy only when the number of under utilized nodes are above the configured value. This could be helpful in large clusters where a few nodes could go under utilized frequently or for a short period of time. By default, NumberOfNodes is set to zero. | >= v1.1.0 |
-| evictableNamespaces | Naming this one differently since namespaces are still considered while considering resources used by pods but then filtered out before eviction. | >= v1.1.0 |
-| nodeSelector | NodeSelector selects the nodes that matched labelSelector. | >= v1.1.0 |
-| podSelectors | PodSelectors selects the pods that matched labelSelector. | >= v1.1.0 |
-| nodeFit | NodeFit if enabled, it will check whether the candidate Pods have suitable nodes, including NodeAffinity, TaintTolerance, and whether resources are sufficient. By default, NodeFit is set to true. | >= v1.1.0 |
-| useDeviationThresholds | If UseDeviationThresholds is set to `true`, the thresholds are considered as percentage deviations from mean resource usage. `lowThresholds` will be deducted from the mean among all nodes and `highThresholds` will be added to the mean. A resource consumption above (resp. below) this window is considered as overutilization (resp. underutilization). | >= v1.1.0 |
-| highThresholds | HighThresholds defines the target usage threshold of resources | >= v1.1.0 |
-| lowThresholds | LowThresholds defines the low usage threshold of resources | >= v1.1.0 |
+| paused | Paused indicates whether the LowNodeLoad should to work or not. | >= v1.1.1 |
+| dryRun | DryRun means only execute the entire deschedule logic but don't migrate Pod | >= v1.1.1 |
+| numberOfNodes | NumberOfNodes can be configured to activate the strategy only when the number of under utilized nodes are above the configured value. This could be helpful in large clusters where a few nodes could go under utilized frequently or for a short period of time. By default, NumberOfNodes is set to zero. | >= v1.1.1 |
+| evictableNamespaces | Naming this one differently since namespaces are still considered while considering resources used by pods but then filtered out before eviction. | >= v1.1.1 |
+| nodeSelector | NodeSelector selects the nodes that matched labelSelector. | >= v1.1.1 |
+| podSelectors | PodSelectors selects the pods that matched labelSelector. | >= v1.1.1 |
+| nodeFit | NodeFit if enabled, it will check whether the candidate Pods have suitable nodes, including NodeAffinity, TaintTolerance, and whether resources are sufficient. By default, NodeFit is set to true. | >= v1.1.1 |
+| useDeviationThresholds | If UseDeviationThresholds is set to `true`, the thresholds are considered as percentage deviations from mean resource usage. `lowThresholds` will be deducted from the mean among all nodes and `highThresholds` will be added to the mean. A resource consumption above (resp. below) this window is considered as overutilization (resp. underutilization). | >= v1.1.1 |
+| highThresholds | HighThresholds defines the target usage threshold of resources | >= v1.1.1 |
+| lowThresholds | LowThresholds defines the low usage threshold of resources | >= v1.1.1 |
 
 ## Use Load Aware Descheduling
 
 The example cluster in this article has three 4-core 16GiB nodes.
 
-1. Deploy a `stress` pod with the YAML file below.
+1. Deploy two `stress` pod with the YAML file below.
 
 ```yaml
 apiVersion: apps/v1
@@ -128,7 +130,7 @@ metadata:
   labels:
     app: stress-demo
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: stress-demo
@@ -169,27 +171,28 @@ $ kubectl create -f stress-demo.yaml
 deployment.apps/stress-demo created
 ```
 
-2. Watch the pod status util it becomes running.
+2. Watch the pod status util they become running.
 
 ```bash
 $ kubectl get pod -o wide
-NAME                           READY   STATUS    RESTARTS   AGE   IP           NODE                    NOMINATED NODE   READINESS GATES
-stress-demo-7fdd89cc6b-gcnzn   1/1     Running   0          82s   10.0.3.114   cn-beijing.10.0.3.112   <none>           <none>
+NAME                           READY   STATUS    RESTARTS   AGE     IP          NODE                   NOMINATED NODE   READINESS GATES
+stress-demo-7fdd89cc6b-lml7k   1/1     Running   0          21m     10.0.2.83   cn-beijing.10.0.2.54   <none>           <none>
+stress-demo-7fdd89cc6b-xr5dl   1/1     Running   0          4m40s   10.0.2.77   cn-beijing.10.0.2.53   <none>           <none>
 ```
 
-The pod `stress-demo-7fdd89cc6b-gcnzn` is scheduled on `cn-beijing.10.0.3.112`.
+The stress pods are scheduled on `cn-beijing.10.0.2.53` and `cn-beijing.10.0.2.54`.
 
 3. Check the load of each node.
 
 ```bash
 $ kubectl top node
-NAME                    CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
-cn-beijing.10.0.3.110   92m          2%     1158Mi          9%
-cn-beijing.10.0.3.111   77m          1%     1162Mi          9%
-cn-beijing.10.0.3.112   2105m        53%    3594Mi          28%
+NAME                   CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+cn-beijing.10.0.2.53   3825m        98%    4051Mi          31%
+cn-beijing.10.0.2.54   2155m        55%    4500Mi          35%
+cn-beijing.10.0.2.58   182m         4%     1367Mi          10%
 ```
 
-In above order, `cn-beijing.10.0.3.112` has the highest load, while `cn-beijing.10.0.3.111` has the lowest load.
+In above order, `cn-beijing.10.0.2.53` and `cn-beijing.10.0.2.54` have the highest load, while `cn-beijing.10.0.2.58` has the lowest load.
 
 4. Update `koord-descheduler-config` to enable `LowNodeLoad` plugin.
 
@@ -197,29 +200,30 @@ In above order, `cn-beijing.10.0.3.112` has the highest load, while `cn-beijing.
 
 ```bash
 $ kubectl get pod -w
-NAME                           READY   STATUS               RESTARTS   AGE     IP           NODE                    NOMINATED NODE   READINESS GATES
-stress-demo-7fdd89cc6b-l7psv   1/1     Running              0          4m45s   10.0.3.127   cn-beijing.10.0.3.121   <none>           <none>
-stress-demo-7fdd89cc6b-l7psv   1/1     Terminating          0          8m34s   10.0.3.127   cn-beijing.10.0.3.121   <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     Pending              0          0s      <none>       <none>                  <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     Pending              0          0s      <none>       <none>                  <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     Pending              0          0s      <none>       cn-beijing.10.0.3.124   <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     ContainerCreating    0          0s      <none>       cn-beijing.10.0.3.124   <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     ContainerCreating    0          3s      <none>       cn-beijing.10.0.3.124   <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   1/1     Running              0          20s     10.0.3.130   cn-beijing.10.0.3.124   <none>           <none>
+NAME                           READY   STATUS              RESTARTS   AGE
+stress-demo-7fdd89cc6b-lml7k   1/1     Running             0          22m
+stress-demo-7fdd89cc6b-xr5dl   1/1     Running             0          5m45s
+stress-demo-7fdd89cc6b-xr5dl   1/1     Terminating         0          5m59s
+stress-demo-7fdd89cc6b-8k8wq   0/1     Pending             0          0s
+stress-demo-7fdd89cc6b-8k8wq   0/1     Pending             0          0s
+stress-demo-7fdd89cc6b-8k8wq   0/1     ContainerCreating   0          0s
+stress-demo-7fdd89cc6b-8k8wq   0/1     ContainerCreating   0          1s
+stress-demo-7fdd89cc6b-8k8wq   1/1     Running             0          3s
 ```
 
 5. Observe the Event, you can see the following migration records
 
 ```bash
-$ kubectl get event |grep stress-demo-7fdd89cc6b-l7psv
-2m45s       Normal    Evicting                  podmigrationjob/20c8c445-7fa0-4cf7-8d96-7f03bb1097d9   Try to evict Pod "default/stress-demo-7fdd89cc6b-l7psv"
-2m12s       Normal    EvictComplete             podmigrationjob/20c8c445-7fa0-4cf7-8d96-7f03bb1097d9   Pod "default/stress-demo-7fdd89cc6b-l7psv" has been evicted
-11m         Normal    Scheduled                 pod/stress-demo-7fdd89cc6b-l7psv                       Successfully assigned default/stress-demo-7fdd89cc6b-l7psv to cn-beijing.10.0.3.121
-11m         Normal    AllocIPSucceed            pod/stress-demo-7fdd89cc6b-l7psv                       Alloc IP 10.0.3.127/24
-11m         Normal    Pulling                   pod/stress-demo-7fdd89cc6b-l7psv                       Pulling image "polinux/stress"
-10m         Normal    Pulled                    pod/stress-demo-7fdd89cc6b-l7psv                       Successfully pulled image "polinux/stress" in 12.687629736s
-10m         Normal    Created                   pod/stress-demo-7fdd89cc6b-l7psv                       Created container stress
-10m         Normal    Started                   pod/stress-demo-7fdd89cc6b-l7psv                       Started container stress
-2m14s       Normal    Killing                   pod/stress-demo-7fdd89cc6b-l7psv                       Stopping container stress
-11m         Normal    SuccessfulCreate          replicaset/stress-demo-7fdd89cc6b                      Created pod: stress-demo-7fdd89cc6b-l7psv
+$ kubectl get event |grep stress-demo-7fdd89cc6b-xr5dl
+74s         Normal   Evicting             podmigrationjob/e54863dc-b651-47e3-9ffd-08b6b4ff64d5   Pod "default/stress-demo-7fdd89cc6b-xr5dl" evicted from node "cn-beijing.10.0.2.53" by the reason "node is overutilized, cpu usage(56.13%)>threshold(50.00%)"
+41s         Normal   EvictComplete        podmigrationjob/e54863dc-b651-47e3-9ffd-08b6b4ff64d5   Pod "default/stress-demo-7fdd89cc6b-xr5dl" has been evicted
+7m12s       Normal   Scheduled            pod/stress-demo-7fdd89cc6b-xr5dl                       Successfully assigned default/stress-demo-7fdd89cc6b-xr5dl to cn-beijing.10.0.2.53
+7m12s       Normal   AllocIPSucceed       pod/stress-demo-7fdd89cc6b-xr5dl                       Alloc IP 10.0.2.77/24
+7m12s       Normal   Pulling              pod/stress-demo-7fdd89cc6b-xr5dl                       Pulling image "polinux/stress"
+6m59s       Normal   Pulled               pod/stress-demo-7fdd89cc6b-xr5dl                       Successfully pulled image "polinux/stress" in 12.685405843s
+6m59s       Normal   Created              pod/stress-demo-7fdd89cc6b-xr5dl                       Created container stress
+6m59s       Normal   Started              pod/stress-demo-7fdd89cc6b-xr5dl                       Started container stress
+74s         Normal   Descheduled          pod/stress-demo-7fdd89cc6b-xr5dl                       Pod evicted from node "cn-beijing.10.0.2.53" by the reason "node is overutilized, cpu usage(56.13%)>threshold(50.00%)"
+73s         Normal   Killing              pod/stress-demo-7fdd89cc6b-xr5dl                       Stopping container stress
+7m13s       Normal   SuccessfulCreate     replicaset/stress-demo-7fdd89cc6b                      Created pod: stress-demo-7fdd89cc6b-xr5dl
 ```
