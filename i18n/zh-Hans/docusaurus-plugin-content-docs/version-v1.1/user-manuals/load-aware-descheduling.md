@@ -42,7 +42,7 @@ LowNodeLoad插件有两个最重要的参数：
 ### 前置条件
 
 - Kubernetes >= 1.18
-- Koordinator >= 1.1.0
+- Koordinator >= 1.1.1
 
 ### 安装
 
@@ -104,20 +104,22 @@ data:
 
 | 字段 | 说明 | 版本 |
 |-------|-------------|--------|
-| numberOfNodes | NumberOfNodes 可以配置为仅当未充分利用的节点数高于配置值时才激活该策略。 这在大型集群中可能会有所帮助，在大型集群中，一些节点可能会经常或短时间使用不足。 默认情况下，NumberOfNodes 设置为零。 | >= v1.1.0 |
-| evictableNamespaces | 可以参与重调度的Namespace。可以配置 include和exclude两种，但两种策略只能二选一。include 表示只处理指定的 namespace；exclude 表示只处理指定之外的namespace。| >= v1.1.0 |
-| nodeSelector | 通过 label selector 机制选择目标节点。 | >= v1.1.0 |
-| podSelectors | 通过 label selector 选择要处理的Pod。 | >= v1.1.0 |
-| nodeFit | 表示是否按照备选要迁移的Pod中指定的 Node Affinity/Node Selector/Resource Requests/TaintToleration 判断是否有空闲节点。没有则不参与调度。默认开启。可以设置为 false 禁用该能力。 | >= v1.1.0 |
-| useDeviationThresholds | 如果 useDeviationThresholds 设置为 true，则阈值被视为与平均资源使用率的百分比偏差。lowThresholds 将从所有节点的平均值中减去，highThresholds 将添加到平均值中。高于此窗口的资源消耗被视为过度利用的，即热点节点。 | >= v1.1.0 |
-| highThresholds | 表示负载水位的目标安全阈值，超过该阈值的节点上的Pod将参与重调度。 | >= v1.1.0 |
-| lowThresholds | 表示负载水位的空闲安全水位。低于该阈值的节点上的Pod不会被重调度。 | >= v1.1.0 |
+| paused | Paused 控制 LowNodeLoad 插件是否工作. | >= v1.1.1 |
+| dryRun | DryRun 表示只执行重调度逻辑，但不重复啊迁移/驱逐 Pod | >= v1.1.1 |
+| numberOfNodes | NumberOfNodes 可以配置为仅当未充分利用的节点数高于配置值时才激活该策略。 这在大型集群中可能会有所帮助，在大型集群中，一些节点可能会经常或短时间使用不足。 默认情况下，NumberOfNodes 设置为零。 | >= v1.1.1 |
+| evictableNamespaces | 可以参与重调度的Namespace。可以配置 include和exclude两种，但两种策略只能二选一。include 表示只处理指定的 namespace；exclude 表示只处理指定之外的namespace。| >= v1.1.1 |
+| nodeSelector | 通过 label selector 机制选择目标节点。 | >= v1.1.1 |
+| podSelectors | 通过 label selector 选择要处理的Pod。 | >= v1.1.1 |
+| nodeFit | 表示是否按照备选要迁移的Pod中指定的 Node Affinity/Node Selector/Resource Requests/TaintToleration 判断是否有空闲节点。没有则不参与调度。默认开启。可以设置为 false 禁用该能力。 | >= v1.1.1 |
+| useDeviationThresholds | 如果 useDeviationThresholds 设置为 true，则阈值被视为与平均资源使用率的百分比偏差。lowThresholds 将从所有节点的平均值中减去，highThresholds 将添加到平均值中。高于此窗口的资源消耗被视为过度利用的，即热点节点。 | >= v1.1.1 |
+| highThresholds | 表示负载水位的目标安全阈值，超过该阈值的节点上的Pod将参与重调度。 | >= v1.1.1 |
+| lowThresholds | 表示负载水位的空闲安全水位。低于该阈值的节点上的Pod不会被重调度。 | >= v1.1.1 |
 
 ## 使用负载感知重调度
 
 本文示例的集群有3台 4核16GiB 节点。
 
-1. 使用下面的 YAML 创建一个 stress Pod
+1. 使用下面的 YAML 创建两个 stress Pod
 
 ```yaml
 apiVersion: apps/v1
@@ -128,7 +130,7 @@ metadata:
   labels:
     app: stress-demo
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: stress-demo
@@ -169,27 +171,28 @@ $ kubectl create -f stress-demo.yaml
 deployment.apps/stress-demo created
 ```
 
-2. 观察 Pod 的状态，直到它开始运行。
+2. 观察 Pod 的状态，直到它们开始运行。
 
 ```bash
 $ kubectl get pod -o wide
-NAME                           READY   STATUS    RESTARTS   AGE   IP           NODE                    NOMINATED NODE   READINESS GATES
-stress-demo-7fdd89cc6b-gcnzn   1/1     Running   0          82s   10.0.3.114   cn-beijing.10.0.3.112   <none>           <none>
+NAME                           READY   STATUS    RESTARTS   AGE     IP          NODE                   NOMINATED NODE   READINESS GATES
+stress-demo-7fdd89cc6b-lml7k   1/1     Running   0          21m     10.0.2.83   cn-beijing.10.0.2.54   <none>           <none>
+stress-demo-7fdd89cc6b-xr5dl   1/1     Running   0          4m40s   10.0.2.77   cn-beijing.10.0.2.53   <none>           <none>
 ```
 
-Pod `stress-demo-7fdd89cc6b-gcnzn` 调度在 `cn-beijing.10.0.3.121`。
+这些 Pod 调度到了节点 `cn-beijing.10.0.2.53` 和 `cn-beijing.10.0.2.54`.
 
 3. 检查每个node节点的负载。
 
 ```bash
 $ kubectl top node
-NAME                    CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
-cn-beijing.10.0.3.110   92m          2%     1158Mi          9%
-cn-beijing.10.0.3.111   77m          1%     1162Mi          9%
-cn-beijing.10.0.3.112   2105m        53%    3594Mi          28%
+NAME                   CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+cn-beijing.10.0.2.53   3825m        98%    4051Mi          31%
+cn-beijing.10.0.2.54   2155m        55%    4500Mi          35%
+cn-beijing.10.0.2.58   182m         4%     1367Mi          10%
 ```
 
-按照输出结果显示，节点 `cn-beijing.10.0.3.124` 和 `cn-beijing.10.0.3.125` 负载最低，节点 `cn-beijing.10.0.3.112` 的负载最高。
+按照输出结果显示, 节点 `cn-beijing.10.0.2.53` 和 `cn-beijing.10.0.2.54` 负载比较高, 节点 `cn-beijing.10.0.2.58` 负载最低。
 
 4. 更新配置 `koord-descheduler-config` 启用插件 `LowNodeLoad`。
 
@@ -197,29 +200,30 @@ cn-beijing.10.0.3.112   2105m        53%    3594Mi          28%
 
 ```bash
 $ kubectl get pod -w
-NAME                           READY   STATUS               RESTARTS   AGE     IP           NODE                    NOMINATED NODE   READINESS GATES
-stress-demo-7fdd89cc6b-l7psv   1/1     Running              0          4m45s   10.0.3.127   cn-beijing.10.0.3.121   <none>           <none>
-stress-demo-7fdd89cc6b-l7psv   1/1     Terminating          0          8m34s   10.0.3.127   cn-beijing.10.0.3.121   <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     Pending              0          0s      <none>       <none>                  <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     Pending              0          0s      <none>       <none>                  <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     Pending              0          0s      <none>       cn-beijing.10.0.3.124   <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     ContainerCreating    0          0s      <none>       cn-beijing.10.0.3.124   <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   0/1     ContainerCreating    0          3s      <none>       cn-beijing.10.0.3.124   <none>           <none>
-stress-demo-7fdd89cc6b-b4c5g   1/1     Running              0          20s     10.0.3.130   cn-beijing.10.0.3.124   <none>           <none>
+NAME                           READY   STATUS              RESTARTS   AGE
+stress-demo-7fdd89cc6b-lml7k   1/1     Running             0          22m
+stress-demo-7fdd89cc6b-xr5dl   1/1     Running             0          5m45s
+stress-demo-7fdd89cc6b-xr5dl   1/1     Terminating         0          5m59s
+stress-demo-7fdd89cc6b-8k8wq   0/1     Pending             0          0s
+stress-demo-7fdd89cc6b-8k8wq   0/1     Pending             0          0s
+stress-demo-7fdd89cc6b-8k8wq   0/1     ContainerCreating   0          0s
+stress-demo-7fdd89cc6b-8k8wq   0/1     ContainerCreating   0          1s
+stress-demo-7fdd89cc6b-8k8wq   1/1     Running             0          3s
 ```
 
 6. 观察Event，可以看到如下迁移记录
 
 ```bash
-$ kubectl get event |grep stress-demo-7fdd89cc6b-l7psv
-2m45s       Normal    Evicting                  podmigrationjob/20c8c445-7fa0-4cf7-8d96-7f03bb1097d9   Try to evict Pod "default/stress-demo-7fdd89cc6b-l7psv"
-2m12s       Normal    EvictComplete             podmigrationjob/20c8c445-7fa0-4cf7-8d96-7f03bb1097d9   Pod "default/stress-demo-7fdd89cc6b-l7psv" has been evicted
-11m         Normal    Scheduled                 pod/stress-demo-7fdd89cc6b-l7psv                       Successfully assigned default/stress-demo-7fdd89cc6b-l7psv to cn-beijing.10.0.3.121
-11m         Normal    AllocIPSucceed            pod/stress-demo-7fdd89cc6b-l7psv                       Alloc IP 10.0.3.127/24
-11m         Normal    Pulling                   pod/stress-demo-7fdd89cc6b-l7psv                       Pulling image "polinux/stress"
-10m         Normal    Pulled                    pod/stress-demo-7fdd89cc6b-l7psv                       Successfully pulled image "polinux/stress" in 12.687629736s
-10m         Normal    Created                   pod/stress-demo-7fdd89cc6b-l7psv                       Created container stress
-10m         Normal    Started                   pod/stress-demo-7fdd89cc6b-l7psv                       Started container stress
-2m14s       Normal    Killing                   pod/stress-demo-7fdd89cc6b-l7psv                       Stopping container stress
-11m         Normal    SuccessfulCreate          replicaset/stress-demo-7fdd89cc6b                      Created pod: stress-demo-7fdd89cc6b-l7psv
+$ kubectl get event |grep stress-demo-7fdd89cc6b-xr5dl
+74s         Normal   Evicting             podmigrationjob/e54863dc-b651-47e3-9ffd-08b6b4ff64d5   Pod "default/stress-demo-7fdd89cc6b-xr5dl" evicted from node "cn-beijing.10.0.2.53" by the reason "node is overutilized, cpu usage(56.13%)>threshold(50.00%)"
+41s         Normal   EvictComplete        podmigrationjob/e54863dc-b651-47e3-9ffd-08b6b4ff64d5   Pod "default/stress-demo-7fdd89cc6b-xr5dl" has been evicted
+7m12s       Normal   Scheduled            pod/stress-demo-7fdd89cc6b-xr5dl                       Successfully assigned default/stress-demo-7fdd89cc6b-xr5dl to cn-beijing.10.0.2.53
+7m12s       Normal   AllocIPSucceed       pod/stress-demo-7fdd89cc6b-xr5dl                       Alloc IP 10.0.2.77/24
+7m12s       Normal   Pulling              pod/stress-demo-7fdd89cc6b-xr5dl                       Pulling image "polinux/stress"
+6m59s       Normal   Pulled               pod/stress-demo-7fdd89cc6b-xr5dl                       Successfully pulled image "polinux/stress" in 12.685405843s
+6m59s       Normal   Created              pod/stress-demo-7fdd89cc6b-xr5dl                       Created container stress
+6m59s       Normal   Started              pod/stress-demo-7fdd89cc6b-xr5dl                       Started container stress
+74s         Normal   Descheduled          pod/stress-demo-7fdd89cc6b-xr5dl                       Pod evicted from node "cn-beijing.10.0.2.53" by the reason "node is overutilized, cpu usage(56.13%)>threshold(50.00%)"
+73s         Normal   Killing              pod/stress-demo-7fdd89cc6b-xr5dl                       Stopping container stress
+7m13s       Normal   SuccessfulCreate     replicaset/stress-demo-7fdd89cc6b                      Created pod: stress-demo-7fdd89cc6b-xr5dl
 ```
