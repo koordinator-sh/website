@@ -8,8 +8,8 @@ Priority is represented by numbers, and four classes are currently defined:
 
 PriorityClass |	Priority Ranges |	 Description
 ----- |   -----------   |  --------   
-koord-prod  |	[9000, 9999]	| Selling requires planning resources quota in advance, and success is guaranteed within quota
-koord-mid	  | [7000, 7099]	| Selling requires planning resources quota in advance, and success is guaranteed within quota
+koord-prod  | [9000, 9999]	| Selling requires planning resources quota in advance, and success is guaranteed within quota
+koord-mid	| [7000, 7999]	| Selling requires planning resources quota in advance, and success is guaranteed within quota
 koord-batch | [5000, 5999]	| Selling requires planning resources quota in advance, and quota borrowing is allowed generally
 koord-free  | [3000, 3999]	| Resource quota is not guaranteed, and the total allocatable resource depends on the total idle resources of the cluster
 
