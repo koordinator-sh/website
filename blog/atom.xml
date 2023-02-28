@@ -2,11 +2,31 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://koordinator.sh/blog</id>
     <title>Koordinator Blog</title>
-    <updated>2023-01-03T00:00:00.000Z</updated>
+    <updated>2023-02-28T02:59:03.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://koordinator.sh/blog"/>
     <subtitle>Koordinator Blog</subtitle>
     <icon>https://koordinator.sh/img/favicon.ico</icon>
+    <entry>
+        <title type="html"><![CDATA[龙蜥 plugsched 神器助力 Koordinator 云原生单机混部—— 内核 CPU QoS 揭秘]]></title>
+        <id>/anolis-CPU-Co-location</id>
+        <link href="https://koordinator.sh/blog/anolis-CPU-Co-location"/>
+        <updated>2023-02-28T02:59:03.000Z</updated>
+        <summary type="html"><![CDATA[什么是 CPU 混部]]></summary>
+        <content type="html"><![CDATA[<h2 class="anchor anchorWithStickyNavbar_mojV" id="什么是-cpu-混部">什么是 CPU 混部<a class="hash-link" href="#什么是-cpu-混部" title="Direct link to heading">​</a></h2><p>CPU 混部是指将不同类型的业务部署到同一台机器上运行，让它们共享机器上的 CPU 资源以提升 CPU 利用率，从而降低机器的采购和运营成本。但是，对于有些类型的任务来说，它们对延时非常的敏感，比如电商、搜索或 web 服务等，这类任务的实时性很高，但是通常对资源的消耗却不是很多，我们称之为在线任务；还有一类任务，它们更多的关注计算或者批处理，对延时没有要求，但是消耗的资源相对较多，我们称之为离线任务。</p><p>当这两类任务同时部署到同一台机器上时，由于离线任务对资源的占用较多，资源竞争导致在线任务的延时受到了很大的影响，而且，在超线程架构的机器上，即使离线任务和在线任务跑在不同的超线程 CPU 上，流水线和 cache 的竞争也会导致在线任务的运行受到影响。于是，CPU 混部技术诞生了，来解决离线任务对在线任务延时的影响，同时还能进一步提升 CPU 资源的利用率。</p><p align="center"><img src="https://user-images.githubusercontent.com/33253760/221129910-b68705ae-5906-4294-8bb0-e01d2a6ed849.png"></p><p align="center">图1 单机混部 CPU 利用率示意图</p><h2 class="anchor anchorWithStickyNavbar_mojV" id="内核-cpu-混部技术">内核 CPU 混部技术<a class="hash-link" href="#内核-cpu-混部技术" title="Direct link to heading">​</a></h2><p>CPU 混部技术，主要是通过单机操作系统调度器来实现的，通过任务类型来决定所分配到的 CPU 资源。Koordinator 社区主要使用的单机操作系统发行版有 Alibaba Cloud Linux 2/3（简称 Alinux2/3） 和 CentOS7.9。对于 Alinux2/3，它使用的是龙蜥社区的 Group Identity CPU 混部技术，在操作系统内核中提供了 CPU 混部能力。Group Identity 在原有的 CFS 调度器中新增了另一个运行队列来区分在线和离线任务，而且，为了避免对端 CPU（超线程架构）上离线任务的干扰，Group Identity 会对其进行驱逐。龙蜥的 Group Identity 技术已经经过阿里双十一等大型活动以及大规模商业化的验证，其 CPU 混部能力也得到广大用户和开发者的认可。</p><p>但是对于 CentOS 发行版来说，到目前为止还没有提供任何 CPU 混部相关的技术和能力。对于 CentOS CPU 混部能力的缺失，可能有以下几种解决方案：</p><ul><li>制作 CentOS 的衍生版系统，并包含 CPU 混部技术；</li><li>迁移到 Alibaba Cloud Linux 2/3 操作系统发行版；</li></ul><p>对于第一种方案，需要从 CentOS 镜像站中下载其内核源码，将 CPU 混部技术移植到内核，编译后安装，然后重启系统便可以使用该技术，但这会涉及到业务迁移和停机，势必会给业务方带来昂贵的代价。
+对于第二种方案，虽然迁移工作会有一定的工作量，但是，Alinux2/3 或 Anolis OS 包含了完整的混部资源隔离方案（CPU 混部仅仅是其中一点），技术红利所带来的收益远比迁移代价要大得多。而且 CentOS 即将停服，为了解决 CentOS 停服问题，龙蜥社区推出了 Anolis OS 发行版操作系统，该发行版系统完全兼容 CentOS，用户可以进行无缝迁移。</p><h2 class="anchor anchorWithStickyNavbar_mojV" id="龙蜥-cpu-混部插件">龙蜥 CPU 混部插件<a class="hash-link" href="#龙蜥-cpu-混部插件" title="Direct link to heading">​</a></h2><p>针对 Koordinator 云原生 CentOS 单机操作系统 CPU 混部能力的缺失，龙蜥社区开发人员给出了另一种方案，利用 plugsched 调度器热升级技术提供一种 CPU 混部技术的调度器插件包，该插件包含了阿里云早期（2017年）的 CPU 混部技术 bvt + noise clean，该技术采用的是 throttle 机制，当调度器选择下一个任务时，它会检测对端 CPU 上的任务类型以及当前 CPU 正在执行的任务类型，如果在、离线任务同时存在，则会将离线任务 throttle 掉，然后继续选择下一个任务进行调度，保证在线任务优先执行且不被对端 CPU 上的离线干扰。该 CPU 混部调度器插件可直接安装到 CentOS7.9，不需要停机和业务迁移等工作。</p><h3 class="anchor anchorWithStickyNavbar_mojV" id="plugsched-sdk-神器">Plugsched SDK 神器<a class="hash-link" href="#plugsched-sdk-神器" title="Direct link to heading">​</a></h3><p>Plugsched 调度器热升级，是龙蜥社区推出的 plugsched SDK 调度器热升级开发工具，它可从 Linux 内核中将调度器解耦，形成一个独立的模块，然后将 CPU 混部技术移植到调度器模块，形成一个调度器插件，然后将其直接安装到运行的系统中就可以使用 CPU 混部技术。Plugsched，可以对内核调度器特性动态的进行增、删、改，来满足业务的需求，且无需进行业务迁移和停机升级，还可以回滚。内核开发人员可通过 plugsched SDK 生产出各种类型的调度器插件来满足不同的业务场景。</p><p>Plugsched 调度器热升级论文《Efficient Scheduler Live Update for Linux Kernel with Modularization》已被 ASPLOS 顶会收录，里面详细介绍了 plugsched 技术原理和应用价值，以及全面的测试和评估。目前，plugsched 生产的插件已在蚂蚁集团、阿里云和国内某大型互联网企业规模部署。</p><p>Plugsched 开源链接：<a href="https://gitee.com/anolis/plugsched" target="_blank" rel="noopener noreferrer">https://gitee.com/anolis/plugsched</a></p><h3 class="anchor anchorWithStickyNavbar_mojV" id="cpu-混部插件测试">CPU 混部插件测试<a class="hash-link" href="#cpu-混部插件测试" title="Direct link to heading">​</a></h3><p>开发人员对该调度器插件进行了 CPU 混部的测试，服务端配置：</p><ul><li>测试机器：阿里云神龙裸金属服务器，104 CPU，384 GB 内存</li><li>系统配置：CentOS 7.9 发行版，内核版本 3.10，安装 CPU 混部调度器插件</li><li>测试内容：在线任务是 Nginx 服务，容器配置为 80C 10GB，Nginx workers 数量为 80；离线任务是 ffmpeg 视频转码，容器配置为 50C 20GB，线程数量为 50。</li><li>测试case：<ul><li>基线：单独启动 Nginx 容器</li><li>对照组：同时启动 Nginx 容器和 ffmpeg 容器，但不设置优先级（不启用混部功能）</li><li>实验组：同时启动 Nginx 容器和 ffmpeg 容器，给 Nginx 设置在线高优先级，ffmpeg 为离线低优先级（启用混部功能）</li></ul></li></ul><p>在另一台压测机上使用 wrk 工具向 Nginx 服务发起请求，结果如下：（单位：ms）
+|  | 基线 | 对照组 | 实验组 |
+| --- | --- | --- | --- |
+| RT-P50 | 0.223 | 0.245（+9.86%） | 0.224（+0.44%） |
+| RT-P75 | 0.322 | 0.387（+20.18%） | 0.338（+4.96%） |
+| RT-P90 | 0.444 | 0.575（+29.50) | 0.504（+13.51%） |
+| RT-P99 | 0.706 | 1.7（+140.79) | 0.88（+24.64%） |
+| CPU% | 25.15% | 71.7% | 49.15% |</p><p>从上面的结果来看，没有 CPU 混部插件，离线任务对在线任务的影响很大，P99 延时增长了一倍多，而安装 CPU 混部插件后，P99 长尾延时的影响显著降低，CPU 利用率也接近50%。</p><p>该插件虽然能显著降低离线对在线任务的干扰，但还是逊色于龙蜥社区的 Group Identity 技术。龙蜥的 Group Identity 技术能让在线受到的干扰小于 5%，而且整机利用率的提升也比该插件要更多一些，达到 60% 以上（可查阅：<a href="https://help.aliyun.com/document_detail/450006.html" target="_blank" rel="noopener noreferrer">koordinator 混部最佳实践手册</a>）。这些差异的原因在于，1）内核自身的差异，CentOS 7.9 使用的是比较早的 3.10 内核，而龙蜥使用的是 4.19/5.10 内核，3.10 内核调度器性能本身就不及 4.19/5.10；2）Group Identity 的实现原理相比 noise clean 更适合 CPU 混部场景。</p><h2 class="anchor anchorWithStickyNavbar_mojV" id="结语">结语<a class="hash-link" href="#结语" title="Direct link to heading">​</a></h2><p>最后，欢迎广大技术人员、开源爱好者和读者用户加入 Koordinator、openanolis 社区，享受社区带来的技术，不论是 Group Identity 还是 Plugsched 神器，一定会给大家带来意想不到的收益和价值，欢迎大家共建社区，与社区共同交流、成长和发展。</p>]]></content>
+        <author>
+            <name>Erwei Deng</name>
+            <uri>https://github.com/Dengerwei</uri>
+        </author>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Koordinator v1.1: 让调度感知负载与干扰检测采集]]></title>
         <id>release-v1.1.0</id>
