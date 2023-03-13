@@ -53,7 +53,7 @@ data:
         - name: NodeNUMAResource
           args:
             apiVersion: kubescheduler.config.k8s.io/v1beta2
-            kind: NodeNUMAResource
+            kind: NodeNUMAResourceArgs
             # The default CPU Binding Policy. The default is FullPCPUs
             # If the Pod belongs to LSE/LSR Prod Pods, and if no specific CPU binding policy is set, 
             # the CPU will be allocated according to the default core binding policy.
