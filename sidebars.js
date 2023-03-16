@@ -52,6 +52,7 @@ const sidebars = {
         'user-manuals/cpu-burst',
         'user-manuals/memory-qos',
         'user-manuals/performance-collector',
+        'user-manuals/cpu-qos',
       ],
     },
     {
@@ -78,6 +79,7 @@ const sidebars = {
       collapsed: true,
       items: [
         'best-practices/colocation-of-spark-jobs',
+        'best-practices/anolis_plugsched',
       ],
     },
   ],
