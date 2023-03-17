@@ -1,17 +1,17 @@
 # 资源预留
 
-资源预留是koord-scheduler的一种为某些特定pod或负载预留节点资源的能力。
+资源预留是koord-scheduler的一种为某些特定Pod或负载预留节点资源的能力。
 
 ## 介绍
 
-pod是kubernetes节点资源分配的基础载体，他根据业务逻辑绑定对应的资源需求。但是我们可能分为一些还没创建的特定pod和负载分配资源，例如：
+Pod是kubernetes节点资源分配的基础载体，他根据业务逻辑绑定对应的资源需求。但是我们可能分为一些还没创建的特定Pod和负载分配资源，例如：
 
-1. 抢占：已经存在的抢占规则不能保证只有正在抢占中的pod才能分配抢占的资源，我们期望调度器能锁定资源，防止这些资源被有相同或更高优先级的其他pod抢占。
-2. 重调度：在重调度场景下，最好能保证在pod被重调度之前保留足够的资源。否则，被重调度的pod可能再也没法运行，然后对应的应用可能就会崩溃。
-3. 水平扩容：为了能更精准地进行水平扩容，我们希望能为扩容的pod副本分配节点资源。
+1. 抢占：已经存在的抢占规则不能保证只有正在抢占中的Pod才能分配抢占的资源，我们期望调度器能锁定资源，防止这些资源被有相同或更高优先级的其他Pod抢占。
+2. 重调度：在重调度场景下，最好能保证在Pod被重调度之前保留足够的资源。否则，被重调度的Pod可能再也没法运行，然后对应的应用可能就会崩溃。
+3. 水平扩容：为了能更精准地进行水平扩容，我们希望能为扩容的Pod副本分配节点资源。
 4. 资源预分配：即使当前的资源还不可用，我们可能想为将来的资源需求提前预留节点资源。
 
-为了增强kubernetes的资源调度能力，koord-scheduler提供了一个名字叫`Reservation`的调度API,允许我们为一些当前还未创建的特定的pod和负载，提前预留节点资源。
+为了增强kubernetes的资源调度能力，koord-scheduler提供了一个名字叫`Reservation`的调度API,允许我们为一些当前还未创建的特定的Pod和负载，提前预留节点资源。
 
 ![image](/img/resource-reservation.svg)
 
@@ -81,7 +81,7 @@ NAME               PHASE       AGE   NODE     TTL  EXPIRES
 reservation-demo   Available   88s   node-0   1h
 ```
 
-3. 使用如下YAML文件部署一个pod：`pod-demo-0`。
+3. 使用如下YAML文件部署一个Pod：`Pod-demo-0`。
 
 ```yaml
 apiVersion: v1
@@ -114,7 +114,7 @@ $ kubectl create -f pod-demo-0.yaml
 pod/pod-demo-0 created
 ```
 
-4. 检查`pod-demo-0`的调度状态。
+4. 检查`Pod-demo-0`的调度状态。
 
 ```bash
 $ kubectl get pod pod-demo-0 -o wide
@@ -122,7 +122,7 @@ NAME         READY   STATUS    RESTARTS   AGE   IP            NODE     NOMINATED
 pod-demo-0   1/1     Running   0          32s   10.17.0.123   node-0   <none>           <none>
 ```
 
-`pod-demo-0`将会和`reservation-demo`被调度到同一个节点。
+`Pod-demo-0`将会和`reservation-demo`被调度到同一个节点。
 
 5. 检查`reservation-demo`的状态。
 
@@ -183,7 +183,7 @@ status:
   phase: Available
 ```
 
-现在我们可以看到`reservation-demo`预留了500m cpu和 800Mi内存,  `pod-demo-0`从预留的资源中分配了200m cpu and 400Mi内存。
+现在我们可以看到`reservation-demo`预留了500m cpu和 800Mi内存,  `Pod-demo-0`从预留的资源中分配了200m cpu and 400Mi内存。
 
 6. 清理`reservation-demo`的预留资源。
 
@@ -195,7 +195,7 @@ NAME         READY   STATUS    RESTARTS   AGE
 pod-demo-0   1/1     Running   0          110s
 ```
 
-在预留资源被删除后，`pod-demo-0`依然正常运行。
+在预留资源被删除后，`Pod-demo-0`依然正常运行。
 
 ### 高级特性
 
@@ -324,7 +324,7 @@ NAME                   PHASE       AGE   NODE     TTL  EXPIRES
 reservation-demo-big   Available   37s   node-1   1h
 ```
 
-`reservation-demo-big`将被调度到pod模板中设置的nodeName属性节点:`node-1`。
+`reservation-demo-big`将被调度到Pod模板中设置的nodeName属性节点:`node-1`。
 
 4. 用如下YAML文件创建一次部署：`app-demo`。
 
@@ -367,7 +367,7 @@ $ kubectl create -f app-demo.yaml
 deployment.apps/app-demo created
 ```
 
-5. 检查`app-demo`的pod调度结果.
+5. 检查`app-demo`的Pod调度结果.
 
 ```bash
 k get pod -l app=app-demo -o wide
@@ -376,7 +376,7 @@ app-demo-798c66db46-ctnbr   1/1     Running   0          2m    10.17.0.124   nod
 app-demo-798c66db46-pzphc   1/1     Running   0          2m    10.17.0.125   node-1   <none>           <none>
 ```
 
-`app-demo`的pod将会被调度到`reservation-demo-big`所在的节点。
+`app-demo`的Pod将会被调度到`reservation-demo-big`所在的节点。
 
 6. 检查`reservation-demo-big`的状态。
 
