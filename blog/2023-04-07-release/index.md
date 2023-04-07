@@ -66,8 +66,10 @@ suppress(BE) := node.Total * SLOPercent - pod(LS).Used - max(system.Used, node.a
 关于节点资源预留功能的详细说明，可以参考 [设计文档](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20221227-node-resource-reservation.md) 中的介绍。
 
 ### 兼容社区重调度策略
-得益于 Koordinator Descheduler 的框架日益成熟，在 Koordinator v1.2 版本中，通过引入一种接口适配机制，可以无缝的对 Kubernetes Desceheduler 已有插件进行兼容，在使用时您只需部署Koordinator Descheduler，即可使用到上游的全部功能，以及Koordinator的增强。
-Koordinator Descheduler支持上游所有的插件和参数配置，在运行时也保障一样的效果。并且这些上游的插件都可以配置使用 koord-descheduler 内置的 MigrationController，复用优先预留资源保障资源交付的能力和内置增强的稳定性机制实现更安全的重调度。
+
+得益于 Koordinator Descheduler 的框架日益成熟，在 Koordinator v1.2 版本中，通过引入一种接口适配机制，可以无缝的对 Kubernetes Desceheduler 已有插件进行兼容，在使用时您只需部署 Koordinator Descheduler 即可使用到上游的全部功能。
+
+在实现上，Koordinator Descheduler 通过 import 上游代码不做任何侵入式的改动，保证完全兼容上游所有的插件、参数配置以及其运行策略。同时，Koordinator 允许用户为上游插件指定增强的 evictor，从而复用 Koordinator 提供的资源预留、工作负载可用性保障以及全局流控等安全性策略。
 
 兼容的插件列表包括：
 - HighNodeUtilization
@@ -83,6 +85,7 @@ Koordinator Descheduler支持上游所有的插件和参数配置，在运行时
 - DefaultEvictor
 
 在使用时，可以参考如下的方式配置，以 RemovePodsHavingTooManyRestarts 为例：
+
 ```yaml
 apiVersion: descheduler/v1alpha2
 kind: DeschedulerConfiguration
@@ -110,7 +113,9 @@ profiles:
         kind: RemovePodsHavingTooManyRestartsArgs
         podRestartThreshold: 10
 ```
+
 ### 资源预留调度能力增强
+
 Koordinator 在比较早期的版本中引入了 Reservation 机制，通过预留资源并复用给指定特征的 Pod 使用，用于帮助解决资源交付确定性问题。
 例如重调度场景中期望被驱逐的 Pod 一定有资源可以使用，而不是被驱逐后无资源可用导致引起稳定性问题；又或者需要扩容时，
 一些 PaaS 平台希望能够先确定是否满足应用调度编排的资源，再决定是否扩容，或者提前做一些预备工作等。
@@ -122,13 +127,9 @@ Reservation 在创建时都会指定预留的资源将来要给哪些 Pod 使用
 并且 Reservation Status 中会记录被哪个 Pod 使用，以及 Pod Annotations 中也会记录使用了哪个 Reservation。
 Reservation 被使用后，会自动的清理内部状态，确保其他 Pod 不会因为 Reservation 导致无法调度。
 
-原有版本实现中，我们对 Reservation 的功能做了诸多限制，例如要求 Pod 只能使用 Reservation 持有的资源，不能结合节点剩余的资源一起分配，
-并且也不支持精细化管理的资源，例如不能预留 CPU 核，也不支持预留 GPU 设备等。另外就是 Reservation 默认是可以被重复使用的，
-即 Reservation 预留的资源可以被多个 Pod 使用（当然并不会超卖资源，保证不会使用超过 Reservation预留的量）。
-
 在 Koordinator v1.2 中，我们做了大幅度的优化。首先我们放开了只能使用 Reservation 持有的资源的限制，允许跨出 Reservation 的资源边界，
-既可以使用 Reservation 预留的资源，也可以使用节点上剩余的资源。而且我们通过非侵入式的方式扩展了 kube scheduler framework，
-支持预留精细化管理的资源，即可以预留 CPU 核和 GPU 设备等。我们也修改了 Reservation 可以被重复使用的默认行为，改为 AllocateOnce，
+既可以使用 Reservation 预留的资源，也可以使用节点上剩余的资源。而且我们通过非侵入式的方式扩展了 Kubernetes Scheduler Framework，
+支持预留精细化资源，即可以预留 CPU 核和 GPU 设备等。我们也修改了 Reservation 可以被重复使用的默认行为，改为 AllocateOnce，
 即 Reservation 一旦被某个 Pod 使用，该 Reservation 会被废弃。这样的改动是考虑到，AllocateOnce 更能覆盖大部分场景，这样作为默认行为，大家在使用时会更简单。
 
 ### 支持AMD环境下的L3 Cache和内存带宽隔离
