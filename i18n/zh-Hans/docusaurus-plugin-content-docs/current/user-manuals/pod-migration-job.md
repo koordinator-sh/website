@@ -17,7 +17,7 @@ Koordinator定义了一个基于 CRD 的 Pod 迁移 API，称为 `PodMigrationJo
 
 ### Installation
 
-请确保Koordinator组件已正确安装在您的集群中。如果未安装，请参考[安装](docs/installation).
+请确保Koordinator组件已正确安装在您的集群中。如果未安装，请参考[安装](/docs/installation).
 
 ### Configurations
 
