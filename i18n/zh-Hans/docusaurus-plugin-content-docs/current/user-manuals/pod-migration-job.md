@@ -87,7 +87,7 @@ NAME                        READY   STATUS    RESTARTS   AGE   IP            NOD
 pod-demo-5f9b977566-c7lvk   1/1     Running   0          41s   10.17.0.9     node-0   <none>           <none>
 ```
 
-`pod-demo-5f9b977566-c7lvk` 被调度在节点 `node-0`上。
+`pod-demo-5f9b977566-c7lvk` 被调度在节点 `node-0`上
 
 3. 使用下面的YAML文件创建一个 `PodMigrationJob` 来迁移 `pod-demo-0`
 
@@ -121,17 +121,17 @@ migrationjob-demo   Succeed   Complete   37s   node-1   d56659ab-ba16-47a2-821d-
 ```
 
 从上述结果可以观察到：
-- **PHASE** 为 `Succeed`, **STATUS** 为 `Complete`, 表明迁移成功。；
+- **PHASE** 为 `Succeed`, **STATUS** 为 `Complete`, 表明迁移成功；
 - **NODE** `node-1` 表示迁移后新Pod所调度的节点；
-- **RESERVATION** `d56659ab-ba16-47a2-821d-22d6ba49258e` 是在迁移期间创建的Reservation。PodMigrationJob Controller将在开始驱逐Pod之前尝试为Reservation创建预留资源。在成功预留资源后，将启动驱逐操作，这可以确保新 Pod 必须被驱逐，因为已有资源可用；
+- **RESERVATION** `d56659ab-ba16-47a2-821d-22d6ba49258e` 是在迁移期间创建的 Reservation。PodMigrationJob Controller 将在开始驱逐 Pod 之前尝试为 Reservation 创建预留资源。在成功预留资源后，将启动驱逐操作，这可以确保新 Pod 必须被驱逐，因为已有资源可用；
 - **PODNAMESPACE** `default` 表示待迁移 Pod 所在的命名空间；
 - **POD** `pod-demo-5f9b977566-c7lvk` 表示待迁移的 Pod；
-- **NEWPOD** `pod-demo-5f9b977566-nxjdf` 表示迁移后新创建的Pod；
-- **TTL** 表示当前作业的TTL周期。
+- **NEWPOD** `pod-demo-5f9b977566-nxjdf` 表示迁移后新创建的 Pod；
+- **TTL** 表示当前作业的 TTL 周期。
 
 6. 查看迁移事件
 
-PodMigrationJob Controller将在迁移过程的重要步骤中创建事件，以帮助用户诊断迁移问题。
+PodMigrationJob Controller 将在迁移过程的重要步骤中创建事件，以帮助用户诊断迁移问题
 
 ```bash
 $ kubectl describe podmigrationjob migrationjob-demo
@@ -154,7 +154,7 @@ Events:
 
 驱逐或迁移操作会带来稳定性风险，因此希望在启动迁移操作之前手动检查和确认没有错误，然后再启动迁移。
 
-因此，在创建PodMigrationJob时，将`spec.paused`设置为`true`，手动确认允许执行后再将`spec.paused`设置为`false`。如果拒绝执行，则可以更新`status.phase=Failed`立即终止PodMigrationJob 的执行，或者等待 PodMigrationJob 自动过期。
+因此，在创建 PodMigrationJob 时，将 `spec.paused` 设置为 `true`，手动确认允许执行后再将 `spec.paused` 设置为 `false`。如果拒绝执行，则可以更新 `status.phase=Failed` 立即终止PodMigrationJob 的执行，或者等待 PodMigrationJob 自动过期。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -177,10 +177,10 @@ status:
 ### 示例: 只想驱逐 Pods, 无需预留资源
 
 PodMigrationJob 提供两种迁移模式:
-- `EvictDirectly` 直接驱逐Pod，无需预留资源, 
+- `EvictDirectly` 直接驱逐 Pod，无需预留资源, 
 - `ReservationFirst` 先预留资源，以确保在开始驱逐之前可以分配资源。
 
-如果你只想驱逐Pod，只需将 `spec.mode` 设置为 `EvictDirectly`。
+如果你只想驱逐 Pod，只需将 `spec.mode` 设置为 `EvictDirectly`。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -200,7 +200,7 @@ status:
 
 ### 示例: 在迁移中使用预留资源
 
-在某些情况下，首先预留资源，然后在成功后创建一个 PodMigrationJob，以重复使用 PodMigrationJob Controller 提供的仲裁机制（将在v0.7中实现）以确保工作负载的稳定性。
+在某些情况下，首先预留资源，然后在成功后创建一个 PodMigrationJob，以重复使用 PodMigrationJob Controller 提供的仲裁机制（在v0.7中实现）以确保工作负载的稳定性。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -250,5 +250,5 @@ status:
 
 
 ### 已知问题
-- 当前不支持[Arbitration mechanism](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20220701-pod-migration-job.md#filter-podmigrationjob)。v0.6版本仅实现了基于资源预留的迁移能力。 
+- 当前不支持[Arbitration mechanism](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20220701-pod-migration-job.md#filter-podmigrationjob)，v0.6版本仅实现了基于资源预留的迁移能力。 
 - 目前不支持[Basic Migration API](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20220701-pod-migration-job.md#basic-migration-api) 。
