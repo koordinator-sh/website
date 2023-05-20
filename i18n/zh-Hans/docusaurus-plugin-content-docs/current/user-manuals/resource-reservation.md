@@ -1,43 +1,42 @@
-# Resource Reservation
+# 资源预留
 
-Resource Reservation is an ability of koord-scheduler for reserving node resources for specific pods or workloads.
+资源预留是koord-scheduler的一种为某些特定Pod或负载预留节点资源的能力。
 
-## Introduction
+## 介绍
 
-Pods are fundamental for allocating node resources in Kubernetes, which bind resource requirements with business logic.
-However, we may allocate resources for specific pods or workloads not created yet in the scenarios below:
+Pod是kubernetes节点资源分配的基础载体，他根据业务逻辑绑定对应的资源需求。但是我们可能分为一些还没创建的特定Pod和负载分配资源，例如：
 
-1. Preemption: Existing preemption does not guarantee that only preempting pods can allocate preempted resources. We expect that the scheduler can "lock" resources preventing from allocation of other pods even if they have the same or higher priorities.
-2. De-scheduling: For the descheduler, it is better to ensure sufficient resources before pods get rescheduled. Otherwise, rescheduled pods may not be runnable anymore and make the belonging application disrupted.
-3. Horizontal scaling: To achieve more deterministic horizontal scaling, we expect to allocate node resources for the replicas to scale.
-4. Resource Pre-allocation: We may want to pre-allocate node resources for future resource demands even if the resources are not currently allocatable.
+1. 抢占：已经存在的抢占规则不能保证只有正在抢占中的Pod才能分配抢占的资源，我们期望调度器能锁定资源，防止这些资源被有相同或更高优先级的其他Pod抢占。
+2. 重调度：在重调度场景下，最好能保证在Pod被重调度之前保留足够的资源。否则，被重调度的Pod可能再也没法运行，然后对应的应用可能就会崩溃。
+3. 水平扩容：为了能更精准地进行水平扩容，我们希望能为扩容的Pod副本分配节点资源。
+4. 资源预分配：即使当前的资源还不可用，我们可能想为将来的资源需求提前预留节点资源。
 
-To enhance the resource scheduling of Kubernetes, koord-scheduler provides a scheduling API named `Reservation`, which allows us to reserve node resources for specified pods or workloads even if they haven't get created yet.
+为了增强kubernetes的资源调度能力，koord-scheduler提供了一个名字叫`Reservation`的调度API,允许我们为一些当前还未创建的特定的Pod和负载，提前预留节点资源。
 
 ![image](/img/resource-reservation.svg)
 
-For more information, please see [Design: Resource Reservation](../designs/resource-reservation).
+更多信息，请看 [设计文档：资源预留](../designs/resource-reservation)。
 
-## Setup
+## 设置
 
-### Prerequisite
+### 前提
 
 - Kubernetes >= 1.18
 - Koordinator >= 0.6
 
-### Installation
+### 安装步骤
 
-Please make sure Koordinator components are correctly installed in your cluster. If not, please refer to [Installation](/docs/installation).
+请确保Koordinator的组件已经在你的集群中正确安装，如果还未正确安装，请参考[安装说明](/docs/installation)。
 
-### Configurations
+### 配置
 
-Resource Reservation is *Enabled* by default. You can use it without any modification on the koord-scheduler config.
+资源预留功能默认*启用*，你无需对koord-scheduler配置做任何修改，即可使用。
 
-## Use Resource Reservation
+## 使用指南
 
-### Quick Start
+### 快速上手
 
-1. Deploy a reservation `reservation-demo` with the YAML file below.
+1. 使用如下yaml文件预留资源：`reservation-demo`。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -74,7 +73,7 @@ $ kubectl create -f reservation-demo.yaml
 reservation.scheduling.koordinator.sh/reservation-demo created
 ```
 
-2. Watch the reservation status util it becomes available.
+2. 跟踪reservation-demo的状态，直到它变成可用状态。
 
 ```bash
 $ kubectl get reservation reservation-demo -o wide
@@ -82,7 +81,7 @@ NAME               PHASE       AGE   NODE     TTL  EXPIRES
 reservation-demo   Available   88s   node-0   1h
 ```
 
-3. Deploy a pod `pod-demo-0` with the YAML file below.
+3. 使用如下YAML文件部署一个Pod：`Pod-demo-0`。
 
 ```yaml
 apiVersion: v1
@@ -115,7 +114,7 @@ $ kubectl create -f pod-demo-0.yaml
 pod/pod-demo-0 created
 ```
 
-4. Check the scheduled result of the pod `pod-demo-0`.
+4. 检查`Pod-demo-0`的调度状态。
 
 ```bash
 $ kubectl get pod pod-demo-0 -o wide
@@ -123,9 +122,9 @@ NAME         READY   STATUS    RESTARTS   AGE   IP            NODE     NOMINATED
 pod-demo-0   1/1     Running   0          32s   10.17.0.123   node-0   <none>           <none>
 ```
 
-`pod-demo-0` is scheduled at the same node with `reservation-demo`.
+`Pod-demo-0`将会和`reservation-demo`被调度到同一个节点。
 
-5. Check the status of the reservation `reservation-demo`.
+5. 检查`reservation-demo`的状态。
 
 ```bash
 $ kubectl get reservation reservation-demo -oyaml
@@ -184,10 +183,9 @@ status:
   phase: Available
 ```
 
-Now we can see the reservation `reservation-demo` has reserved 500m cpu and 800Mi memory, and the pod `pod-demo-0`
-allocates 200m cpu and 400Mi memory from the reserved resources.
+现在我们可以看到`reservation-demo`预留了500m cpu和 800Mi内存,  `Pod-demo-0`从预留的资源中分配了200m cpu and 400Mi内存。
 
-6. Cleanup the reservation `reservation-demo`.
+6. 清理`reservation-demo`的预留资源。
 
 ```bash
 $ kubectl delete reservation reservation-demo
@@ -197,11 +195,11 @@ NAME         READY   STATUS    RESTARTS   AGE
 pod-demo-0   1/1     Running   0          110s
 ```
 
-After the reservation deleted, the pod `pod-demo-0` is still running.
+在预留资源被删除后，`Pod-demo-0`依然正常运行。
 
-### Advanced Configurations
+### 高级特性
 
-> The latest API can be found in [`reservation_types`](https://github.com/koordinator-sh/koordinator/blob/main/apis/scheduling/v1alpha1/reservation_types.go).
+> 最新的API可以在这里查看： [`reservation_types`](https://github.com/koordinator-sh/koordinator/blob/main/apis/scheduling/v1alpha1/reservation_types.go)。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -253,9 +251,9 @@ spec:
 TODO: update pre-allocation and preemption api
 -->
 
-### Example: Reserve on Specified Node, with Multiple Owners
+### 案例：多个属主在同一个节点预留资源
 
-1. Check the resources allocatable of each node.
+1. 检查每个节点的可分配资源。
 
 ```bash
 $ kubectl get node -o custom-columns=NAME:.metadata.name,CPU:.status.allocatable.cpu,MEMORY:.status.allocatable.memory
@@ -275,9 +273,9 @@ $ kubectl describe node node-1 | grep -A 8 "Allocated resources"
     hugepages-2Mi                0 (0%)       0 (0%)
 ```
 
-As above, the node `node-1` has about 7.0 cpu and 26Gi memory unallocated.
+如上图，`node-1`节点还保留7.0 cpu and 26Gi memory未分配。
 
-2. Deploy a reservation `reservation-demo-big` with the YAML file below.
+2. 用如下YAML文件预留资源：`reservation-demo-big`。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -318,7 +316,7 @@ $ kubectl create -f reservation-demo-big.yaml
 reservation.scheduling.koordinator.sh/reservation-demo-big created
 ```
 
-3. Watch the reservation status util it becomes available.
+3. 跟踪`reservation-demo-big`的状态，直到他变成可用状态。
 
 ```bash
 $ kubectl get reservation reservation-demo-big -o wide
@@ -326,9 +324,9 @@ NAME                   PHASE       AGE   NODE     TTL  EXPIRES
 reservation-demo-big   Available   37s   node-1   1h
 ```
 
-The reservation `reservation-demo-big` is scheduled at the node `node-1`, which matches the nodeName set in pod template.
+`reservation-demo-big`将被调度到Pod模板中设置的nodeName属性节点:`node-1`。
 
-4. Deploy a deployment `app-demo` with the YAML file below.
+4. 用如下YAML文件创建一次部署：`app-demo`。
 
 ```yaml
 apiVersion: apps/v1
@@ -369,7 +367,7 @@ $ kubectl create -f app-demo.yaml
 deployment.apps/app-demo created
 ```
 
-5. Check the scheduled result of the pods of deployment `app-demo`.
+5. 检查`app-demo`的Pod调度结果.
 
 ```bash
 k get pod -l app=app-demo -o wide
@@ -378,9 +376,9 @@ app-demo-798c66db46-ctnbr   1/1     Running   0          2m    10.17.0.124   nod
 app-demo-798c66db46-pzphc   1/1     Running   0          2m    10.17.0.125   node-1   <none>           <none>
 ```
 
-Pods of deployment `app-demo` are scheduled at the same node with `reservation-demo-big`.
+`app-demo`的Pod将会被调度到`reservation-demo-big`所在的节点。
 
-6. Check the status of the reservation `reservation-demo-big`.
+6. 检查`reservation-demo-big`的状态。
 
 ```bash
 $ kubectl get reservation reservation-demo-big -oyaml
@@ -442,8 +440,4 @@ status:
   phase: Available
 ```
 
-Now we can see the reservation `reservation-demo-big` has reserved 6 cpu and 20Gi memory, and the pods of deployment
-`app-demo` allocates 4 cpu and 20Gi memory from the reserved resources.
-The allocation for reserved resources does not increase the requested of node resources, otherwise the total request of
-`node-1` would exceed the node allocatable.
-Moreover, a reservation can be allocated by multiple owners when there are enough reserved resources unallocated.
+现在我们能看到`reservation-demo-big`预留了6 cpu和20Gi内存，`app-demo`从预留的资源中分配了4 cpu and 20Gi内存，预留资源的分配不会增加节点资源的请求容量，否则`node-1`的请求资源总容量将会超过可分配的资源容量。而且当有足够的未分配的预留资源时，这些预留资源可以被同时分配给多个属主。
