@@ -1,33 +1,33 @@
 # PodMigrationJob
 
-Koordinator defines a CRD-based Pod migration API called `PodMigrationJob`, through which the descheduler or other automatic fault recovery components can evict or delete Pods more safely.
+Koordinator定义了一个基于 CRD 的 Pod 迁移 API，称为 `PodMigrationJob`，通过此 API，重调度器（descheduler）或其他自动故障恢复组件可以更安全地将 Pod 驱逐或删除。
 
-## Introduction
+## 介绍
 
-Migrating Pods is an important capability that many components (such as deschedulers) rely on, and can be used to optimize scheduling or help resolve workload runtime quality issues. We believe that pod migration is a complex process, involving steps such as auditing, resource allocation, and application startup, and is mixed with application upgrading, scaling scenarios, and resource operation and maintenance operations by cluster administrators. Therefore, how to manage the stability risk of this process to ensure that the application does not fail due to the migration of Pods is a very critical issue that must be resolved.
+迁移 Pods 是许多组件（如descheduler）依赖的重要能力，可用于优化调度或帮助解决工作负载运行时质量问题。我们认为，Pod 迁移是一个复杂的过程，涉及诸如审计（auditing）、资源分配和应用程序启动等步骤，并与应用程序升级、伸缩等场景以及集群管理员的资源操作和维护操作混合在一起。因此，如何管理此过程的稳定性风险，以确保应用程序不会因为 Pod 迁移而失败，是必须解决的关键的问题。
 
-Based on the final state-oriented migration capability of the PodMigrationJob CRD, we can track the status of each process during the migration process, perceive scenarios such as application upgrades and scaling to ensure the stability of the workload.
+基于 PodMigrationJob CRD 的最终状态导向迁移能力，我们可以跟踪迁移过程中每个过程的状态，感知应用程序升级和扩展等场景，以确保工作负载的稳定性。
 
-## Setup
+## 设置
 
-### Prerequisite
+### 前置条件
 
 - Kubernetes >= 1.18
 - Koordinator >= 0.6
 
 ### Installation
 
-Please make sure Koordinator components are correctly installed in your cluster. If not, please refer to [Installation](/docs/installation).
+请确保Koordinator组件已正确安装在您的集群中。如果未安装，请参考[安装](/docs/installation).
 
 ### Configurations
 
-PodMigrationJob is *Enabled* by default. You can use it without any modification on the koord-descheduler config.
+PodMigrationJob 已默认启用。您可以在koord-descheduler配置中无需任何修改即可使用它。
 
-## Use PodMigrationJob
+## 使用 PodMigrationJob
 
-### Quick Start
+### 快速开始
 
-1. Create a Deployment `pod-demo` with the YAML file below.
+1. 使用下面的YAML文件创建一个名为`pod-demo`的Deployment
 
 ```yaml
 apiVersion: apps/v1
@@ -79,7 +79,7 @@ $ kubectl create -f pod-demo.yaml
 deployment.apps/pod-demo created
 ```
 
-2. Check the scheduled result of the pod `pod-demo-0`.
+2. 检查Pod `pod-demo-0` 的调度结果
 
 ```bash
 $ kubectl get pod -o wide
@@ -87,9 +87,9 @@ NAME                        READY   STATUS    RESTARTS   AGE   IP            NOD
 pod-demo-5f9b977566-c7lvk   1/1     Running   0          41s   10.17.0.9     node-0   <none>           <none>
 ```
 
-`pod-demo-5f9b977566-c7lvk` is scheduled on the node `node-0`.
+`pod-demo-5f9b977566-c7lvk` 被调度在节点 `node-0`上
 
-3. Create a `PodMigrationJob` with the YAML file below to migrate `pod-demo-0`.
+3. 使用下面的YAML文件创建一个 `PodMigrationJob` 来迁移 `pod-demo-0`
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -112,7 +112,7 @@ $ kubectl create -f migrationjob-demo.yaml
 podmigrationjob.scheduling.koordinator.sh/migrationjob-demo created
 ```
 
-5. Query migration status
+5. 查看迁移状态
 
 ```bash
 $ kubectl get podmigrationjob migrationjob-demo
@@ -120,18 +120,18 @@ NAME                PHASE     STATUS     AGE   NODE     RESERVATION             
 migrationjob-demo   Succeed   Complete   37s   node-1   d56659ab-ba16-47a2-821d-22d6ba49258e   default        pod-demo-5f9b977566-c7lvk   pod-demo-5f9b977566-nxjdf   5m0s
 ```
 
-From the above results, it can be observed that:
-- **PHASE** is `Succeed`, **STATUS** is `Complete`, indicating that the migration is successful. 
-- **NODE** `node-1` indicates the node where the new Pod is scheduled after the migration. 
-- **RESERVATION** `d56659ab-ba16-47a2-821d-22d6ba49258e` is the Reservation created during migration. The PodMigrationJob Controller will try to create the reserved resource for the Reservation before starting to evict the Pod. After the reservation is successful, the eviction will be initiated, which can ensure that the new Pod must be expelled. There are resources available. 
-- **PODNAMESPACE** `default` represents the namespace where the migrated Pod is located, 
-- **POD** `pod-demo-5f9b977566-c7lvk` represents the Pod to be migrated, 
-- **NEWPOD** `pod-demo-5f9b977566-nxjdf` is the newly created Pod after migration.
-- **TTL** indicates the TTL period of the current Job.
+从上述结果可以观察到：
+- **PHASE** 为 `Succeed`, **STATUS** 为 `Complete`, 表明迁移成功；
+- **NODE** `node-1` 表示迁移后新Pod所调度的节点；
+- **RESERVATION** `d56659ab-ba16-47a2-821d-22d6ba49258e` 是在迁移期间创建的 Reservation。PodMigrationJob Controller 将在开始驱逐 Pod 之前尝试为 Reservation 创建预留资源。在成功预留资源后，将启动驱逐操作，这可以确保新 Pod 必须被驱逐，因为已有资源可用；
+- **PODNAMESPACE** `default` 表示待迁移 Pod 所在的命名空间；
+- **POD** `pod-demo-5f9b977566-c7lvk` 表示待迁移的 Pod；
+- **NEWPOD** `pod-demo-5f9b977566-nxjdf` 表示迁移后新创建的 Pod；
+- **TTL** 表示当前作业的 TTL 周期。
 
-6. Query migration events
+6. 查看迁移事件
 
-PodMigrationJob Controller will create Events for important steps in the migration process to help users diagnose migration problems
+PodMigrationJob Controller 将在迁移过程的重要步骤中创建事件，以帮助用户诊断迁移问题
 
 ```bash
 $ kubectl describe podmigrationjob migrationjob-demo
@@ -146,16 +146,15 @@ Events:
   Normal  Complete              8m     koord-descheduler  Bind Pod "default/pod-demo-5f9b977566-nxjdf" in Reservation "d56659ab-ba16-47a2-821d-22d6ba49258e"
 ```
 
-### Advanced Configurations
+### 高级配置
 
-> The latest API can be found in [`pod_migration_job_types.go`](https://github.com/koordinator-sh/koordinator/blob/main/apis/scheduling/v1alpha1/pod_migration_job_types.go).
+> 最新的API可以查看[`pod_migration_job_types.go`](https://github.com/koordinator-sh/koordinator/blob/main/apis/scheduling/v1alpha1/pod_migration_job_types.go).
 
-### Example: Manually confirm whether the migration is allowed
+### 示例: 手动确认是否允许迁移
 
-Eviction or migration operations that bring risks to the stability, so it is hoped to manually check and confirm that there is no error before initiating the migration operation, and then initiate the migration.
+驱逐或迁移操作会带来稳定性风险，因此希望在启动迁移操作之前手动检查和确认没有错误，然后再启动迁移。
 
-Therefore, when creating a PodMigrationJob, set `spec.paused` to `true`, and set `spec.paused` to `false` after manually confirming that execution is allowed. 
-If you refuse to execute, you can update `status.phase=Failed` to terminate the execution of the PodMigrationJob immediately or wait for the PodMigrationJob to expire automatically.
+因此，在创建 PodMigrationJob 时，将 `spec.paused` 设置为 `true`，手动确认允许执行后再将 `spec.paused` 设置为 `false`。如果拒绝执行，则可以更新 `status.phase=Failed` 立即终止PodMigrationJob 的执行，或者等待 PodMigrationJob 自动过期。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -175,13 +174,13 @@ status:
   phase: Pending
 ```
 
-### Example: Just want to evict Pods, no need to reserve resources
+### 示例: 只想驱逐 Pods, 无需预留资源
 
-PodMigrationJob provides two migration modes:
-- `EvictDirectly` is directly evict Pod, no need to reserve resources, 
-- `ReservationFirst` reserves resources first to ensure that resources can be allocated before initiating eviction.
+PodMigrationJob 提供两种迁移模式:
+- `EvictDirectly` 直接驱逐 Pod，无需预留资源, 
+- `ReservationFirst` 先预留资源，以确保在开始驱逐之前可以分配资源。
 
-If just want to evict Pods, just set `spec.mode` to `EvictDirectly`
+如果你只想驱逐 Pod，只需将 `spec.mode` 设置为 `EvictDirectly`。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -199,10 +198,9 @@ status:
   phase: Pending
 ```
 
-### Example: Use reserved resources when migrating
+### 示例: 在迁移中使用预留资源
 
-In some scenarios, resources are reserved first, and then a PodMigrationJob is created after success. 
-The arbitration mechanism provided by the PodMigrationJob Controller (BTW: will be implemented in v0.7) is reused to ensure workload stability.
+在某些情况下，首先预留资源，然后在成功后创建一个 PodMigrationJob，以重复使用 PodMigrationJob Controller 提供的仲裁机制（在v0.7中实现）以确保工作负载的稳定性。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -224,9 +222,9 @@ status:
   phase: Pending
 ```
 
-### Example: Evicting Pods Gracefully
+### 示例: 优雅驱逐 Pods
 
-PodMigrationJob supports graceful eviction of pods.
+PodMigrationJob 支持 Pod 的优雅驱逐。
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -251,6 +249,6 @@ status:
 ```
 
 
-### Known Issues
-- [Arbitration mechanism](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20220701-pod-migration-job.md#filter-podmigrationjob) is not currently supported. The v0.6 version only implements the migration capability based on resource reservation
-- [Basic Migration API](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20220701-pod-migration-job.md#basic-migration-api) is not currenty supported
+### 已知问题
+- 当前不支持[Arbitration mechanism](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20220701-pod-migration-job.md#filter-podmigrationjob)，v0.6版本仅实现了基于资源预留的迁移能力。 
+- 目前不支持[Basic Migration API](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20220701-pod-migration-job.md#basic-migration-api) 。
