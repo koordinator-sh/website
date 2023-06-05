@@ -5,16 +5,26 @@ Koordinator adds co-location capabilities on top of the original kubernetes, and
 
 ![Architecture](/img/architecture.png)
 
-## Koordinator Scheduler
+## Koord-Scheduler
 
-The Koordinator Scheduler is deployed as a ```Deployment```, which is used to enhance the resource scheduling capabilities of kubernetes in colocation scenarios, including:
+The Koordinator Scheduler is deployed as a ```Deployment```, which is used to enhance the resource scheduling capabilities of kubernetes in QoS-aware, differentiated SLO management, and job scheduling. Specifically including:
 
-- More scenario support, including elastic quota scheduling, resource overcommitment, resource reservation, gang scheduling, heterogeneous resource scheduling.
-- Better performance, including dynamic index optimization, equivalence class scheduling, random relaxation algorithm optimization.
-- Safer descheduling, including workload availability awareness, deterministic pod migration, fine grained flow control, and modification audit support.
+- QoS-aware scheduling, including load-aware scheduling to make node load more balanced, resource overcommitment to run more computing workloads with low priority. 
+- Differentiated SLO management, including fine-grained CPU orchestration, different QoS policy(cfs/LLC/memory bw/net bw/blkio) for diffenent workloads. 
+- Job scheduling, including elastic quota scheduling, gang scheduling, heterogeneous resource scheduling, to support big-data and AI workloads.
 
+In order to better support diffenent workloads, the scheduler also provides a series of general capability enhancements:
+- Reservation, an ability for reserving node resources for specific pods or workloads, which is widely used in descheduling, resource preemption and fragmentation optimization.
+- Node reservation, an ability for reserving node resources for workloads out of kubernetes, which is typically used for non-containerized workloads.
 
-## Koordinator Manager
+## Koord-Descheduler
+
+The Koordinator Descheduler is deployed as a ```Deployment```, which is an enhanced version of the community descheduler:
+
+- Framework, a descheduling framework with better scalability, determinism and security, for more [details](../designs/descheduler-framework).
+- Load-aware descheduling, a descheduling plugins to support node load rebalancing, which supports user-defined CPU load level of nodes to avoids hotspot nodes.
+
+## Koord-Manager
 
 The Koordinator Manager is deployed as a ``` Deployment ```, usually consists of two instances, one leader and one backup. The Koordinator Manager consists of several controllers and webhooks, which are used to orchestrate co-located workloads and support resource overcommitment scheduling and SLO management.
 
@@ -35,6 +45,9 @@ Inside Koordlet, it mainly includes the following modules:
 - QoS Manager, which dynamically adjusts the water level of node colocation based on resource profiling, interference detection results and SLO configuration, suppressing Pods that affect service quality.
 - Resource Tuning, container resource tuning for co-located scenarios, optimize the container's CPU Throttle, OOM, etc., to improve the quality of service operation.
 
+## Koord-RuntimeProxy
+
+The Koord-RuntimeProxy is deployed as a ``` systemd service ``` in kubernetes node, which is designed to intercept CRI request, and apply some resource management policies, such as setting different cgroup parameters by pod priorities under hybrid workload orchestration scenario, applying new isolation policies for latest Linux kernel, CPU architecture, and etc.
 
 ## What's Next
 
