@@ -82,6 +82,7 @@ const sidebars = {
       items: [
         'best-practices/colocation-of-spark-jobs',
         'best-practices/anolis_plugsched',
+        'best-practices/fine-grained-cpu-orchestration',
       ],
     },
   ],
