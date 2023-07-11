@@ -559,6 +559,7 @@ data:
             apiVersion: kubescheduler.config.k8s.io/v1beta2
             kind: ElasticQuotaArgs
             quotaGroupNamespace: {{ .Values.installation.namespace }}
+            enableCheckParentQuota: true
             monitorAllQuotas: true
             revokePodInterval: 60s
             delayEvictTime: 300s
@@ -578,6 +579,7 @@ data:
           filter:
               ...
 ```
+- `enableCheckParentQuota` check parentQuotaGroups' used and runtime Quota. Default is false.
 - `monitorAllQuotas` enable "used > runtime revoke" logic. Default is false.
 - `revokePodInterval` check loop time interval.
 - `delayEvictTime` when "used > runtime" continues over `delayEvictTime` will really trigger eviction.
@@ -616,6 +618,12 @@ rules:
   - patch
   - update
   - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods/eviction
+  verbs:
+  - create
 - apiGroups:
   ...
 ```
