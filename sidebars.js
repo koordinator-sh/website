@@ -52,6 +52,7 @@ const sidebars = {
         'user-manuals/cpu-suppress',
         'user-manuals/cpu-burst',
         'user-manuals/cpu-qos',
+        'user-manuals/cpu-evict',
         'user-manuals/memory-qos',
         'user-manuals/memory-evict',
         'user-manuals/performance-collector',
