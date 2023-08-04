@@ -95,13 +95,13 @@ as the [example](https://github.com/koordinator-sh/charts/blob/main/versions/v1.
      schedulerName: default-scheduler
    ```
 
-4. Run the following command to deploy the ls-pod-demo pod in the cluster:
+4. Run the following command to deploy the be-pod-demo pod in the cluster:
 
    ```bash
-   kubectl apply -f ls-pod-demo.yaml
+   kubectl apply -f be-pod-demo.yaml
    ```
    
-5. Run the following command to check the ls-pod-demo pod in Running state:
+5. Run the following command to check the be-pod-demo pod in Running state:
 
    ```bash
    $ kubectl get pod be-pod-demo
@@ -116,7 +116,7 @@ means the process will consume 10GB memory, this should be adjusted according to
    $ stress --cpu 1 --vm 1 --vm-bytes 10G --vm-keep
    ```
 
-7. Check the running state of be-pod-demo, then you can find the be-pod-demo pod is not exsit,
+7. Check the running state of be-pod-demo, then you can find the be-pod-demo pod is not exist,
 and the eviction information can be found in events.
 
    ```bash
@@ -126,5 +126,5 @@ and the eviction information can be found in events.
    $ kubectl get event
    LAST SEEN   TYPE      REASON            OBJECT              MESSAGE
    46s         Normal    Killing           pod/be-pod-demo     Stopping container stress
-   48s         Warning   evictPodSuccess   $you-pod-object     evict Pod:be-pod-demo, reason: EvictPodByNodeMemoryUsage, message: killAndEvictBEPods for node(${your-node-id}), need to release memory: 8077889699
+   48s         Warning   evictPodSuccess   ${your-pod-object}     evict Pod:be-pod-demo, reason: EvictPodByNodeMemoryUsage, message: killAndEvictBEPods for node(${your-node-id}), need to release memory: 8077889699
    ```
