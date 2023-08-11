@@ -65,6 +65,7 @@ const sidebars = {
       items: [
         'designs/koordlet-overview',
         'designs/runtime-proxy',
+        'designs/nri-mode-resource-management',
         'designs/enhanced-scheduler-extension',
         'designs/load-aware-scheduling',
         'designs/fine-grained-cpu-orchestration',

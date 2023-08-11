@@ -52,6 +52,17 @@ If you have problem with connecting to `https://koordinator-sh.github.io/charts/
 $ helm install/upgrade koordinator /PATH/TO/CHART
 ```
 
+## Enable NRI Mode Resource Management
+
+### Prerequisite
+
+- Containerd >= 1.7.0 and enable NRI.  Please make sure NRI is enabled in containerd. If not, please refer to [Enable NRI in Containerd](https://github.com/containerd/containerd/blob/main/docs/NRI.md)
+- Koordinator >= 1.3
+
+### Configurations
+
+NRI mode resource management is *Enabled* by default. You can use it without any modification on the koordlet config. You can also disable it to set `enable-nri-runtime-hook=false` in koordlet start args. It doesn't matter if all prerequisites are not meet. You can use all other features as expected.
+
 ## Install koord-runtime-proxy
 
 koord-runtime-proxy acts as a proxy between kubelet and containerd(dockerd under dockershim scenario), which is designed to intercept CRI request, and apply some resource management policies, such as setting different cgroup parameters by pod priorities under hybrid workload orchestration scenario, applying new isolation policies for latest Linux kernel, CPU architecture, and etc.
