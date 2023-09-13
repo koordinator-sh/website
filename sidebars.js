@@ -56,6 +56,7 @@ const sidebars = {
         'user-manuals/memory-qos',
         'user-manuals/memory-evict',
         'user-manuals/performance-collector',
+        'user-manuals/host-application-qos',
       ],
     },
     {
