@@ -1,6 +1,6 @@
-# Multi Hierarchy Elastic Quota Management
+# Capacity Scheduling - Elastic Quota Management
 
-Multi Hierarchy ElasticQuota Management is an ability of koord-scheduler to manage different user's resource usage in a shared-cluster.
+Capacity Scheduling is an ability of koord-scheduler to manage different user's resource usage in a shared-cluster.
 
 ## Introduction
 When several users or teams share a cluster, fairness of resource allocation is very important. the Koordinator provides
@@ -26,9 +26,9 @@ Please make sure Koordinator components are correctly installed in your cluster.
 
 ### Configurations
 
-Multi-Hierarchy-ElasticQuota-Management is *Enabled* by default. You can use it without any modification on the koord-descheduler config.
+Capacity-Scheduling is *Enabled* by default. You can use it without any modification on the koord-descheduler config.
 
-## Use Multi-Hierarchy-ElasticQuota-Management
+## Use Capacity-Scheduling
 
 ### Quick Start by Label
 

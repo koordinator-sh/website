@@ -1,4 +1,4 @@
-# Device Scheduling
+# Device Scheduling - GPU/RDMA
 We provide a fine-grained mechanism for managing GPUs and other devices such as RDMA and FPGA, defines a set of APIs to 
 describe device information on nodes, including GPU, RDMA, and FPGA, and a new set of resource names to flexibly support 
 users to apply at a finer granularity GPU resources. This mechanism is the basis for subsequent other GPU scheduling 

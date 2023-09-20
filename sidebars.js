@@ -39,24 +39,38 @@ const sidebars = {
       label: 'User Manuals',
       collapsed: true,
       items: [
-        'user-manuals/colocation-profile',
-        'user-manuals/load-aware-scheduling',
-        'user-manuals/load-aware-descheduling',
-        'user-manuals/fine-grained-cpu-orchestration',
-        'user-manuals/resource-reservation',
-        'user-manuals/pod-migration-job',
-        'user-manuals/fine-grained-device-scheduling',
-        'user-manuals/gang-scheduling',
-        'user-manuals/multi-hierarchy-elastic-quota-management',
-        'user-manuals/slo-config',
-        'user-manuals/cpu-suppress',
-        'user-manuals/cpu-burst',
-        'user-manuals/cpu-qos',
-        'user-manuals/cpu-evict',
-        'user-manuals/memory-qos',
-        'user-manuals/memory-evict',
-        'user-manuals/performance-collector',
-        'user-manuals/host-application-qos',
+        {
+          'Task Scheduling': [
+            'user-manuals/gang-scheduling',
+            'user-manuals/capacity-scheduling',
+          ],
+          'Heterogeneous Resources Scheduling': [
+            'user-manuals/fine-grained-device-scheduling',
+          ],
+          'Load-aware Scheduling': [
+            'user-manuals/load-aware-scheduling',
+            'user-manuals/load-aware-descheduling',
+          ],
+          'Fine-grained Scheduling': [
+            'user-manuals/fine-grained-cpu-orchestration',
+            'user-manuals/cpu-burst',
+            'user-manuals/cpu-qos',
+            'user-manuals/memory-qos',
+          ],
+          'Colocation': [
+            'user-manuals/colocation-profile',
+            'user-manuals/cpu-suppress',
+            'user-manuals/cpu-evict',
+            'user-manuals/memory-evict',
+            'user-manuals/slo-config',
+            'user-manuals/host-application-qos',
+            'user-manuals/performance-collector',
+          ],
+          'Utils' : [
+            'user-manuals/resource-reservation',
+            'user-manuals/pod-migration-job',
+          ]
+        }
       ],
     },
     {
