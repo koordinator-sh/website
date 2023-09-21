@@ -1,4 +1,4 @@
-# Fine-grained CPU Orchestration
+# CPU Orchestration
 
 Fine-grained CPU Orchestration is an ability of koord-scheduler for improving the performance of CPU-sensitive workloads.
 

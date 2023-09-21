@@ -1,5 +1,4 @@
-# CPU Suppress
-
+# CPU Utilization Threshold Management
 ## Introduction
 In order to ensure the runtime quality of different workloads in co-located scenarios, Koordinator uses the CPU Suppress
 mechanism provided by koordlet on the node side to suppress workloads of the Best Effort type when the load increases. 
