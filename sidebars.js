@@ -101,6 +101,7 @@ const sidebars = {
         'best-practices/colocation-of-spark-jobs',
         'best-practices/anolis_plugsched',
         'best-practices/fine-grained-cpu-orchestration',
+        'best-practices/colocation-of-hadoop-yarn',
       ],
     },
   ],
