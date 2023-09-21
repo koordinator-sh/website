@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkkoordinator_sh=self.webpackChunkkoordinator_sh||[]).push([[428],{2867:function(o){o.exports=JSON.parse('{"allTagsPath":"/zh-Hans/blog/tags","slug":"/zh-Hans/blog/tags/koordinator","name":"koordinator","count":3,"permalink":"/zh-Hans/blog/tags/koordinator"}')}}]);
