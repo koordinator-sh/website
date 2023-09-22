@@ -107,8 +107,8 @@ const WhatIs = () => (
           <p className="hero__subtitle">
             <small>
               <Translate>
-                Koordinator is a modern scheduling system that colocate different types of workloads on kubernetes. 
-                It achieves high utilization by combining elastic resource quota, efficient pod-packing, over-commitment, and node sharing with container resource isolation.
+                Koordinator is a modern scheduling system that colocate microservices, AI, and big data workloads on kubernetes. 
+                It achieves high utilization by combining elastic resource quota, efficient pod-packing, over-commitment, and resource sharing with container resource isolation.
               </Translate>
               <br />
               <br />

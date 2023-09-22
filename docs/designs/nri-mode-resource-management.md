@@ -10,7 +10,7 @@ We hope to enable NRI mode resource management for koordinator for easy deployme
 
 ## Motivation
 
-Koordinator as a QoS based scheduling system for hybrid workloads orchestration on Kubernetes and its runtime hooks support two working [modes](https://github.com/koordinator-sh/koordinator/blob/main/docs/design-archive/koordlet-runtime-hooks.md) for different scenarios: `Standalone` and `Proxy`. However, both of them have some [constraints](https://shimo.im/docs/m4kMLdgO1LIma9qD). NRI (Node Resource Interface), which is a public interface for controlling node resources is a general framework for CRI-compatible container runtime plug-in extensions. It provides a mechanism for extensions to track the state of pod/containers and make limited modifications to their configuration. We'd like to integrate NRI framework to address `Standalone` and `Proxy` constraints based on this community recommend mechanism.
+Koordinator as a QoS-based scheduling for efficient orchestration of microservices, AI, and big data workloads on Kubernetes and its runtime hooks support two working [modes](https://github.com/koordinator-sh/koordinator/blob/main/docs/design-archive/koordlet-runtime-hooks.md) for different scenarios: `Standalone` and `Proxy`. However, both of them have some [constraints](https://shimo.im/docs/m4kMLdgO1LIma9qD). NRI (Node Resource Interface), which is a public interface for controlling node resources is a general framework for CRI-compatible container runtime plug-in extensions. It provides a mechanism for extensions to track the state of pod/containers and make limited modifications to their configuration. We'd like to integrate NRI framework to address `Standalone` and `Proxy` constraints based on this community recommend mechanism.
 
 ### Goals
 
