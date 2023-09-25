@@ -22,7 +22,7 @@ function getNextVersionName() {
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Koordinator',
-  tagline: 'QoS based scheduling system for hybrid workloads orchestration on Kubernetes',
+  tagline: 'QoS-based scheduling for efficient orchestration of microservices, AI, and big data workloads on Kubernetes',
   url: 'https://koordinator.sh',
   baseUrl: '/',
   onBrokenLinks: 'throw',

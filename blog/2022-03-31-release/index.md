@@ -9,7 +9,7 @@ tags: [koordinator, colocation, kubernetes, scheduling, orchestration, release]
 We’re pleased to announce the release of Koordinator v0.1.0.
 
 ## Overview
-Koordinator is a QoS based scheduling system for hybrid workloads orchestration on Kubernetes. It aims to improve the runtime efficiency and reliability of both latency sensitive workloads and batch jobs, simplify the complexity of resource-related configuration tuning, and increase pod deployment density to improve resource utilizations.
+Koordinator is a QoS-based scheduling for efficient orchestration of microservices, AI, and big data workloads on Kubernetes. It aims to improve the runtime efficiency and reliability of both latency sensitive workloads and batch jobs, simplify the complexity of resource-related configuration tuning, and increase pod deployment density to improve resource utilizations.
 
 ## Key Features
 Koordinator enhances the kubernetes user experiences in the workload management by providing the following:

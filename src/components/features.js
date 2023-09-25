@@ -9,7 +9,7 @@ const features = [
       <>
 
         <Translate>Koordinator provides a range of options for customizing scheduling policies, allowing users to fine-tune the behavior
-          of the system to suit their specific needs, such as Web Service, Spark, Presto, TensorFlow, etc.
+          of the system to suit their specific needs, such as Web Service, Spark, Presto, TensorFlow, Pytorch, etc.
           We provide a profile tool to help you manage workload scheduling policies, which allows to control scheduling policies without modifying the existing workload controller</Translate>
 
         <br></br>
