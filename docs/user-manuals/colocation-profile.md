@@ -35,8 +35,6 @@ If you are not familiar with Kubernetes resources please refer to the page [Unde
 
 - **priorityClassName** (*required*): the priorityClassName and the priority value defined in PriorityClass will be injected into the Pod. Options are `koord-prod`, `koord-mid`, `koord-batch`, and `koord-free`. For more information, please check [here](../architecture/priority).
 
-- **koordinatorPriority**: defines the Pod sub-priority in Koordinator. The priority value will be injected into Pod as label koordinator.sh/priority. Various Koordinator components determine the priority of the Pod in the Koordinator through KoordinatorPriority and the priority value in PriorityClassName. Higher the value, higher the priority.
-
 - **labels**: describes the k/v pair that needs to inject into `Pod.Labels`.
 
 - **annotations**: describes the k/v pair that needs to inject into `Pod.Annotations`.
@@ -66,7 +64,6 @@ spec:
       koordinator.sh/enable-colocation: "true"
   qosClass: BE
   priorityClassName: koord-batch
-  koordinatorPriority: 1000
   schedulerName: koord-scheduler
   labels:
     koordinator.sh/mutated: "true"
@@ -116,7 +113,6 @@ metadata:
     koordinator.sh/intercepted: true
   labels:
     koordinator.sh/qosClass: BE
-    koordinator.sh/priority: 1000
     koordinator.sh/mutated: true
   ...
 spec:

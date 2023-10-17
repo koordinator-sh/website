@@ -194,7 +194,7 @@ Feature-gate controls some influential features in Koordinator:
 
 | Name                      | Description                                                       | Default | Effect (if closed)                     |
 | ------------------------- | ----------------------------------------------------------------  | ------- | -------------------------------------- |
-| `PodMutatingWebhook`      | Whether to open a mutating webhook for Pod **create**             | `true`  | Don't inject koordinator.sh/qosClass, koordinator.sh/priority and don't replace koordinator extend resources ad so on |
+| `PodMutatingWebhook`      | Whether to open a mutating webhook for Pod **create**             | `true`  | Don't inject koordinator.sh/qosClass and don't replace koordinator extend resources ad so on |
 | `PodValidatingWebhook`    | Whether to open a validating webhook for Pod **create/update**    | `true`  | It is possible to create some Pods that do not conform to the Koordinator specification, causing some unpredictable problems |
 
 

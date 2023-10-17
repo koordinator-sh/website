@@ -70,7 +70,6 @@ metadata:
   name: nginx
   labels:
     env: test
-    koordinator.sh/priority: "5300"
 spec:
   containers:
   - name: nginx
