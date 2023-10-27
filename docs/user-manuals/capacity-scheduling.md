@@ -628,7 +628,7 @@ rules:
   ...
 ```
 
-To prevent Pods from being revoked, you can add the `quota.scheduling.koordinator.sh/preemptible: false` to the Pod:
+To prevent Pods from being revoked, you can add label `quota.scheduling.koordinator.sh/preemptible: false` to the Pod:
 ```yaml
 apiVersion: v1
 kind: Pod
