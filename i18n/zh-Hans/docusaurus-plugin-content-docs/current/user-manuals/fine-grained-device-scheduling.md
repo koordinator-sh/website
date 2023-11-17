@@ -24,6 +24,15 @@ through the scheduler to obtain globally optimal allocation results.
 
 Please make sure Koordinator components are correctly installed in your cluster. If not, please refer to [Installation](/docs/installation).
 
+#### Runtime Requirements
+The scheduled GPU devices are bound to the container requires support from the runtime environment. Currently, there are two solutions to achieve this:
+
+Runtime Environment  |      Installation
+-------------        |     -------------
+Containerd >= 1.7.0 <br /> Koordinator >= 1.3 | Please make sure NRI is enabled in containerd. If not, please refer to [Enable NRI in Containerd](https://github.com/containerd/containerd/blob/main/docs/NRI.md)
+others | Please make sure koord-runtime-proxy component is correctly installed in you cluser. If not, please refer to [Installation Runtime Proxy](installation-runtime-proxy).
+
+
 ### Configurations
 
 DeviceScheduling is *Enabled* by default. You can use it without any modification on the koord-scheduler config.
