@@ -6,71 +6,225 @@ sidebar_position: 4
 
 ## 背景介绍
 Koordinator已经支持了K8s生态内的在离线混部，通过Batch超卖资源以及BE QoS，离线任务可以使用到集群内的空闲资源，提升资源使用效率。然而，
-在K8s生态外，仍有相当数量的用户会选择将大数据任务运行其他资源管理系统，例如[Apache Hadoop YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) 。
-作为大数据生态下的资源管理系统，YARN承载了包括MapReduce、Spark、Flink以及Presto等在内的多种计算引擎。虽然目前一些计算引擎提供了K8s operator可以
-将任务融入到K8s生态，但不可否认的是，目前YARN生态依然保持一定的活跃度，典型的例子是包括阿里云在内的一系列主流云厂商仍然提供类似[E-MapReduce](https://www.aliyun.com/product/bigdata/emapreduce)
-的产品，支持用户将大数据作业提交到YARN上运行，这点从产品的受欢迎程度上可见一斑。
+在K8s生态外，仍有相当数量的用户会选择将大数据任务运行其他资源管理系统，例如[Apache Hadoop YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html)。
+作为大数据生态下的资源管理系统，YARN承载了包括MapReduce、Spark、Flink以及Presto等在内的多种计算引擎。
 
-因此，为了进一步丰富Koordinator支持的在离线混部场景，Koordinator社区会同来自阿里云、小红书、蚂蚁金服的开发者们共同启动了Hadoop YARN与K8s混部
-项目，支持将超卖的Batch资源提供给Hadoop YARN使用，进一步提升集群资源的使用效率，该项目目前已经在小红书生产环境正式投入使用。
+为了进一步丰富Koordinator支持的在离线混部场景，Koordinator社区提供了面向大数据生态下的混部套件`Koordinator YARN Copilot`，
+支持将超卖的Batch资源提供给Hadoop YARN使用，进一步提升集群资源的使用效率。`Koordinator YARN Copilot`具备以下特点：
 
-## 技术原理
-### 设计原则
-- 离线作业的提交入口依然为YARN保持不变。
-- 基于Hadoop YARN开源版本，原则上不对YARN做侵入式改造。
-- Koordinator提供的混部资源，既可被K8s Pod使用，也可被YARN task使用，不同类型的离线应用可在同一节点内共存。
-- 单机QoS策略由Koordlet统一管理，并兼容YARN Task的运行时。
+- 面向开源生态：基于Hadoop YARN开源版本，不涉及对YARN的侵入式改造。
+- 统一资源优先级和QoS策略：YARN任务同样使用Koordinator的Batch优先级资源，同时会受koordlet一系列QoS策略的管理。
+- 节点级别的资源共享：Koordinator提供的混部资源，既可被K8s Pod使用，也可被YARN task使用，不同类型的离线应用可在同一节点内共存。
+- 适配多种环境：对运行环境没有严格要求，可以在公有云或者IDC内使用。
 
-### 资源分配与仲裁
-在Koordinator中，节点超卖的Batch资源量由koord-manager根据节点资源负载情况动态计算得出，并以extended-resource形式更新在K8s的Node对象中。
-对于YARN场景的适配，将由koord-yarn-operator组件负责将节点的Batch资源量同步给YARN RM。此外，由于K8s调度器和YARN调度器共享Batch账本，因此
-在资源同步时需要将另一个系统中已经分配的Batch资源排除。具体过程如下：
+## 使用限制
+| 组件 | 版本要求 |
+| --- | ------- |
+| Kubernetes | ≥v1.18 |
+| Koordinator | ≥v1.4 |
+| Koordinator YARN Copilot | ≥v0.1 |
+| Hadoop YARN | ≥v3.2.1 |
 
-1. koord-manager计算原始Batch总量`origin_batch_total`，并将其记录在K8s的node annotation中。
-2. koord-yarn-operator从YARN RM收集YARN节点已经分配的资源量`yarn_requested`，并将其记录在K8s的node annotation中。
-3. 在koord-manager更新K8s的Batch资源总量时，排除YARN已经分配的资源量：`k8s_batch_total = origin_batch_total – yarn_requested`
-4. yarn-operator向YARN RM更新资源时，排除K8s已经分配的资源量：`yarn_batch_total = origin_batch_total – k8s_batch_requested`
+## 组件安装
+Koordinator相关对组件都可以通过 helm v3.5+ 安装，Helm 是一个简单的命令行工具，您可以从 [这里](https://github.com/helm/helm/releases) 获取它。
 
-![image](/img/koord-yarn-operator.svg)
+![image](/img/hadoop-k8s.svg)
 
-在双调度器的工作模式下，由于资源申请量的同步存在时序先后，节点的Batch可能会被过量分配，koordlet将在单机侧对资源进行二次仲裁。不过，与kubelet仲裁
-机制不同的是，koordlet将以"避免干扰在线"，以及"确保离线资源质量"为目标，复用当前的QoS策略作为仲裁手段，既结合节点实际的资源使用情况，非必要不驱逐
-离线任务。
+### 安装Koordinator
+请确保Koordinator已正确安装在你的集群中。您可请参考[安装文档](https://koordinator.sh/docs/installation)获取有关安装和升级的详细信息。
+```shell script
+# Firstly add koordinator charts repository if you haven't do this.
+$ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 
-### 节点运行时管理
-Node Manager是YARN的节点组件，主要负责离线任务的生命周期管理，在K8s混部场景下NM将以DaemonSet形式部署。为了对资源进行更精细的管理，
-YARN Task将与NM的资源管理相互独立，NM在部署时只需按自身开销申请Batch混部资源。
+# [Optional]
+$ helm repo update
 
-![image](/img/node-manager-runtime.svg)
-
-为了能够通过cgroup来管理YARN任务的资源使用，Koordinator要求YARN NM开启[LinuxContainerExecutor](https://apache.github.io/hadoop/hadoop-yarn/hadoop-yarn-site/NodeManagerCgroups.html)
-模式，并指定cgroup路径，确保可以和其他K8s Pod一样，统一在besteffort分组下管理。
-
-![image](/img/node-manager-cgroup.svg)
-
-### 单机QoS策略适配
-
-koodlet目前在单机支持了一系列的QoS策略，这些同样需要针对YARN场景进行适配。对于资源隔离参数，例如Group Identity，Memory QoS，L3 Cache隔离等，
-koordlet将根据设计的cgroup层级进行适配。而对于驱逐和压制这类动态策略，koordlet将新增一个sidecar模块koord-yarn-copilot，用于对接YARN场景的各类数据和操作，
-包括YARN Task元信息采集、资源指标采集、Task驱逐操作等，所有QoS策略仍然保留在koordlet内，koordlet内部相关模块将以plugin形式对接koord-yarn-copilot接口。
-同时，koord-yarn-copilot的接口设计将保留一定的扩展性，后续可用于对接其他资源框架。
-
-![image](/img/koord-yarn-copilot.svg)
-
-koordlet将在后续版本中陆续完成各类QoS策略对YARN场景的适配。
-
-## 如何使用
-支持K8s与YARN混部的相关功能目前已经基本研发完成，Koordinator团队目前正努力完成发布前的一系列准备工作，敬请期待！
-
-如果您也有意参与项目的合作共建，或是对`K8s & YARN`混部感兴趣，欢迎您到[专项讨论区](https://github.com/koordinator-sh/koordinator/discussions/1297) 下方留言，
-我们将第一时间联系您**参与试用**。参考留言格式：
-
+# Install the latest version.
+$ helm install koordinator koordinator-sh/koordinator
 ```
-联系人(gihub-id)：, e.g. @koordinator-dev
 
-您任职/就读/参与的公司/学校/组织名称：e.g. koordinator community
+### 安装Hadoop YARN
+Hadoop YARN包括ResourceManager和NodeManager两部分组件，若您目前已经有可用的YARN集群，Koordinator社区建议的方式是保持ResourceManager
+以宿主机进程的方式直接部署不变，将NodeManager以K8s Pod的形式部署，后续随Koordinator YARN Copilot的迭代演进再将ResourceManager进行容器化改造。
 
-社区参与意向：e.g. 希望能够参与研发/学习大数据&云原生混部/将K8s&YARN混部功能在生产环境落地/其它。
+Koordinator社区在Helm仓库中提供了`hadoop-yarn`样例组件，其中包括ResourceManager和NodeManager，以及可供选择性安装的HDFS相关组件，
+以便轻松运行示例作业。您可以直接安装样例组件以便快速尝试YARN与K8s混部，或者参考官方[安装指南](https://hadoop.apache.org/docs/stable/hadoop-yarn/hadoop-yarn-site/YARN.html)
+搭建自己的 YARN 集群。
 
-您对"K8s&YARN混部"的期待：
+```shell script
+# Firstly add koordinator charts repository if you haven't do this.
+$ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
+
+# [Optional]
+$ helm repo update
+# Install the latest version.
+$ helm install hadoop-yarn koordinator-sh/hadoop-yarn
+
+# check hadoop yarn pods running status
+kubectl get pod -n hadoop-yarn
+```
+
+在搭建YARN集群之前，您应该了解以下关键信息：
+
+- ResourceManager必须能够在K8s pod中访问，无论部署方式为host模式还是pod模式。
+- NodeManager必须部署为pod模式部署，并带有annotation注释`yarn.hadoop.apache.org/node-id=${nm-hostname}:8041`，用来标识对应YARN节点的ID。
+- NodeManager必须使用CgroupsLCEResourcesHandler作为YARN的容器执行器，并将cgroup层次结构指定在k8s best-effort目录下。
+- NodeManager Pod使用koord-batch优先级资源，因此必须预先安装Koordinator并启用混部配置。
+
+Koordinator提供的Helm样例中，以上相关功能已经在默认配置中开启，如果您使用的是自行维护的YARN，您可以参考Koordinator Helm库中的
+[样例配置](https://github.com/koordinator-sh/charts/blob/main/charts/hadoop-yarn)进行修改。
+
+### 安装Koordinator YARN Copilot
+Koordinator YARN Copilot由`yarn-opeartor`和`copilot-agent`(建设中)两部分组成。
+
+```shell script
+# Firstly add koordinator charts repository if you haven't do this.
+$ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
+
+# [Optional]
+$ helm repo update
+
+# Install the latest version.
+$ helm install koordinator-yarn-copilot koordinator-sh/koordinator-yarn-copilot
+```
+
+## 配置
+1. koord-manager相关配置
+
+在通过helm chart安装Koordinator时，ConfigMap slo-controller-config将默认被创建在koordinator-system命名空间下。YARN任务的cgroup将
+在K8s的best-effort目录下管理，这部分将以Host应用的形式在slo-controller-config中配置，有关Koordinator对YARN任务的资源管理，可参考
+相关[issue](https://github.com/koordinator-sh/koordinator/issues/1727)获取更多细节。
+
+使用以下ConfigMap，创建configmap.yaml文件
+```yaml
+apiVersion: v1
+data:
+  colocation-config: |
+    {
+      "enable": true
+    }
+  resource-threshold-config: |
+    {
+      "clusterStrategy": {
+        "enable": true
+      }
+    }
+  resource-qos-config: |
+    {
+      "clusterStrategy": {
+        "lsrClass": {
+          "cpuQOS": {
+            "enable": true
+          }
+        },
+        "lsClass": {
+          "cpuQOS": {
+            "enable": true
+          }
+        },
+        "beClass": {
+          "cpuQOS": {
+            "enable": true
+          }
+        }
+      }
+    }
+  host-application-config: |
+    {
+      "applications": [
+        {
+          "name": "yarn-task",
+          "priority": "koord-batch",
+          "qos": "BE",
+          "cgroupPath": {
+            "base": "KubepodsBesteffort",
+            "relativePath": "hadoop-yarn/"
+          }
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+  name: slo-controller-config
+  namespace: koordinator-system
+``` 
+
+查看安装的命名空间下是否存在ConfigMap，以命名空间`koordinator-system`和ConfigMap名字`slo-controller-config`为例，具体以实际安装配置为准。
+
+- 若存在ConfigMap `slo-controller-config`，请使用PATCH方式进行更新，避免干扰ConfigMap中其他配置项。
+
+ ```bash
+ kubectl patch cm -n koordinator-system slo-controller-config --patch "$(cat configmap.yaml)"
+ ```
+
+- 若不存在ConfigMap `slo-controller-config`，请执行以下命令进行创建ConfigMap。
+
+```bash
+$ kubectl apply -f configmap.yaml
+```
+
+2. koord-yarn-copilot相关配置
+`koord-yarn-copilot`在进行资源同步时会与YARN ResourceManager进行通信，相关配置在独立的ConfigMap中进行管理。
+
+```yaml
+apiVersion: v1
+data:
+  core-site.xml: |
+    <configuration>
+    </configuration>
+  yarn-site.xml: |
+    <configuration>
+        <property>
+            <name>yarn.resourcemanager.admin.address</name>
+            <value>resource-manager.hadoop-yarn:8033</value>
+        </property>
+        <property>
+            <name>yarn.resourcemanager.address</name>
+            <value>resource-manager.hadoop-yarn:8032</value>
+        </property>
+    </configuration>
+kind: ConfigMap
+metadata:
+  name: yarn-config
+  namespace: koordinator-system
+``` 
+
+您可以在Helm Chart的value配置`yarnConfiguration.resourceManager`中修改地址和端口信息。
+
+### （可选）进阶配置
+您可以参考[hadoop-yarn](https://github.com/koordinator-sh/charts/blob/main/charts/hadoop-yarn)
+和[koordinator-yarn-copilot](https://github.com/koordinator-sh/charts/blob/main/charts/koordinator-yarn-copilot)
+的Helm仓库，获取更多进阶配置的详细说明。
+
+## 查看YARN集群中节点的资源信息
+1. 查看K8s Node中的Batch资源总量信息。
+```bash
+$ kubectl get node -o yaml | grep batch-cpu
+      kubernetes.io/batch-cpu: "60646"
+      kubernetes.io/batch-cpu: "60486"
+
+$ kubectl get node -o yaml | grep batch-memory
+      kubernetes.io/batch-memory: "245976973438"
+      kubernetes.io/batch-memory: "243254790644"
+```
+
+2。 查看YARN Node中的节点资源总量信息。
+在浏览器中访问YARN ResourceManager的Web UI地址`${hadoop-yarn-rm-addr}:8088/cluster/nodes`，查看NodeManager状态和资源总量信息。
+
+如果您使用了Koordinator Helm仓库中提供的YARN样例组件，可在本地执行以下命令，使得RM可以通过本机地址直接访问：
+```shell script
+$ kubectl port-forward -n hadoop-yarn service/resource-manager 8088:8088
+``` 
+
+打开浏览器，访问地址`http://localhost:8088/cluster/nodes`
+
+查看各节点的资源总量信息`VCores Avail`和`Mem Avail`，可以看到其与K88s节点的Batch资源相同。
+
+## 向YARN集群提交作业
+Spark、Flink等计算引擎自诞生之初就支持向YARN提交作业运行，在使用时可参考[Spark](https://spark.apache.org/docs/latest/running-on-yarn.html)
+和[Flink](https://nightlies.apache.org/flink/flink-docs-master/docs/deployment/resource-providers/yarn/)官方文档获取详细步骤。
+
+在Koordinator Helm仓库提供的YARN样例组件中我们已经集成了Spark，您可以直接执行以下命令向YARN提交作业执行，并在Resource Manager的Web界面中，查看作业的执行情况。
+```shell script
+$ kubectl exec -n hadoop-yarn -it ${yarn-rm-pod-name} yarn-rm -- /opt/spark/bin/spark-submit --master yarn --deploy-mode cluster --class org.apache.spark.examples.SparkPi /opt/spark/examples/jars/spark-examples_2.12-3.3.3.jar 1000
 ```
