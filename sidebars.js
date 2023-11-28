@@ -91,6 +91,7 @@ const sidebars = {
         'designs/fine-grained-device-scheduling',
         'designs/gang-scheduling',
         'designs/multi-hierarchy-elastic-quota-management',
+        'designs/koordinator-yarn',
       ],
     },
     {
