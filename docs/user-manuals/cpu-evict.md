@@ -105,6 +105,8 @@ as the [example](https://github.com/koordinator-sh/charts/blob/main/versions/v1.
              kubernetes.io/batch-memory: 4Gi
      restartPolicy: Always
      schedulerName: default-scheduler
+     # priorityClassName is required when ColocationProfile enabled (default).
+     priorityClassName: koord-batch
    ```
    
 4. Run the following command to deploy the be-pod-demo pod in the cluster:

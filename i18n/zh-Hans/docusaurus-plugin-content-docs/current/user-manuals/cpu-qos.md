@@ -162,6 +162,7 @@ Kubernetes支持将多种类型的应用以容器化的方式部署在同一台�
          name: stress
      restartPolicy: Always
      schedulerName: default-scheduler
+     # 当ColocationProfile功能开启时（默认启用），priorityClassName是必填的
      priorityClassName: koord-batch
    ```
 
