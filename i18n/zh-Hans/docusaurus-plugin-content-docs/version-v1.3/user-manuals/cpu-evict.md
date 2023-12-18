@@ -100,6 +100,8 @@ Koordinator提供了CPU的[动态压制能力](/docs/user-manuals/cpu-suppress)�
              kubernetes.io/batch-memory: 4Gi
      restartPolicy: Always
      schedulerName: default-scheduler
+     # 当ColocationProfile功能开启时（默认启用），priorityClassName是必填的
+     priorityClassName: koord-batch
    ```
 
 4. 执行以下命令，将be-pod-demo部署到集群。

@@ -157,6 +157,7 @@ Please make sure Koordinator components are correctly installed in your cluster.
          name: stress
      restartPolicy: Always
      schedulerName: default-scheduler
+     # priorityClassName is required when ColocationProfile enabled (default).
      priorityClassName: koord-batch
    ```
 

@@ -84,6 +84,8 @@ Koordinator支持了将节点空闲资源动态超卖给低优先级Pod，在混
          name: stress
      restartPolicy: Always
      schedulerName: default-scheduler
+     # 当ColocationProfile功能开启时（默认启用），priorityClassName是必填的
+     priorityClassName: koord-batch
    ```
 
 4. 执行以下命令，将be-pod-demo部署到集群。
