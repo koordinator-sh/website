@@ -15,16 +15,16 @@ The `LowNodeLoad` plugin has two most important parameters:
 
 Take the following figure as an example, `lowThresholds` is 45%, `highThresholds` is 70%, we can classify nodes into three categories:
 
-1. Idle Node. Nodes with resource utilization below 45%;
-2. Normal Node. For nodes whose resource utilization is higher than 45% but lower than 70%, this load water level range is a reasonable range we expect
-3. Hotspot Node. If the node resource utilization rate is higher than 70%, the node will be judged as unsafe and belongs to the hotspot node, and some pods should be expelled to reduce the load level so that it does not exceed 70%.
+1. Idle Node. Nodes with resource utilization below lowThresholds(45%);
+2. Normal Node. For nodes whose resource utilization is higher than lowThresholds but lower than highThresholds(70%), this load water level range is a reasonable range we expect
+3. Hotspot Node. If the node resource utilization rate is higher than highThresholds, the node will be judged as unsafe and belongs to the hotspot node, and some pods should be expelled to reduce the load level so that it does not exceed 70%.
 
 ![image](/img/low-node-load.png)
 
-After identifying which nodes are hotspots, descheduler will perform a eviction/migration operation to evict some Pods from hotspot nodes to idle nodes.
+After identifying which nodes are hotspots, descheduler will perform a eviction/migration operation to evict some Pods from hotspot nodes to idle nodes. If the number of ```Idle Node`````` is 0 or the number of ```Hotspot Node`````` is 0, the descheduler does nothing.
 
 If the total number of idle nodes in a cluster is not many, descheduling will be terminated. This can be helpful in large clusters where some nodes may be underutilized frequently or for short periods of time. By default, `numberOfNodes` is set to zero. This capability can be enabled by setting the parameter `numberOfNodes`.
-Before migration, descheduler will calculate the actual free capacity to ensure that the sum of the actual utilization of the Pods to be migrated does not exceed the total free capacity in the cluster. These actual free capacities come from idle nodes, and the actual free capacity of an idle node = `(highThresholds - current load of the node) * total capacity of the node`. Suppose the load level of node A is 20%, the highThresholdss is 70%, and the total CPU of node A is 96C, then `(70%-20%) * 96 = 48C`, and this 48C is the free capacity that can be carried.
+Before migration, descheduler will calculate the actual free capacity to ensure that the sum of the actual utilization of the Pods to be migrated does not exceed the total free capacity in the cluster. These actual free capacities come from idle nodes, and the actual free capacity of an idle node = `(highThresholds - current load of the node) * total capacity of the node`. Suppose the load level of node A is 20%, the highThresholds is 70%, and the total CPU of node A is 96C, then `(70%-20%) * 96 = 48C`, and this 48C is the free capacity that can be carried.
 
 In addition, when migrating hotspot nodes, the Pods on the nodes will be filtered. Currently, descheduler supports multiple filtering parameters, which can avoid migration and expulsion of very important Pods:
 
