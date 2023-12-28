@@ -21,7 +21,7 @@ LowNodeLoad插件有两个最重要的参数：
 
 ![image](/img/low-node-load.png)
 
-在识别出哪些节点是热点后，koord-descheduler 将会执行迁移驱逐操作，驱逐热点节点中的部分 Pod 到空闲节点上。
+在识别出哪些节点是热点后，koord-descheduler 将会执行迁移驱逐操作，驱逐热点节点中的部分 Pod 到空闲节点上。如果 Idle Node 数量是 0 或者 Hotspot Node 数量是 0，则 descheduler 不会执行任何操作。
 
 如果一个集群中空闲节点的总数并不是很多时会终止重调度。这在大型集群中可能会有所帮助，在大型集群中，一些节点可能会经常或短时间使用不足。默认情况下，`numberOfNodes` 设置为零。可以通过设置参数 `numberOfNodes` 来开启该能力。
 
