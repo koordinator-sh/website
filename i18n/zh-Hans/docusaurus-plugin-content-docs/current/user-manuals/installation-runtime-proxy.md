@@ -59,9 +59,14 @@ koord-runtime-proxy 将监听 `/var/run/koord-runtimeproxy/runtimeproxy.sock`。
 要使 koord-runtime-proxy 成为 Kubelet 和 Containerd 之间的代理，应修改 Kubelet 参数，如下所示：
 
 ```
+# 如果 kubelet 版本小于 1.24:
 kubelet <other options> \
    --container-runtime=remote \
    --container-runtime-endpoint=unix:///var/run/koord-runtimeproxy/runtimeproxy.sock
+
+# 如果 kubelet 版本大于等于 1.24:
+kubelet <other options> \
+   --container-runtime-endpoint=unix:///vagir/run/koord-runtimeproxy/runtimeproxy.sock
 ```
 
 在 Docker 的场景下, 应修改 Kubelet 参数如下：
