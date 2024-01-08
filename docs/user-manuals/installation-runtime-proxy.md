@@ -60,8 +60,13 @@ koord-runtime-proxy will listen on `/var/run/koord-runtimeproxy/runtimeproxy.soc
 To make koord-runtime-proxy a proxy between kubelet and containerd, kubelet parameters should be altered as shown below:
 
 ```
+# If the kubelet version is less than 1.24:
 kubelet <other options> \
    --container-runtime=remote \
+   --container-runtime-endpoint=unix:///var/run/koord-runtimeproxy/runtimeproxy.sock
+
+# If the kubelet version is greater than or equal to 1.24:
+kubelet <other options> \
    --container-runtime-endpoint=unix:///var/run/koord-runtimeproxy/runtimeproxy.sock
 ```
 
