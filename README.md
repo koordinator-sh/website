@@ -20,6 +20,9 @@ This is **IMPORTANT** to know:
 - If you are adding docs for features that have already supported in stable release (e.g., v1.0), please add:
   - EN docs into both `docs/` and `versioned_docs/version-v1.0`
   - ZH docs into both `i18n/zh-Hans/docusaurus-plugin-content-docs/current` and `i18n/zh-Hans/docusaurus-plugin-content-docs/version-v1.0`
+- If you are publishing blog, please add:
+  - EN docs into `blog/`
+  - ZH docs into `i18n/zh-Hans/docusaurus-plugin-content-blog/`
 
 You can debug the docs locally with the following command:
 
