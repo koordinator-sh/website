@@ -14,7 +14,9 @@
 - 如果你添加的是当前稳定版本包含的功能文档（例如 v1.0），请添加：
   - 英文文档到 `docs/` 和 `versioned_docs/version-v1.0` 两个地方
   - 中文文档到 `i18n/zh-Hans/docusaurus-plugin-content-docs/current` 和 `i18n/zh-Hans/docusaurus-plugin-content-docs/version-v1.0` 两个地方
-
+- 如果你要发布博客，请添加：
+   - 英文文档到 `blog/`
+   - 中文文档到 `i18n/zh-Hans/docusaurus-plugin-content-blog/`
 您可以使用以下命令在本地调试文档：
 
 ```
