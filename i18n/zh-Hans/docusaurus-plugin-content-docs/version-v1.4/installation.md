@@ -20,7 +20,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Install the latest version.
-$ helm install koordinator koordinator-sh/koordinator --version 1.3.0
+$ helm install koordinator koordinator-sh/koordinator --version 1.4.0
 ```
 
 ## 使用 Helm 升级
@@ -33,7 +33,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Upgrade the latest version.
-$ helm upgrade koordinator koordinator-sh/koordinator --version 1.3.0 [--force]
+$ helm upgrade koordinator koordinator-sh/koordinator --version 1.4.0 [--force]
 ```
 
 注意：
@@ -49,7 +49,7 @@ $ helm upgrade koordinator koordinator-sh/koordinator --version 1.3.0 [--force]
 $ helm install/upgrade koordinator /PATH/TO/CHART
 ```
 
-## 启用 NRI 资源管理模式
+## 可选：启用 NRI 资源管理模式
 
 ### 前置条件
 
@@ -59,70 +59,6 @@ $ helm install/upgrade koordinator /PATH/TO/CHART
 ### 配置方式
 
 NRI 资源管理模式是*默认启用*的。你无需修改 koordlet 配置就可以使用它，也可以通过设置 `enable-nri-runtime-hook=false` 的 koordlet 启动参数来禁用它。当它的前置条件不满足时，启用也不会影响其他功能。
-
-## 安装 koord-runtime-proxy
-
-koord-runtime-proxy 充当 Kubelet 和 Containerd 之间的代理（Dockershim 场景下的 Dockerd），旨在拦截 CRI 请求, 并应用一些资源管理策略，比如在混合工作负载编排场景下通过 Pod 优先级设置不同的 CGroup 参数，为最新的 Linux 内核应用新的隔离策略, CPU 架构等等。
-
-### 1、下载二进制文件
-
-从 Github 下载：
-```bash
-$ # select the version
-$ wget https://github.com/koordinator-sh/koordinator/releases/download/v1.3.0/koord-runtime-proxy_1.3.0.linux_x86_64 -O koord-runtime-proxy
-$ chmod +x koord-runtime-proxy
-```
-
-或者，你可以从源代码开始构建：
-```bash
-$ git clone https://github.com/koordinator-sh/koordinator.git
-$ cd koordinator
-$ make build-koord-runtime-proxy
-```
-
-### 2、设置 koord-runtime-proxy
-
-首先，请确保你的运行时后端是 Containerd 或 Dockerd。
-
-在 Containerd 场景下，如果 Containerd 在默认的 `/var/run/containerd/containerd.sock` 监听 CRI 请求，koord-runtime-proxy 可以这样设置(无需任何参数)：
-
-```
-koord-runtime-proxy
-```
-
-或者使用以下命令设置：
-
-```
-koord-runtime-proxy \
-   --remote-runtime-service-endpoint=<runtime socketFile path> \
-   --remote-image-service-endpoint=<image socketFile path>
-```
-
-在 Docker 的场景下，koord-runtime-proxy 应该使用附加参数设置 `--backend-runtime-mode Docker`，无需 `remote-image-service-endpoint`:
-
-```
-koord-runtime-proxy \
-   --backend-runtime-mode=Docker \
-   --remote-runtime-service-endpoint=<runtime socketFile path>
-```
-
-koord-runtime-proxy 将监听 `/var/run/koord-runtimeproxy/runtimeproxy.sock`。
-
-### 3、设置 Kubelet
-
-要使 koord-runtime-proxy 成为 Kubelet 和 Containerd 之间的代理，应修改 Kubelet 参数，如下所示：
-
-```
-kubelet <other options> \
-   --container-runtime=remote \
-   --container-runtime-endpoint=unix:///var/run/koord-runtimeproxy/runtimeproxy.sock
-```
-
-在 Docker 的场景下, 应修改 Kubelet 参数如下：
-
-```
-kubelet <other options> --docker-endpoint=unix:///var/run/koord-runtimeproxy/runtimeproxy.sock
-```
 
 
 ## 可选
@@ -144,7 +80,7 @@ kubelet <other options> --docker-endpoint=unix:///var/run/koord-runtimeproxy/run
 | `manager.log.level`                       | Log level that koord-manager printed                             | `4`                             |
 | `manager.replicas`                        | Replicas of koord-manager deployment                             | `2`                             |
 | `manager.image.repository`                | Repository for koord-manager image                               | `koordinatorsh/koord-manager`   |
-| `manager.image.tag`                       | Tag for koord-manager image                                      | `v1.3.0`                        |
+| `manager.image.tag`                       | Tag for koord-manager image                                      | `v1.4.0`                        |
 | `manager.resources.limits.cpu`            | CPU resource limit of koord-manager container                    | `1000m`                         |
 | `manager.resources.limits.memory`         | Memory resource limit of koord-manager container                 | `1Gi`                           |
 | `manager.resources.requests.cpu`          | CPU resource request of koord-manager container                  | `500m`                          |
@@ -159,7 +95,7 @@ kubelet <other options> --docker-endpoint=unix:///var/run/koord-runtimeproxy/run
 | `scheduler.log.level`                     | Log level that koord-scheduler printed                           | `4`                             |
 | `scheduler.replicas`                      | Replicas of koord-scheduler deployment                           | `2`                             |
 | `scheduler.image.repository`              | Repository for koord-scheduler image                             | `koordinatorsh/koord-scheduler` |
-| `scheduler.image.tag`                     | Tag for koord-scheduler image                                    | `v1.3.0`                        |
+| `scheduler.image.tag`                     | Tag for koord-scheduler image                                    | `v1.4.0`                        |
 | `scheduler.resources.limits.cpu`          | CPU resource limit of koord-scheduler container                  | `1000m`                         |
 | `scheduler.resources.limits.memory`       | Memory resource limit of koord-scheduler container               | `1Gi`                           |
 | `scheduler.resources.requests.cpu`        | CPU resource request of koord-scheduler container                | `500m`                          |
@@ -171,7 +107,7 @@ kubelet <other options> --docker-endpoint=unix:///var/run/koord-runtimeproxy/run
 | `scheduler.hostNetwork`                   | Whether koord-scheduler pod should run with hostnetwork          | `false`                         |
 | `koordlet.log.level`                      | Log level that koordlet printed                                  | `4`                             |
 | `koordlet.image.repository`               | Repository for koordlet image                                    | `koordinatorsh/koordlet`        |
-| `koordlet.image.tag`                      | Tag for koordlet image                                           | `v1.3.0`                        |
+| `koordlet.image.tag`                      | Tag for koordlet image                                           | `v1.4.0`                        |
 | `koordlet.resources.limits.cpu`           | CPU resource limit of koordlet container                         | `500m`                          |
 | `koordlet.resources.limits.memory`        | Memory resource limit of koordlet container                      | `256Mi`                         |
 | `koordlet.resources.requests.cpu`         | CPU resource request of koordlet container                       | `0`                             |
