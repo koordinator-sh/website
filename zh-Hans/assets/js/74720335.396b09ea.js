@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkkoordinator_sh=self.webpackChunkkoordinator_sh||[]).push([[6795],{3253:o=>{o.exports=JSON.parse('{"permalink":"/zh-Hans/blog/page/2","page":2,"postsPerPage":10,"totalPages":2,"totalCount":12,"previousPage":"/zh-Hans/blog","blogDescription":"Blog","blogTitle":"Blog"}')}}]);

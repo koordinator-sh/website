@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkkoordinator_sh=self.webpackChunkkoordinator_sh||[]).push([[5534],{5116:a=>{a.exports=JSON.parse('{"label":"colocation","permalink":"/zh-Hans/blog/tags/colocation","allTagsPath":"/zh-Hans/blog/tags","count":3}')}}]);
