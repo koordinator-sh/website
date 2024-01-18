@@ -322,6 +322,27 @@ data:
         }
       ]
     }
+  # The configuration for host application settings.
+  # - name: name of the host application.
+  # - qos: QoS class of the application.
+  # - cgroupPath: cgroup path of the application, the directory equals to `${base}/${parentDir}/${relativePath}`.
+  # - cgroupPath.base: cgroup base dir of the application, the format is various across cgroup drivers.
+  # - cgroupPath.parentDir: cgroup parent path under base dir. By default it is "host-latency-sensitive/" for LS and "host-latency-sensitive/" for BE.
+  # - cgroupPath.relativePath: cgroup relative path under parent dir.
+  host-application-config: |
+    {
+      "applications": [
+        {
+          "name": "nginx",
+          "qos": "LS",
+          "cgroupPath": {
+            "base": "CgroupRoot",
+            "parentDir": "host-latency-sensitive/",
+            "relativePath": "nginx/"
+          }
+        }
+      ]
+    }
 ```
 
 对于更多信息，请查看相关特性的用户手册和设计文档。

@@ -52,7 +52,7 @@
             "user-manuals/host-application-qos",
             "user-manuals/performance-collector"
           ],
-          "Utils" : [
+          "Utils": [
             "user-manuals/resource-reservation",
             "user-manuals/pod-migration-job"
           ]
@@ -76,7 +76,8 @@
         "designs/descheduler-framework",
         "designs/fine-grained-device-scheduling",
         "designs/gang-scheduling",
-        "designs/multi-hierarchy-elastic-quota-management"
+        "designs/multi-hierarchy-elastic-quota-management",
+        "designs/koordinator-yarn"
       ]
     },
     {
@@ -86,7 +87,8 @@
       "items": [
         "best-practices/colocation-of-spark-jobs",
         "best-practices/anolis_plugsched",
-        "best-practices/fine-grained-cpu-orchestration"
+        "best-practices/fine-grained-cpu-orchestration",
+        "best-practices/colocation-of-hadoop-yarn"
       ]
     }
   ]

@@ -619,3 +619,18 @@ rules:
 - apiGroups:
   ...
 ```
+To prevent Pods from being revoked, you can add label `quota.scheduling.koordinator.sh/preemptible: false` to the Pod:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-example
+  namespace: default
+  labels:
+    quota.scheduling.koordinator.sh/name: "quota-example"
+    quota.scheduling.koordinator.sh/preemptible: false
+spec:
+...
+```
+In this case, the Pod is not allowed to use resources exceeding the `Min`.
+Since the "Min" resources are the guaranteed resources, the Pod will not be evicted.
