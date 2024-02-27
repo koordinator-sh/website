@@ -20,7 +20,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Install the latest version.
-$ helm install koordinator koordinator-sh/koordinator --version 1.4.0
+$ helm install koordinator koordinator-sh/koordinator --version 1.4.1
 ```
 
 ## Upgrade with helm
@@ -33,7 +33,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Upgrade the latest version.
-$ helm upgrade koordinator koordinator-sh/koordinator --version 1.4.0 [--force]
+$ helm upgrade koordinator koordinator-sh/koordinator --version 1.4.1 [--force]
 ```
 
 Note that:
