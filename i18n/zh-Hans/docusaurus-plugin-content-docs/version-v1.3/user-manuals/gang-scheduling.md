@@ -355,7 +355,7 @@ data:
         - name: Coscheduling
         args:
             apiVersion: kubescheduler.config.k8s.io/v1beta2
-            kind: CoschedulingArgs`
+            kind: CoschedulingArgs
             defaultTimeout: 600s
  	        controllerWorkers: 1
         - name: ElasticQuota
