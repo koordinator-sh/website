@@ -139,9 +139,8 @@ Firstly, please make sure your runtime backend is containerd or dockerd.
 Under containerd scenario, koord-runtime-proxy can be setup with command:
 ```
 koord-runtime-proxy --remote-runtime-service-endpoint=<runtime sockfile path>
-    --remote-image-service-endpoint=<image sockfile path>
 ```
-If containerd listening CRI request on default /var/run/koord-runtimeproxy/runtimeproxy.sock, koord-runtime-proxy can be setup by:
+If containerd listening CRI request on default /var/run/containerd/containerd.sock, koord-runtime-proxy can be setup by:
 ```
 koord-runtime-proxy
 ```
