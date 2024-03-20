@@ -28,6 +28,8 @@ Please make sure Koordinator components are correctly installed in your cluster.
 
 Capacity-Scheduling is *Enabled* by default. You can use it without any modification on the koord-descheduler config.
 
+If you want to use multi quota trees, you need to set feature-gate `MultiQuotaTree` to true in koord-manager and koord-scheduler.
+
 ## Use Capacity-Scheduling
 
 ### Quick Start by Label
@@ -643,3 +645,320 @@ spec:
 ```
 In this case, the Pod is not allowed to use resources exceeding the `Min`.
 Since the "Min" resources are the guaranteed resources, the Pod will not be evicted.
+
+### multi quota tree
+
+If you want to use multi quota trees, you need to set feature-gate `MultiQuotaTree` to true in koord-manager and koord-scheduler.
+
+
+1. create quota profile `cn-hangzhou-k-nodepool` and `cn-hangzhou-g-nodepool` with the YAML file below.
+
+```yaml
+apiVersion: quota.koordinator.sh/v1alpha1
+kind: ElasticQuotaProfile
+metadata:
+  labels:
+    topology.kubernetes.io/region: cn-hangzhou
+    topology.kubernetes.io/zone: cn-hangzhou-k
+  name: cn-hangzhou-k-nodepool
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      topology.kubernetes.io/region: cn-hangzhou
+      topology.kubernetes.io/zone: cn-hangzhou-k
+  quotaLabels:
+    quota.scheduling.koordinator.sh/is-parent: "true"
+    topology.kubernetes.io/region: cn-hangzhou
+    topology.kubernetes.io/zone: cn-hangzhou-k
+  quotaName: cn-hangzhou-k-root-quota
+---
+apiVersion: quota.koordinator.sh/v1alpha1
+kind: ElasticQuotaProfile
+metadata:
+  labels:
+    topology.kubernetes.io/region: cn-hangzhou
+    topology.kubernetes.io/zone: cn-hangzhou-g
+  name: cn-hangzhou-g-nodepool
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      topology.kubernetes.io/region: cn-hangzhou
+      topology.kubernetes.io/zone: cn-hangzhou-g
+  quotaLabels:
+    quota.scheduling.koordinator.sh/is-parent: "true"
+    topology.kubernetes.io/region: cn-hangzhou
+    topology.kubernetes.io/zone: cn-hangzhou-g
+  quotaName: cn-hangzhou-g-root-quota
+```
+
+```bash
+$ kubectl apply -f quota-profile.yaml
+  elasticquotaprofile.quota.koordinator.sh/cn-hangzhou-k-nodepool created
+  elasticquotaprofile.quota.koordinator.sh/cn-hangzhou-g-nodepool created
+```
+
+We has three nodes. two nodes is in cn-hangzhou-k, one node is in cn-hangzhou-g. Every node has 4 cpus(3.9 is allocatable) and 15.3Gi(12.52Gi is allocatable) memory.
+
+The quota profile `cn-hangzhou-k-nodepool` select the nodes in cn-hangzhou-k.
+The quota profile `cn-hangzhou-g-nodepool` select the nodes in cn-hangzhou-g.
+
+```bash
+$ kubectl --kubeconfig kubeconfig get nodes -L topology.kubernetes.io/zone
+NAME                          STATUS   ROLES    AGE    VERSION            ZONE
+cn-hangzhou.192.168.112.189   Ready    <none>   83m    v1.28.3-aliyun.1   cn-hangzhou-g
+cn-hangzhou.192.168.14.209    Ready    <none>   102m   v1.28.3-aliyun.1   cn-hangzhou-k
+cn-hangzhou.192.168.14.210    Ready    <none>   102m   v1.28.3-aliyun.1   cn-hangzhou-k
+```
+
+2. the profile controller will generate the root quota `cn-hangzhou-k-root-quota` and `cn-hangzhou-g-root-quota`
+
+```bash
+$  kubectl -nkube-system get eq  cn-hangzhou-k-root-quota cn-hangzhou-g-root-quota
+NAME                              AGE
+cn-hangzhou-k-root-quota   24m
+cn-hangzhou-g-root-quota   24m
+```
+
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
+metadata:
+  annotations:
+    quota.scheduling.koordinator.sh/shared-weight: '{"cpu":"4611686018427387","memory":"4611686018427387"}'
+    quota.scheduling.koordinator.sh/total-resource: '{"cpu":"7800m","ephemeral-storage":"227102691772","hugepages-1Gi":"0","hugepages-2Mi":"0","kubernetes.io/batch-cpu":"4458","kubernetes.io/batch-memory":"13451995003","kubernetes.io/mid-cpu":"0","kubernetes.io/mid-memory":"0","memory":"26264816Ki","pods":"46"}'
+  creationTimestamp: "2024-03-19T11:11:24Z"
+  generation: 1
+  labels:
+    quota.scheduling.koordinator.sh/is-parent: "true"
+    quota.scheduling.koordinator.sh/is-root: "true"
+    quota.scheduling.koordinator.sh/parent: koordinator-root-quota
+    quota.scheduling.koordinator.sh/profile: cn-hangzhou-k-nodepool
+    quota.scheduling.koordinator.sh/tree-id: "18340441938858026940"
+    topology.kubernetes.io/region: cn-hangzhou
+    topology.kubernetes.io/zone: cn-hangzhou-k
+  name: cn-hangzhou-k-root-quota
+  namespace: kube-system
+  resourceVersion: "26949"
+  uid: cf9c35e7-5f44-42a5-ba9d-1a365903b7a8
+spec:
+  max:
+    cpu: "4611686018427387"
+    memory: "4611686018427387"
+  min:
+    cpu: 7800m
+    memory: 26264816Ki
+status: {}
+---
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
+metadata:
+  annotations:
+    quota.scheduling.koordinator.sh/shared-weight: '{"cpu":"4611686018427387","memory":"4611686018427387"}'
+    quota.scheduling.koordinator.sh/total-resource: '{"cpu":"3900m","ephemeral-storage":"113781462033","hugepages-1Gi":"0","hugepages-2Mi":"0","kubernetes.io/batch-cpu":"2276","kubernetes.io/batch-memory":"7120693060","kubernetes.io/mid-cpu":"0","kubernetes.io/mid-memory":"0","memory":"12903364Ki","pods":"23"}'
+  creationTimestamp: "2024-03-19T11:11:30Z"
+  generation: 1
+  labels:
+    quota.scheduling.koordinator.sh/is-parent: "true"
+    quota.scheduling.koordinator.sh/is-root: "true"
+    quota.scheduling.koordinator.sh/parent: koordinator-root-quota
+    quota.scheduling.koordinator.sh/profile: cn-hangzhou-g-nodepool
+    quota.scheduling.koordinator.sh/tree-id: "8589367430557242040"
+    topology.kubernetes.io/region: cn-hangzhou
+    topology.kubernetes.io/zone: cn-hangzhou-g
+  name: cn-hangzhou-g-root-quota
+  namespace: kube-system
+  resourceVersion: "40568"
+  uid: 8d886c21-c3c7-40b2-a944-b2f6117586b3
+spec:
+  max:
+    cpu: "4611686018427387"
+    memory: "4611686018427387"
+  min:
+    cpu: 3900m
+    memory: 12903364Ki
+status: {}
+```
+
+- `quota.scheduling.koordinator.sh/total-resource` is updated by the controller. It'll sum the node resources. And the quota min is equal the total resources.
+- `quota.scheduling.koordinator.sh/is-root` means the root quota of the quota tree.
+- `quota.scheduling.koordinator.sh/tree-id` means the tree id.
+
+3. create child quota `test-child` with the YAML file below. the parent is `cn-hangzhou-k-root-quota`
+
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
+metadata:
+  annotations:
+  labels:
+    quota.scheduling.koordinator.sh/parent: cn-hangzhou-k-root-quota
+  name: test-child
+  namespace: kube-system
+spec:
+  max:
+    cpu: 3
+    memory: 6Gi
+  min:
+    cpu: 3
+    memory: 6Gi
+```
+
+```bash
+$ kubectl apply -f test-child.yaml
+elasticquota.scheduling.sigs.k8s.io/test-child created
+```
+
+4. Create a pod `pod-example` with the YAML file below.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-example
+  namespace: kube-system
+  labels:
+    quota.scheduling.koordinator.sh/name: "test-child"
+spec:
+  schedulerName: koord-scheduler
+  containers:
+  - command:
+    - sleep
+    - 365d
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    name: curlimage
+    resources:
+      limits:
+        cpu: 1
+        memory: 2Gi
+      requests:
+        cpu: 1
+        memory: 2Gi
+```
+
+5. check the pod the quota info
+
+The node is scheduled to the node cn-hangzhou.192.168.14.209. Indeed the quota profile nodeSelector is injected the the pod node affinity.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    k8s.aliyun.com/pod-ips: 192.168.15.4
+  creationTimestamp: "2024-03-19T11:17:36Z"
+  labels:
+    quota.scheduling.koordinator.sh/name: test-child
+  name: pod-example
+  namespace: kube-system
+  resourceVersion: "28417"
+  uid: 021364da-820b-490c-843e-a6b2d51ed023
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: topology.kubernetes.io/region
+            operator: In
+            values:
+            - cn-hangzhou
+          - key: topology.kubernetes.io/zone
+            operator: In
+            values:
+            - cn-hangzhou-k
+  containers:
+  - command:
+    - sleep
+    - 365d
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    name: curlimage
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-mf6vc
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: cn-hangzhou.192.168.14.209
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: koord-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: kube-api-access-mf6vc
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+```
+
+the quota `test-child` used 1 cpu and 2Gi memory
+
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
+metadata:
+  annotations:
+    quota.scheduling.koordinator.sh/child-request: '{"cpu":"1","memory":"2Gi"}'
+    quota.scheduling.koordinator.sh/request: '{"cpu":"1","memory":"2Gi"}'
+    quota.scheduling.koordinator.sh/runtime: '{"cpu":"1","memory":"2Gi"}'
+    quota.scheduling.koordinator.sh/shared-weight: '{"cpu":"3","memory":"6Gi"}'
+  creationTimestamp: "2024-03-19T11:16:11Z"
+  generation: 2
+  labels:
+    quota.scheduling.koordinator.sh/parent: cn-hangzhou-k-root-quota
+    quota.scheduling.koordinator.sh/tree-id: "18340441938858026940"
+  name: test-child
+  namespace: kube-system
+  resourceVersion: "28358"
+  uid: e929c26c-d8ff-420a-a300-f1e801370f81
+spec:
+  max:
+    cpu: "3"
+    memory: 6Gi
+  min:
+    cpu: "3"
+    memory: 6Gi
+status:
+  used:
+    cpu: "1"
+    memory: 2Gi
+```
