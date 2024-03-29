@@ -2,7 +2,7 @@
 sidebar_position: 4
 ---
 
-# 使用Koordiantor将Hadoop YARN与K8s混部
+# 使用 Koordinator 将 Hadoop YARN与K8s混部
 
 ## 背景介绍
 Koordinator已经支持了K8s生态内的在离线混部，通过Batch超卖资源以及BE QoS，离线任务可以使用到集群内的空闲资源，提升资源使用效率。然而，
