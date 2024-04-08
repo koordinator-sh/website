@@ -63,7 +63,7 @@
 1. 仅支持 Pod 维度的 CPU 分配机制。
 1. Koordinator 将机器上的 CPU 分为 `CPU Shared Pool`，`statically exclusive CPUs` 和 `BE CPU Shared Pool`。
     1. `CPU Shared Pool` 是一组共享 CPU 池，K8s Burstable 和 Koordinator LS Pod 中的任何容器都可以在其上运行。K8s Guaranteed `fractional CPU requests` 的 Pod 也可以运行在 `CPU Shared Pool` 中。`CPU Shared Pool` 包含节点中所有未分配的 CPU，但不包括由 K8s Guaranteed、LSE 和 LSR Pod 分配的 CPU。如果 kubelet 保留 CPU，则 `CPU Shared Pool` 包括保留的 CPU。
-    1. `statically exclusive CPUs` 是指分配给 K8s Guaranteed、Koordinator LSE/LSR Pods 使用的一组独占 CPU。当 K8s Guaranteed、LSE 和 LSR Pods 谁申请 CPU 时，koord-scheduler 将从 `CPU Shared Pool` 中分配。
+    1. `statically exclusive CPUs` 是指已经分配给 K8s Guaranteed、Koordinator LSE/LSR Pods 使用的一组独占 CPU。当新的 K8s Guaranteed、LSE 和 LSR Pods 申请 CPU 时，koord-scheduler 将从 `CPU Shared Pool` 中分配。
     1. `BE CPU Shared pool` 是一组 `K8s BestEffort` 和 `Koordinator BE` 的 Pod 都可运行的 CPU 池。`BE CPU Shared pool` 包含节点中除 K8s Guaranteed 和 Koordinator LSE Pod 分配的之外的所有 CPU。
     
 ### Koordinator QoS CPU 编排原则

@@ -320,7 +320,7 @@ spec:
 We introduce a new label on the pod to associate pod with quota group:
 ```yaml
 labels:
-  quota.scheduling.koordinator.sh/quota-name: "test1"
+  quota.scheduling.koordinator.sh/name: "test1"
 ```
 
 if pod's don't have the label, we will follow [Elastic Quota](https://github.com/kubernetes-sigs/scheduler-plugins/blob/master/kep/9-capacity-scheduling/README.md#goals)
