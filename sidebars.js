@@ -103,6 +103,7 @@ const sidebars = {
         'best-practices/anolis_plugsched',
         'best-practices/fine-grained-cpu-orchestration',
         'best-practices/colocation-of-hadoop-yarn',
+        'best-practices/network-qos-with-terwayqos',
       ],
     },
   ],
