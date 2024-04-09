@@ -41,7 +41,7 @@ $ cat /sys/fs/cgroup/cpuset/cpuset.cpus > /sys/fs/cgroup/cpuset/host-latency-sen
 $ cat /sys/fs/cgroup/cpuset/cpuset.mems > /sys/fs/cgroup/cpuset/host-latency-sensitive/cpuset.mems
 $ cat /sys/fs/cgroup/cpuset/cpuset.mems > /sys/fs/cgroup/cpuset/host-latency-sensitive/nginx/cpuset.mems
 
-# bind application to corresponding cgroups 
+# bind application to corresponding cgroups
 $ echo ${your-application-pids} > /sys/fs/cgroup/cpuset/host-latency-sensitive/nginx/tasks
 $ echo ${your-application-pids} > /sys/fs/cgroup/cpu/host-latency-sensitive/nginx/tasks
 ```
@@ -94,7 +94,7 @@ metadata:
    | `qos` | String     | LS/BE      | 宿主机带外应用的QoS等级。 |
    | `cgroupPath` | CgroupPath     | N/A      | 宿主机带外应用对应的cgroup分组，实际目录为`${base}/${parentDir}/${relativePath}`组成。 |
    | `cgroupPath.base` | String     | CgroupRoot/Kubepods/KubepodsBurstable/KubepodsBesteffort | cgroup分组的根目录，枚举类型，实际目录与cgroup驱动有关。 |
-   | `cgroupPath.parentDir` | String     | N/A      | cgroup分组的父目录，LS对应的默认值为"host-latency-sensitive/"，BE对应的默认值为"host-latency-sensitive/"。 |
+   | `cgroupPath.parentDir` | String     | N/A      | cgroup分组的父目录，LS对应的默认值为"host-latency-sensitive/"，BE对应的默认值为"host-best-effort/"。 |
    | `cgroupPath.relativePath` | String     | N/A      | cgroup分组的子目录。 |
 
 3. 查看安装的命名空间下是否存在ConfigMap，以命名空间`koordinator-system`和ConfigMap名字`slo-controller-config`为例，具体以实际安装配置为准。
@@ -110,7 +110,7 @@ metadata:
      ```bash
      kubectl apply -f configmap.yaml
      ```
-     
+
 4. 检查带外应用nginx对应的cgroup配置，其中CPU QoS策略的cgroup配置文件`cpu.bvt_warp_ns`应与QoS等级LS的配置一致，cpuset核心应与节点的share pool一致，
 示例如下：
 ```shell script
