@@ -85,6 +85,24 @@ As the application scaling or rolling deployment, the best-fit allocatable space
 1. If kubelet set the CPU manager policy options `full-pcpus-only=true` / `distribute-cpus-across-numa=true`, and there is no new CPU bind policy defined by Koordinator in the node, follow the semantics of these parameters defined by the kubelet.
 1. If kubelet set the Topology manager policy, and there is no new NUMA Topology Alignment policy defined by Koordinator in the node, follow the semantics of these parameters defined by the kubelet. 
 
+### Take over kubelet CPU management stages
+
+The node formerly managed by the kubelet static CPU manager can be taken over by Koordinator with the following steps:
+1. When the users want to keep the kubelet static cpu manager in use until the node is offline or removed, they
+   can set the koordlet's argument `disable-query-kubelet-config=true` and feature-gate`CPUSetAllocator=false`. 
+   It will disable the reporting of the kubelet cpu manager state and the cpuset cgroups managment of the koordlet, so
+   to make the koord-scheduler ignore the cpuset cpus managed by the kubelet. With these configurations, the scheduler
+   can allocate the cpuset cpus including the cpus managed by the kubelet static cpu manager. And the container cgroups'
+   cpuset are still managed by the kubelet. When the node is offline or ready to go to the stage 2, the users can reset
+   the `disable-query-kubelet-config=false` and enable the feature-gate `CPUSetAllocator=false`.
+2. By default, the koordlet should take over the cpuset cpus for the new pods. The remain cpuset pods managed by the
+   kubelet static cpu manager are reported according to the `/configz` and `cpu_manager_state`, so the related cpuset
+   cpus are excluded from the cpu allocation of the scheduler. For the newly-scheduled cpuset pods, the koordlet
+   follows their cpuset allocation results on the annotations that are exclusive to the remaining cpuset cpus managed
+   by the kubelet static cpu manager. The users should no longer use the kubelet static cpu manager anymore and should
+   set the policy to "none". After the last pod of the static cpu manager policy is terminated, the cpuset cpus will
+   be fully managed by the koordlet.
+
 ### Take over kubelet CPU management policies
 
 Because the CPU reserved by kubelet mainly serves K8s BestEffort and Burstable Pods. But Koordinator will not follow the policy. The K8s Burstable Pods should use the CPU Shared Pool, and the K8s BestEffort Pods should use the `BE CPU Shared Pool`.

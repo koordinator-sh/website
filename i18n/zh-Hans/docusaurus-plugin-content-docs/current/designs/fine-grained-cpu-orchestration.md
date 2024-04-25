@@ -84,6 +84,19 @@
 1. 如果 kubelet 设置 CPU 管理器策略选项 `full-pcpus-only=true/distribute-cpus-across-numa=true`，并且节点中没有 Koordinator 定义的新 CPU 绑定策略，则遵循 kubelet 定义的这些参数的定义。
 1. 如果 kubelet 设置了拓扑管理器策略，并且节点中没有 Koordinator 定义的新的 NUMA Topology Alignment 策略，则遵循 kubelet 定义的这些参数的定义。
 
+### 接管 kubelet CPU 管理的阶段
+
+先前由 kubelet 静态 CPU 管理器管理的节点可以由 Koordinator 接管，以下步骤是：
+1. 当用户希望保持 kubelet 静态 CPU 管理器在节点离线或删除之前使用，他们可以设置 koordlet 的参数 `disable-query-kubelet-config=true`
+   和 feature-gate `CPUSetAllocator=false`。它将禁用报告 kubelet cpu 管理器状态和 koordlet 的 cpuset cgroups 管理，从而让 
+   koord-scheduler 忽略 kubelet 管理的绑核 cpus。通过这些配置，调度程序可以分配包含 kubelet 静态 CPU 管理器管理的 CPU 的绑核
+   cpus。并且容器 cgroups 绑核仍然由 kubelet 控制。当节点离线或准备进入第 2 阶段时，用户可以重置
+   `disable-query-kubelet-config=false` 和启用 feature-gate `CPUSetAllocator=false`。
+2. 默认情况下，koordlet 应该接管新 pod 的绑核 cpus。已由 kubelet 静态 CPU 管理器控制的存量绑核 pods 信息将根据 `/configz` 和
+   `cpu_manager_state` 上报，以便于调度器在 CPU 分配时排除这些 cpus。对于新调度的绑核 pods，koordlet 将遵循这些 pods 在
+   annotations 上的绑核结果，它们排除了由 kubelet 静态 CPU 管理器控制的绑核 cpus。用户应该不再使用 kubelet 静态 CPU 管理器，
+   并设置策略为 "none"。当最后一个 kubelet 静态 CPU 管理器管理的 pods 终止时，koordlet 将完全接管这些 cpus。
+
 ### 接管 kubelet CPU 管理策略
 
 kubelet 预留的 CPU 主要服务于 K8s BestEffort 和 Burstable Pods。但 Koordinator 不会遵守该策略。K8s Burstable Pods 应该使用 `CPU Shared Pool`，而 K8s BestEffort Pods 应该使用 `BE CPU Shared Pool`。Koordinator LSE 和 LSR Pod 不会从被 kubelet 预留的 CPU 中分配。
