@@ -304,6 +304,7 @@ metadata:
     quota.scheduling.koordinator.sh/is-parent: false
     quota.scheduling.koordinator.sh/parent: "parent"
     quota.scheduling.koordinator.sh/allow-lent-resource: true
+  annotations:
     quota.scheduling.koordinator.sh/shared-weight: '{"cpu":"40","memory":"40Gi"}'
 spec:
   max:
