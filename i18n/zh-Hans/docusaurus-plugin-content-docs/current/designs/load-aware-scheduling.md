@@ -45,7 +45,7 @@ Koordinator 定义 NodeMetric CRD 来描述节点的资源使用情况，并由 
 
 默认过滤异常节点，但是用户可以根据需要通过配置来决定是否开启。
 
-- 过滤 Koordlet 无法更新 NodeMetric 的节点。如果配置启用，插件将排除 nodeMetrics.status.updateTime >= LoadAwareSchedulingArgs.nodeMetricExpirationSeconds 的节点。
+- 过滤 Koordlet 无法更新 NodeMetric 的节点。如果配置启用，插件将排除 time.Since(nodeMetrics.status.updateTime.Time) >= LoadAwareSchedulingArgs.nodeMetricExpirationSeconds 的节点。
 
 - 按利用率阈值过滤节点。如果配置启用，插件将排除 latestUsageUtilization >= 利用率阈值的节点。 在过滤阶段，仅从最新的 NodeMetric 中获取资源利用率，已分配但尚未统计的 Pod 的资源利用率不参与计算，以便为新创建的 Pod 分配资源，避免因估算不合理而导致调度失败。
 
