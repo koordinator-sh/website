@@ -172,8 +172,20 @@ const config = {
           },
         ],
         copyright: `
+        <div style="font-size: 18px">
         <br />
-        <strong>Copyright © ${new Date().getFullYear()} The Koordinator Authors. All rights reserved.</strong>`,
+        <strong>Koordinator is a <a href="https://www.cncf.io/">Cloud Native Computing Foundation</a> sandbox project.</strong>
+        <br />
+        </div>
+        <br />
+        <img src="img/cncf-color.svg" alt="CNCF" width="auto" height="100px"/>
+        <br />
+        <div style="font-size: 14px">
+        The Linux Foundation® (TLF) has registered trademarks and uses trademarks. For a list of TLF trademarks, see <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage</a>.
+        <br />
+        Copyright © ${new Date().getFullYear()} The Koordinator Authors. All rights reserved.
+        </div>
+        `
       },
       prism: {
         theme: lightCodeTheme,
