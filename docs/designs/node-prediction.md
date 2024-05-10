@@ -231,7 +231,7 @@ Prod-tier resource is still more stable and guaranteed than the Mid-tier.
 Then the resource calculation for the mixed Mid-tier resources can be described as follows:
 
 ```
-Allocatable[Mid]' := min(Reclaimable[Mid], NodeAllocatable * thresholdRatio) + Unallocated[Mid]
+Allocatable[Mid] := min(Reclaimable[Mid], NodeAllocatable * thresholdRatio) + Unallocated[Mid]
 Unallocated[Mid] = max(NodeAllocatable - Allocated[Prod], 0)
 ```
 
