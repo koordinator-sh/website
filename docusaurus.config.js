@@ -174,7 +174,7 @@ const config = {
         copyright: `
         <div style="font-size: 18px">
         <br />
-        <strong>Koordinator is a <a href="https://www.cncf.io/">Cloud Native Computing Foundation</a> sandbox project.</strong>
+        <strong>Koordinator is a <a href="https://www.cncf.io/">Cloud Native Computing Foundation</a> sandbox project</strong>
         <br />
         </div>
         <br />
