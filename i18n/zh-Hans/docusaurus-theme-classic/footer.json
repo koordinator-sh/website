@@ -40,7 +40,7 @@
     "description": "The label of footer link with label=Blog linking to blog"
   },
   "copyright": {
-    "message": "\n        <br />\n        <strong>Copyright © 2022 The Koordinator Authors. All rights reserved.</strong>",
+    "message": "\n        <div style=\"font-size: 18px\">\n        <br />\n        <strong>Koordinator是 <a href=\"https://www.cncf.io/\">Cloud Native Computing Foundation</a> 沙箱项目 </strong>\n        <br />\n        </div>\n        <br />\n        <img src=\"img/cncf-color.svg\" alt=\"CNCF\" width=\"auto\" height=\"100px\"/>\n        <br />\n        <div style=\"font-size: 14px\">\n        Linux基金会® (TLF) 已注册并使用商标。如需了解Linux基金会的商标列表，请访问<a href=\"https://www.linuxfoundation.org/trademark-usage/\">商标使用</a>页面。\n        <br />\n        Copyright © 2024 Koordinator项目作者。保留所有权利。\n        </div>\n        ",
     "description": "The footer copyright"
   }
 }
