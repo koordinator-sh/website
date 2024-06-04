@@ -11,7 +11,6 @@ Welcome to Koordinator!
 
 Koordinator is a QoS-based scheduling for efficient orchestration of microservices, AI, and big data workloads on Kubernetes. It aims to improve the runtime efficiency and reliability of both latency sensitive workloads and batch jobs, simplify the complexity of resource-related configuration tuning, and increase pod deployment density to improve resource utilizations.
 
-
 ## Key Features
 
 Koordinator enhances the kubernetes user experiences in the workload management by providing the following:
@@ -21,7 +20,6 @@ Koordinator enhances the kubernetes user experiences in the workload management 
 - Fine-grained resource orchestration and isolation mechanism to improve the efficiency of latency-sensitive workloads and batch jobs.
 - Flexible job scheduling mechanism to support workloads in specific areas, e.g., big data, AI, audio and video.
 - A set of tools for monitoring, troubleshooting and operations.
-
 
 ## Koordinator vs. Other Concept
 
@@ -44,5 +42,3 @@ Here are some recommended next steps:
 
 - Start to [install Koordinator](./installation).
 - Learn Koordinator's [Overview](architecture/overview).
-
-
