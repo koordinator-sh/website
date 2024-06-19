@@ -57,7 +57,7 @@ $ helm install/upgrade koordinator /PATH/TO/CHART
 ### Prerequisite
 
 - Containerd >= 1.7.0 and enable NRI.  Please make sure NRI is enabled in containerd. If not, please refer to [Enable NRI in Containerd](https://github.com/containerd/containerd/blob/main/docs/NRI.md)
-- Koordinator >= 1.4
+- Koordinator >= 1.3
 
 ### Configurations
 
