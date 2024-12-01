@@ -10,10 +10,10 @@ Koordinator adds co-location capabilities on top of the original kubernetes, and
 The Koordinator Scheduler is deployed as a ```Deployment```, which is used to enhance the resource scheduling capabilities of kubernetes in QoS-aware, differentiated SLO management, and job scheduling. Specifically including:
 
 - QoS-aware scheduling, including load-aware scheduling to make node load more balanced, resource overcommitment to run more computing workloads with low priority. 
-- Differentiated SLO management, including fine-grained CPU orchestration, different QoS policy(cfs/LLC/memory bw/net bw/blkio) for diffenent workloads. 
+- Differentiated SLO management, including fine-grained CPU orchestration, different QoS policy(cfs/LLC/memory bw/net bw/blkio) for different workloads. 
 - Job scheduling, including elastic quota scheduling, gang scheduling, heterogeneous resource scheduling, to support big-data and AI workloads.
 
-In order to better support diffenent workloads, the scheduler also provides a series of general capability enhancements:
+In order to better support different workloads, the scheduler also provides a series of general capability enhancements:
 - Reservation, an ability for reserving node resources for specific pods or workloads, which is widely used in descheduling, resource preemption and fragmentation optimization.
 - Node reservation, an ability for reserving node resources for workloads out of kubernetes, which is typically used for non-containerized workloads.
 
