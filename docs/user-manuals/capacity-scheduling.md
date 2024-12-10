@@ -34,7 +34,7 @@ If you want to use multi quota trees, you need to set feature-gate `MultiQuotaTr
 
 ### Quick Start by Label
 
-1.Create a Deployment `quota-example` with the YAML file below.
+1.Create an ElasticQuota `quota-example` with the YAML file below.
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -63,7 +63,7 @@ $ kubectl get eqs -n default
   test-d   2s
 ```
 
-2.Create a pod `pod-example` with the YAML file below.
+2.Create a Pod `pod-example` with the YAML file below.
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -134,13 +134,13 @@ status:
 ```
 
 ### Quick Start by Namespace
-1.Create namespace
+1.Create a Namespace
 ```bash
 $ kubectl create ns quota-example
   namespace/quota-example created
 ```
 
-2.Create a Deployment `quota-example` with the YAML file below.
+2.Create a ElasticQuota `quota-example` with the YAML file below.
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -169,7 +169,7 @@ $ kubectl get eqs -n quota-example
   test-d   2s
 ```
 
-2.Create a pod `pod-example` with the YAML file below.
+2.Create a Pod `pod-example` with the YAML file below.
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -237,7 +237,7 @@ status:
     memory: 40Mi
 ```
 
-### Quota Debug Api.
+### Quota Debug API
 ```bash
 $ kubectl -n koordinator-system get lease koord-scheduler --no-headers | awk '{print $2}' | cut -d'_' -f1 | xargs -I {} kubectl -n koordinator-system get pod {} -o wide --no-headers | awk '{print $6}'
   10.244.0.64
