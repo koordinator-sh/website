@@ -111,6 +111,7 @@ const sidebars = {
         'best-practices/colocation-of-hadoop-yarn',
         'best-practices/network-qos-with-terwayqos',
         'best-practices/develop-custom-deschedule-plugins',
+        'best-practices/gpu-and-rdma-joint-allocation',
       ],
     },
   ],
