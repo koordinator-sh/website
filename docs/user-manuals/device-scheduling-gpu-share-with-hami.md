@@ -24,7 +24,6 @@ The scheduled GPU devices are bound to the container requires support from the r
 | Runtime Environment                           | Installation                                                 |
 | --------------------------------------------- | ------------------------------------------------------------ |
 | Containerd >= 1.7.0 <br /> Koordinator >= 1.6 | Please make sure NRI is enabled in containerd. If not, please refer to [Enable NRI in Containerd](https://github.com/containerd/containerd/blob/main/docs/NRI.md) |
-| others                                        | Please make sure koord-runtime-proxy component is correctly installed in you cluser. If not, please refer to [Installation Runtime Proxy](installation-runtime-proxy). |
 
 #### HAMi-Core Installation
 
@@ -59,7 +58,7 @@ spec:
         - /bin/sh
         - -c
         - |
-          cp -f /lib64/libvgpu.so /data/bin && sleep 3600000
+          cp -f /k8s-vgpu/lib/nvidia/libvgpu.so /usl/local/vgpu && sleep 3600000
         image: docker.m.daocloud.io/projecthami/hami:v2.4.0
         imagePullPolicy: Always
         name: name
@@ -71,22 +70,18 @@ spec:
             cpu: "0"
             memory: "0"
         volumeMounts:
-        - mountPath: /data/bin
-          name: data-bin
-      hostNetwork: true
-      hostPID: true
-      runtimeClassName: nvidia
-      schedulerName: kube-scheduler
+        - mountPath: /usl/local/vgpu
+          name: vgpu-hook
       tolerations:
       - operator: Exists
       volumes:
       - hostPath:
-          path: /data/bin
+          path: /usl/local/vgpu
           type: DirectoryOrCreate
-        name: data-bin
+        name: vgpu-hook
 ```
 
-The above DaemonSet will distribute 'libvgpu.so' to the /data/bin directory of all nodes with node-type=gpu labelled.
+The above DaemonSet will distribute 'libvgpu.so' to the /usr/local/vgpu directory of all nodes with node-type=gpu labelled.
 
 ### Configurations
 
@@ -94,7 +89,7 @@ DeviceScheduling is *Enabled* by default. You can use it without any modificatio
 
 ## Use GPU Share With HAMi
 
-1. Create a Pod to apply for a GPU card with 50% computing power and 50% video memory, and specify the need for hami-core isolation through the Pod Label koordinator.sh/gpu-isolation-provider
+1. Create a Pod to apply for a GPU card with 50% computing power and 50% gpu memory, and specify the need for hami-core isolation through the Pod Label koordinator.sh/gpu-isolation-provider
 
 ```yaml
 apiVersion: v1
@@ -140,7 +135,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   annotations:
-    scheduling.koordinator.sh/device-allocated: '{"gpu":[{"minor":0,"resources":{"kubernetes.io/gpu-core":"50","kubernetes.io/gpu-memory":"12508288Ki","kubernetes.io/gpu-memory-ratio":"50"}}]}'
+    scheduling.koordinator.sh/device-allocated: '{"gpu":[{"minor":1,"resources":{"koordinator.sh/gpu-core":"50","koordinator.sh/gpu-memory":"11520Mi","koordinator.sh/gpu-memory-ratio":"50"}}]}'
   name: pod-example
   namespace: default
   labels:
@@ -150,5 +145,10 @@ metadata:
 
 You can find the concrete device allocate result through annotation `scheduling.koordinator.sh/device-allocated`.
 
-2. 通过 kubectl exec 进入 Pod，NVIDIA-SMI 观察 Pod 能够使用的内存上限
+2. Enter the pod and you can see that the upper limit of the gpu memory seen by the program inside the pod is the value shown in the allocation result above.
 
+```bash
+$ kubectl exec -it -n default pod-example bash
+```
+
+![image](/img/gpu-share-with-hami-result.png)
