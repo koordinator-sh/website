@@ -72,6 +72,8 @@ spec:
         volumeMounts:
         - mountPath: /usl/local/vgpu
           name: vgpu-hook
+        - mountPath: /tmp/vgpulock
+          name: vgpu-lock
       tolerations:
       - operator: Exists
       volumes:
@@ -79,9 +81,14 @@ spec:
           path: /usl/local/vgpu
           type: DirectoryOrCreate
         name: vgpu-hook
+     # https://github.com/Project-HAMi/HAMi/issues/696
+      - hostPath:
+          path: /tmp/vgpulock
+          type: DirectoryOrCreate
+        name: vgpu-lock
 ```
 
-The above DaemonSet will distribute 'libvgpu.so' to the /usr/local/vgpu directory of all nodes with node-type=gpu labelled.
+The above DaemonSet will distribute 'libvgpu.so' to the /usr/local/vgpu directory and create `/tmp/vgpulock` directory for all nodes with node-type=gpu labelled.
 
 ### Configurations
 
