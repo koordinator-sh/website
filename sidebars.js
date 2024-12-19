@@ -46,6 +46,7 @@ const sidebars = {
           ],
           'Heterogeneous Resources Scheduling': [
             'user-manuals/fine-grained-device-scheduling',
+            'user-manuals/device-scheduling-gpu-share-with-hami',
           ],
           'Load-aware Scheduling': [
             'user-manuals/load-aware-scheduling',
