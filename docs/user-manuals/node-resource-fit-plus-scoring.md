@@ -70,7 +70,7 @@ resources:
 ```
 config description:
 
-![image](/img/node-resource-fit-plus-scoring-cn.png)
+![image](/img/node-resource-fit-plus-scoring-en.png)
 
 node score:
 ```

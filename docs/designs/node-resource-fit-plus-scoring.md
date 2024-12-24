@@ -71,6 +71,7 @@ resources:
     weight: 1
 ```
 config description：
+
 ![image](/img/node-resource-fit-plus-scoring-en.png)
 
 node score:
