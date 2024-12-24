@@ -68,6 +68,9 @@ const sidebars = {
             "user-manuals/performance-collector",
             "user-manuals/installation-runtime-proxy",
           ],
+          'NodeResourceFitPlus' : [
+            'user-manuals/node-resource-fit-plus-scoring',
+          ],
           'Utils' : [
             'user-manuals/resource-reservation',
             'user-manuals/pod-migration-job',
@@ -94,6 +97,7 @@ const sidebars = {
         'designs/gang-scheduling',
         'designs/multi-hierarchy-elastic-quota-management',
         'designs/koordinator-yarn',
+        'designs/node-resource-fit-plus-scoring',
       ],
     },
     {
