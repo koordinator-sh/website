@@ -1,4 +1,4 @@
-# Node resource adaptation enhanced scheduling
+# Enhanced NodeResourceFit Plugin
 
 <!-- toc -->
 - [Summary](#summary)

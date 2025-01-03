@@ -1,4 +1,4 @@
-# 节点资源适配增强调度
+# 增强的 NodeResourceFit 插件
 
 <!-- toc -->
 - [概括](#概括)
@@ -14,6 +14,7 @@
   - [毕业标准](#毕业标准)
     - [Alpha](#alpha)
     - [Beta](#beta)
+- [补充解释](#补充解释)
 - [实施历史](#实施历史)
 <!-- /toc -->
 
@@ -111,6 +112,14 @@ finalScoreNode = (allocatablesResourcesNum - requestsResourcesNum) * framework.M
 
 - 添加E2E测试.
 - 提供测试级文档.
+
+## 补充解释
+
+- 为什么没有采用节点亲和性调度策略来实类似ScarceResourceAvoidance的能力？
+  - 节点亲和性策略需要提前为节点打标签,同时需要负载发版时增加亲和性配置,在资源类型复杂的真实集群里,这样的维护成本很高,也容易造成紊乱,所以遵守最小化设计原则,采用ScarceResourceAvoidance策略将会在此场景下事半功倍.
+
+- 为什么没有采用多调度器配置文件的形式来让不同类型的资源走不同的策略？
+  - 依旧是维护和使用成本的考量,遵守最小化设计原则,收敛到统一策略中,可以避免交叉紊乱带来的稳定性影响,采用NodeResourcesFitPlus策略将会在此场景下事半功倍.
 
 ## 实施历史
 

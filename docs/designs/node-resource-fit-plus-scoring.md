@@ -1,4 +1,4 @@
-# Node Resource Fit plus Scheduling
+# Enhanced NodeResourceFit Plugin
 
 <!-- toc -->
 - [Summary](#summary)
@@ -14,6 +14,7 @@
   - [Graduation Criteria](#graduation-criteria)
     - [Alpha](#alpha)
     - [Beta](#beta)
+- [Additional explanation](#additional-explanation)
 - [Implementation History](#implementation-history)
 <!-- /toc -->
 
@@ -112,6 +113,14 @@ Comprehensive unit tests will be added to ensure that each functionality works a
 
 - Add E2E tests.
 - Provide beta-level documentation.
+
+## Additional Explanation
+
+- Why is the node affinity scheduling strategy not used to implement capabilities similar to ScarceResourceAvoidance?
+  - The node affinity strategy requires labeling the nodes in advance and adding affinity configuration when the load is released. In a real cluster with complex resource types, such maintenance costs are high and can easily cause chaos, so it must be minimized. Design principles, using the ScarceResourceAvoidance strategy will get twice the result with half the effort in this scenario.
+
+- Why not use multiple scheduler configuration files to allow different types of resources to follow different strategies?
+  - Maintenance and usage costs are still a consideration. Adhering to the minimal design principle and converging into a unified strategy can avoid the stability impact caused by cross-over disorder. Adopting the NodeResourcesFitPlus strategy will get twice the result with half the effort in this scenario.
 
 ## Implementation History
 
