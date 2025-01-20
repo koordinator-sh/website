@@ -1,36 +1,36 @@
 # Enhanced NodeResourceFit Plugin
 
 <!-- toc -->
-- [Summary](#summary)
-- [Motivation](#motivation)
-- [Design Consideration](#design-consideration)
-  - [Goals](#goals)
-  - [Non-Goals](#non-goals)
-- [Proposal](#proposal)
-- [Design Details](#design-details)
-  - [NodeResourcesFitPlus](#noderesourcesfitplus)
-  - [ScarceResourceAvoidance](#scarceresourceavoidance)
-- [Example](#example)
-  - [Scheduler Configuration](#scheduler-configuration)
-    - [GPU](#gpu)
-    - [CPU](#cpu)
-  - [Adapt to native plugins](#adapt-to-native-plugins)
-    - [MostAllocated](#mostallocated)
-    - [LeastAllocated](#leastallocated)
+- [Summary](#Summary)
+- [Motivation](#Motivation)
+- [Design Consideration](#DesignConsideration)
+  - [Goals](#Goals)
+  - [Non-Goals](#NonGoals)
+- [Proposal](#Proposal)
+- [Design Details](#DesignDetails)
+  - [NodeResourcesFitPlus](#NodeResourcesFitPlus)
+  - [ScarceResourceAvoidance](#ScarceResourceAvoidance)
+- [Example](#Example)
+  - [Scheduler Configuration](#SchedulerConfiguration)
+    - [GPU](#GPU)
+    - [CPU](#CPU)
+  - [Adapt to native plugins](#AdaptToNativePlugins)
+    - [MostAllocated](#Mostallocated)
+    - [LeastAllocated](#Leastallocated)
 <!-- /toc -->
 
 
-## summary
+## Summary
 
 The NodeResourcesFit plug-in of native k8s can only adopt a type of strategy for all resources, such as MostRequestedPriority and LeastRequestedPriority. However, in industrial practice, this design does not apply to some scenarios. For example: In AI scenarios, businesses that apply for GPUs prefer to occupy the entire GPU machine first to prevent GPU fragmentation; businesses that apply for CPU & MEM are prioritized and dispersed to non-GPU machines to prevent excessive consumption of CPU & MEM on GPU machines, resulting in real tasks of applying for GPUs. Pending due to insufficient non-GPU resources
 . It is therefore hoped that both strategies can be extended to address this business need.
 
-## motivation
+## Motivation
 case:
 - GPU tasks take priority over the entire GPU
 - CPU&MEM tasks are distributed to the CPU machine first
 
-## design-consideration
+## DesignConsideration
 
 - The solution is more versatile, not limited to AI clusters or CPU clusters, and not limited to common CPU resources or extended GPU resources.
 
@@ -38,24 +38,24 @@ case:
 
 - Easy to expand
 
-### goals
+### Goals
 
 - Different types of resources can be configured with different strategies to prioritize them in the form of weights
 
 - Prevent pods that have not applied for scarce resources from being scheduled to nodes with scarce resources.
 
-### non-goals
+### NonGoals
 
 - None.
 
-## proposal
+## Proposal
 
 Extend two plug-ins to meet the above needs
 
 - NodeResourcesFitPlus
 - ScarceResourceAvoidance
 
-## design-details
+## DesignDetails
 
 ### NodeResourcesFitPlus
 config:
@@ -97,8 +97,8 @@ node score:
 finalScoreNode = (allocatablesResourcesNum - requestsResourcesNum) * framework.MaxNodeScore / allocatablesResourcesNum
 ```
 
-## example
-### scheduler-configuration
+## Example
+### SchedulerConfiguration
 
 ```
 
@@ -134,7 +134,7 @@ profiles:
   schedulerName: koord-scheduler
 ```
 
-#### gpu
+#### GPU
 
 deployment Resource application
 
@@ -187,7 +187,7 @@ Log view => ```Top10 scores for pod```
 | 1 | test-scheduler1-xxx | node2 | 296 | 96 | 200 |
 ```
 
-#### cpu
+#### CPU
 
 deployment Resource application
 
@@ -239,9 +239,9 @@ Log view => ```Top10 scores for pod```
 | 2 | test-scheduler1-xxx | node3 | 326 | 126 | 200 |
 ```
 
-### adapt-to-native-plugins
+### AdaptToNativePlugins
 
-#### mostAllocated
+#### MostAllocated
 native configuration
 ```
 apiVersion: v1
@@ -301,7 +301,7 @@ data:
           enabled:
           - name: "NodeResourcesFitPlus"
 ```
-#### leastAllocated
+#### LeastAllocated
 native configuration
 ```
 apiVersion: v1
