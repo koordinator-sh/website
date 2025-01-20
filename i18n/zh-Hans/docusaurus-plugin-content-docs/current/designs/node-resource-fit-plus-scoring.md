@@ -7,6 +7,9 @@
   - [目标](#目标)
   - [非目标](#非目标)
 - [提议](#提议)
+- [用户故事](#用户故事)
+  - [故事1](#故事1)
+  - [故事1](#故事2)
 - [设计细节](#设计细节)
   - [NodeResourcesFitPlus](#noderesourcesfitplus)
   - [ScarceResourceAvoidance](#scarceresourceavoidance)
@@ -53,6 +56,14 @@ case:
 
 - NodeResourcesFitPlus
 - ScarceResourceAvoidance
+
+## 用户故事
+
+### 故事1
+- 用户希望不同的资源类型可以采用不同的资源策略,例如AI场景下,希望申请了GPU资源的pod尽量占满一台机器,而只申请CPU资源的pod经历均衡分散到不同的机器上.
+
+### 故事2
+- 用户希望没有申请GPU资源的pod,尽量不要调度到有GPU资源的机器上,防止当真正需要GPU资源的pod在发布时因为GPU的机器上的CPU不足而产生pending
 
 ## 设计细节
 

@@ -12,8 +12,11 @@
   - [ScarceResourceAvoidance](#scarceresourceavoidance)
 - [Example](#example)
   - [Scheduler Configuration](#scheduler-configuration)
-  - [GPU](#gpu)
-  - [CPU](#cpu)
+    - [GPU](#gpu)
+    - [CPU](#cpu)
+  - [Adapt to native plugins](#adapt-to-native-plugins)
+    - [MostAllocated](#mostallocated)
+    - [LeastAllocated](#leastallocated)
 <!-- /toc -->
 
 
@@ -131,7 +134,7 @@ profiles:
   schedulerName: koord-scheduler
 ```
 
-### gpu
+#### gpu
 
 deployment Resource application
 
@@ -184,7 +187,7 @@ Log view => ```Top10 scores for pod```
 | 1 | test-scheduler1-xxx | node2 | 296 | 96 | 200 |
 ```
 
-### cpu
+#### cpu
 
 deployment Resource application
 
@@ -234,4 +237,127 @@ Log view => ```Top10 scores for pod```
 | 0 | test-scheduler1-xxx | node1 | 310 | 144 | 166 |
 | 1 | test-scheduler1-xxx | node2 | 262 | 62 | 200 |
 | 2 | test-scheduler1-xxx | node3 | 326 | 126 | 200 |
+```
+
+### adapt-to-native-plugins
+
+#### mostAllocated
+native configuration
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scheduler-config
+  namespace: kube-system
+data:
+  scheduler-config.yaml: |
+    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    kind: KubeSchedulerConfiguration
+    profiles:
+    - schedulerName: koord-scheduler
+     pluginConfig:
+       - args:
+           scoringStrategy:
+             resources:
+             - name: cpu
+               weight: 2
+             - name: memory
+               weight: 1
+             type: MostAllocated
+         name: NodeResourcesFit
+      plugins:
+        score:
+          enabled:
+          - name: "NodeResourcesFit"
+```
+
+plus configuration
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scheduler-config
+  namespace: kube-system
+data:
+  scheduler-config.yaml: |
+    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    kind: KubeSchedulerConfiguration
+    profiles:
+    - schedulerName: koord-scheduler
+     pluginConfig:
+       - args:
+          apiVersion: kubescheduler.config.k8s.io/v1beta2
+          kind: ResourceTypesArgs
+          resources: 
+            cpu:
+              type: MostAllocated
+              weight: 2
+            memory:
+              type: MostAllocated
+              weight: 1
+         name: NodeResourcesFitPlus
+      plugins:
+        score:
+          enabled:
+          - name: "NodeResourcesFitPlus"
+```
+#### leastAllocated
+native configuration
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scheduler-config
+  namespace: kube-system
+data:
+  scheduler-config.yaml: |
+    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    kind: KubeSchedulerConfiguration
+    profiles:
+    - schedulerName: koord-scheduler
+     pluginConfig:
+       - args:
+           scoringStrategy:
+             resources:
+             - name: cpu
+               weight: 2
+             - name: memory
+               weight: 1
+             type: LeastAllocated
+         name: NodeResourcesFit
+      plugins:
+        score:
+          enabled:
+          - name: "NodeResourcesFit"
+```
+
+plus configuration
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scheduler-config
+  namespace: kube-system
+data:
+  scheduler-config.yaml: |
+    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    kind: KubeSchedulerConfiguration
+    profiles:
+    - schedulerName: koord-scheduler
+     pluginConfig:
+       - args:
+          apiVersion: kubescheduler.config.k8s.io/v1beta2
+          kind: ResourceTypesArgs
+          resources: 
+            cpu:
+              type: LeastAllocated
+              weight: 2
+            memory:
+              type: LeastAllocated
+              weight: 1
+         name: NodeResourcesFitPlus
+      plugins:
+        score:
+          enabled:
+          - name: "NodeResourcesFitPlus"
 ```
