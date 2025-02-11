@@ -262,7 +262,7 @@ Gang，用于记录 Gang 调度状态到调度器缓存。
 > 如果上一步校验通过，则将 `childrenScheduleRoundMap` 值设置为 `scheduleCycle` 的值，并通过当前校验；
 > 反之则说明当前 pod 在本轮调度周期内已经完成调度，需要拒绝本次调度。
 > 根据 `totalChildrenNum` 字段，当所有 pod 都通过 PreFilter 阶段，说明当前调度周期所有 pod 已经完成调度，`scheduleCycle` 需要累加 1，说明开启新一轮调度周期。
-- `scheduleCycleValid`，当前 Gang 中任意 pod 在 Filter 阶段失败，scheduleCycleValid 将设置为 true，只有所有 pod 全部通过 Filter 阶段，该字段才会设置为 true。
+- `scheduleCycleValid`，当前 Gang 中任意 pod 在 Filter 阶段失败，scheduleCycleValid 将设置为 false，只有所有 pod 全部通过 Filter 阶段，该字段才会设置为 true。
   `scheduleCycleValid=false` 此场景下所有 pod 将不会进行调度，同时所有调度中都 pod 将被在 PreFilter 阶段被拒绝，当新一轮调度周期开启时，`scheduleCycleValid` 才会被设置为 true。
 
 注意⚠️ ，`scheduleCycle\scheduleCycleValid\childrenScheduleRoundMap` 仅作用于 `Strict` 模式。
