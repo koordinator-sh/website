@@ -106,7 +106,7 @@ finalScoreNode = (allocatablesResourcesNum - requestsResourcesNum) * framework.M
 profiles:
 - pluginConfig:
   - args:
-      apiVersion: kubescheduler.config.k8s.io/v1beta2
+      apiVersion: kubescheduler.config.k8s.io/v1
       kind: ResourceTypesArgs
       resources: 
         nvidia.com/gpu:
@@ -120,7 +120,7 @@ profiles:
           weight: 1
     name: NodeResourcesFitPlus
   - args:
-      apiVersion: kubescheduler.config.k8s.io/v1beta2
+      apiVersion: kubescheduler.config.k8s.io/v1
       kind: ScarceResourceAvoidanceArgs
       resources: 
       - nvidia.com/gpu
@@ -254,7 +254,7 @@ metadata:
   namespace: kube-system
 data:
   scheduler-config.yaml: |
-    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    apiVersion: kubescheduler.config.k8s.io/v1
     kind: KubeSchedulerConfiguration
     profiles:
     - schedulerName: koord-scheduler
@@ -283,13 +283,13 @@ metadata:
   namespace: kube-system
 data:
   scheduler-config.yaml: |
-    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    apiVersion: kubescheduler.config.k8s.io/v1
     kind: KubeSchedulerConfiguration
     profiles:
     - schedulerName: koord-scheduler
      pluginConfig:
        - args:
-          apiVersion: kubescheduler.config.k8s.io/v1beta2
+          apiVersion: kubescheduler.config.k8s.io/v1
           kind: ResourceTypesArgs
           resources: 
             cpu:
@@ -314,7 +314,7 @@ metadata:
   namespace: kube-system
 data:
   scheduler-config.yaml: |
-    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    apiVersion: kubescheduler.config.k8s.io/v1
     kind: KubeSchedulerConfiguration
     profiles:
     - schedulerName: koord-scheduler
@@ -343,13 +343,13 @@ metadata:
   namespace: kube-system
 data:
   scheduler-config.yaml: |
-    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    apiVersion: kubescheduler.config.k8s.io/v1
     kind: KubeSchedulerConfiguration
     profiles:
     - schedulerName: koord-scheduler
      pluginConfig:
        - args:
-          apiVersion: kubescheduler.config.k8s.io/v1beta2
+          apiVersion: kubescheduler.config.k8s.io/v1
           kind: ResourceTypesArgs
           resources: 
             cpu:
