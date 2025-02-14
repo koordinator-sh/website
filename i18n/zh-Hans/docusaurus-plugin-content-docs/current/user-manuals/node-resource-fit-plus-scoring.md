@@ -120,6 +120,8 @@ profiles:
           weight: 1
     name: NodeResourcesFitPlus
   - args:
+      apiVersion: kubescheduler.config.k8s.io/v1beta2
+      kind: ScarceResourceAvoidanceArgs
       resources: 
       - nvidia.com/gpu
     name: ScarceResourceAvoidance
