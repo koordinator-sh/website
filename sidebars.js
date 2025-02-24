@@ -48,6 +48,9 @@ const sidebars = {
             'user-manuals/fine-grained-device-scheduling',
             'user-manuals/device-scheduling-gpu-share-with-hami',
           ],
+          'Heterogeneous Scheduling Strategy' : [
+            'user-manuals/node-resource-fit-plus-scoring',
+          ],
           'Load-aware Scheduling': [
             'user-manuals/load-aware-scheduling',
             'user-manuals/load-aware-descheduling',
@@ -67,9 +70,6 @@ const sidebars = {
             "user-manuals/host-application-qos",
             "user-manuals/performance-collector",
             "user-manuals/installation-runtime-proxy",
-          ],
-          'NodeResourceFitPlus' : [
-            'user-manuals/node-resource-fit-plus-scoring',
           ],
           'Utils' : [
             'user-manuals/resource-reservation',
