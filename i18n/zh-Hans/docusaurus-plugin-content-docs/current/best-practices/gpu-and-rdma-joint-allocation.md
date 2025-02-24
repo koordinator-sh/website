@@ -471,7 +471,8 @@ See the [SR-IOV CNI](https://github.com/k8snetworkplumbingwg/sriov-cni) reposito
     name: pod-vf01
     namespace: kubeflow
     annotations:
-      k8s.v1.cni.cncf.io/networks: sriov-attach-k8s-node1-ens11f0np0-kubeflow-conf//this NAD needs to be written separately
+      # this NAD is already written previously
+      k8s.v1.cni.cncf.io/networks: sriov-attach-k8s-node1-ens11f0np0-kubeflow-conf
       scheduling.koordinator.sh/device-joint-allocate: |-
         {
           "deviceTypes": ["gpu","rdma"]
