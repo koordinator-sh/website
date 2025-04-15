@@ -58,7 +58,7 @@ spec:
         - /bin/sh
         - -c
         - |
-          cp -f /k8s-vgpu/lib/nvidia/libvgpu.so /usl/local/vgpu && sleep 3600000
+          cp -f /k8s-vgpu/lib/nvidia/libvgpu.so /usr/local/vgpu && sleep 3600000
         image: docker.m.daocloud.io/projecthami/hami:v2.4.0
         imagePullPolicy: Always
         name: name
@@ -70,7 +70,7 @@ spec:
             cpu: "0"
             memory: "0"
         volumeMounts:
-        - mountPath: /usl/local/vgpu
+        - mountPath: /usr/local/vgpu
           name: vgpu-hook
         - mountPath: /tmp/vgpulock
           name: vgpu-lock
@@ -78,7 +78,7 @@ spec:
       - operator: Exists
       volumes:
       - hostPath:
-          path: /usl/local/vgpu
+          path: /usr/local/vgpu
           type: DirectoryOrCreate
         name: vgpu-hook
      # https://github.com/Project-HAMi/HAMi/issues/696
@@ -105,26 +105,26 @@ metadata:
   name: pod-example
   namespace: default
   labels:
-    koordinator.sh/gpu-isolation-provider: hami-core
+    koordinator.sh/gpu-isolation-provider: HAMi-core
 spec:
   schedulerName: koord-scheduler
   containers:
   - command:
     - sleep
     - 365d
-    image: busybox
+    image: nvidia/cuda:11.8.0-base-ubuntu22.04
     imagePullPolicy: IfNotPresent
     name: curlimage
     resources:
       limits:
-        cpu: 40m
-        memory: 40Mi
+        cpu: 4
+        memory: 2Gi
         koordinator.sh/gpu.shared: 1
         koordinator.sh/gpu-core: 50
         koordinator.sh/gpu-memory-ratio: 50
       requests:
-        cpu: 40m
-        memory: 40Mi
+        cpu: 4
+        memory: 2Gi
         koordinator.sh/gpu.shared: 1
         koordinator.sh/gpu-core: 50
         koordinator.sh/gpu-memory-ratio: 50
@@ -146,7 +146,7 @@ metadata:
   name: pod-example
   namespace: default
   labels:
-    koordinator.sh/gpu-isolation-provider: hami-core
+    koordinator.sh/gpu-isolation-provider: HAMi-core
 ...
 ```
 
