@@ -119,13 +119,13 @@ spec:
       limits:
         cpu: 40m
         memory: 40Mi
-        koordinator.sh/gpu-shared: 1
+        koordinator.sh/gpu.shared: 1
         koordinator.sh/gpu-core: 50
         koordinator.sh/gpu-memory-ratio: 50
       requests:
         cpu: 40m
         memory: 40Mi
-        koordinator.sh/gpu-shared: 1
+        koordinator.sh/gpu.shared: 1
         koordinator.sh/gpu-core: 50
         koordinator.sh/gpu-memory-ratio: 50
     terminationMessagePath: /dev/termination-log
