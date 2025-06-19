@@ -6,15 +6,14 @@ This proposal describes how to extend the kubernetes scheduling framework withou
 
 ## Motivation
 
-Although Kubernetes Scheduler provides the scheduling framework to help developer to extend scheduling features. However, it cannot support the features that Koordinator needs to develop, such as Reservation, problem diagnosis and analysis, etc. 
+Although Kubernetes Scheduler provides the scheduling framework to help developer to extend scheduling features. However, it cannot support the features that Koordinator needs to develop, such as Reservation, NUMA Aware Scheduling, problem diagnosis and analysis, etc. 
 
 ### Goals
 
 1. Provides scheduling extension point hook mechanism
-1. Provides scheduling plugins expose state mechanism to help diagnose analysis problems
+1. Provides a mechanism that allows scheduling plugins to expose their internal state, helping to diagnose and analyze issues.
 
 ### Non-Goals/Future Work
-
 
 ## Proposal
 
@@ -40,8 +39,8 @@ At present, the kube-scheduler provided by Kubernetes can be divided into severa
 
 Each layer provides some interfaces or methods to support developers to extend some capabilities, and the evolution speed of each layer is also different. Generally speaking, the evolution speed of the more core modules should be slower, and the evolution of core modules tends to extend rather than modify the existing interface or extension mechanism, otherwise it will bring very large cost and reliability to external dependencies. question. But each layer does not support implementing some features for some reason. But as far as the problems Koordinator is currently experiencing, there are still some workarounds. However, some principles need to be followed to reduce future conflicts with the evolution of the upstream Kubernetes community.
 
-1. DO NOT modify the Kubernetes Scheduling Framework. The scheduling framework is the core module of kube-scheduler and is still evolving. In order to avoid conflict with the upstream community between Koordinator's enhanced capabilities.
-1. DO NOT modify the `k8s.io/kubernetes/pkg/scheduler` but can implements supported interfaces or high-order functions, such as `ScheduleAlgorithm`, `NextPod`, `Error` and `Profiles`.  The `Profiles` contains an instance of the Framework interface corresponding to each KubeSchedulerProfile. We can implement the Framework and replace the instances in Profiles to get the opportunity to participate in the scheduling process to do something.
+1. Prefer NOT modify the Kubernetes Scheduling Framework. The scheduling framework is the core module of kube-scheduler and is still evolving. In order to avoid conflict with the upstream community between Koordinator's enhanced capabilities.
+1. DO NOT modify the `k8s.io/kubernetes/pkg/scheduler` but can implements supported interfaces or high-order functions, such as `SchedulePod`, `NextPod`, `Error` and `Profiles`.  The `Profiles` contains an instance of the Framework interface corresponding to each KubeSchedulerProfile. We can implement the Framework and replace the instances in Profiles to get the opportunity to participate in the scheduling process to do something.
 1. Extend `k8s.io/kubernetes/cmd/kube-scheduler` as simply as possible. 
 
 #### Custom Extension Overview
