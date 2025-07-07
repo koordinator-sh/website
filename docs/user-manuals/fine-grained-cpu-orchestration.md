@@ -45,14 +45,14 @@ metadata:
   ...
 data:
   koord-scheduler-config: |
-    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    apiVersion: kubescheduler.config.k8s.io/v1
     kind: KubeSchedulerConfiguration
     profiles:
       - schedulerName: koord-scheduler
       - pluginConfig:
         - name: NodeNUMAResource
           args:
-            apiVersion: kubescheduler.config.k8s.io/v1beta2
+            apiVersion: kubescheduler.config.k8s.io/v1
             kind: NodeNUMAResourceArgs
             # The default CPU Binding Policy. The default is FullPCPUs
             # If the Pod belongs to LSE/LSR Prod Pods, and if no specific CPU binding policy is set, 
