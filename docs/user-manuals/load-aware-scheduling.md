@@ -47,7 +47,7 @@ metadata:
   ...
 data:
   koord-scheduler-config: |
-    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    apiVersion: kubescheduler.config.k8s.io/v1
     kind: KubeSchedulerConfiguration
     profiles:
       - schedulerName: koord-scheduler
@@ -70,7 +70,7 @@ data:
         # configure the thresholds and weights for the plugin
         - name: LoadAwareScheduling
           args:
-            apiVersion: kubescheduler.config.k8s.io/v1beta2
+            apiVersion: kubescheduler.config.k8s.io/v1
             kind: LoadAwareSchedulingArgs
             # whether to filter nodes where koordlet fails to update NodeMetric
             filterExpiredNodeMetrics: true
