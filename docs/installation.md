@@ -174,7 +174,7 @@ To install or upgrade Koordinator on Alibaba Cloud ACK, you need to skip some CR
 e.g. You may get the error below:
 
 ```bash
-$ helm install koordinator koordinator-sh/koordinator --version 1.5.0
+$ helm install koordinator koordinator-sh/koordinator --version 1.6.0
 Error: INSTALLATION FAILED: rendered manifests contain a resource that already exists. Unable to continue with install: CustomResourceDefinition "reservations.scheduling.koordinator.sh" in namespace "" exists and cannot be imported into the current release: invalid ownership metadata; label validation error: missing key "app.kubernetes.io/managed-by": must be set to "Helm"; annotation validation error: missing key "meta.helm.sh/release-name": must be set to "koordinator"; annotation validation error: missing key "meta.helm.sh/release-namespace": must be set to "default"
 ```
 
@@ -200,6 +200,57 @@ $ helm install koordinator https://... --set crds.managed=true,crds.nodemetrics=
 
 # upgrade without the deployed CRDs
 $ helm upgrade koordinator https://... --set crds.managed=true,crds.nodemetrics=false,crds.noderesourcetopologies=false,crds.elasticquotas=false,crds.podgroups=false,crds.reservations=false
+```
+
+3. Installation for Kind Clusters.
+
+When deploying Koordinator on a Kind cluster, we need to consider the configurations due to:
+
+Kind uses container-based nodes, which may use a different cgroup root (`/kubelet` by default).
+Koordlet expects to monitor cgroup paths like `/host-cgroup/kubepods.slice`, which may not exist if kubelet's cgroupRoot is not set to /.
+To ensure successful deployment and operation of Koordinator in Kind, follow these steps:
+
+- Create a Kind Cluster with Custom Kubelet Configuration
+
+Create a kind-config.yaml file with the following content to configure kubelet to use `cgroupRoot: /`:
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+   - role: control-plane
+   - role: worker
+   - role: worker
+kubeadmConfigPatches:
+   - |
+      kind: InitConfiguration
+      nodeRegistration:
+        kubeletExtraArgs:
+          "cgroup-root": "/"
+      ---
+      kind: KubeletConfiguration
+      cgroupRoot: /
+```
+
+Then create the cluster:
+
+```yaml
+kind create cluster --config=kind-config.yaml
+```
+
+- Install Koordinator via Helm
+
+Add the Koordinator Helm repository:
+
+```bash
+helm repo add koordinator-sh https://koordinator-sh.github.io/koordinator/
+helm repo update
+```
+
+Install Koordinator using the following command:
+
+```bash
+helm install koordinator koordinator-sh/koordinator --version 1.6.0
 ```
 
 ## Uninstall

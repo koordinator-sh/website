@@ -200,6 +200,55 @@ $ helm install koordinator https://... --set crds.managed=true,crds.nodemetrics=
 $ helm upgrade koordinator https://... --set crds.managed=true,crds.nodemetrics=false,crds.noderesourcetopologies=false,crds.elasticquotas=false,crds.podgroups=false,crds.reservations=false
 ```
 
+3. Kind 集群安装
+
+在 Kind 集群上部署 Koordinator 时，需要考虑以下配置原因：
+
+Kind 使用基于容器的节点，默认使用的 cgroup 根路径为 `/kubelet`。
+Koordlet 预期监控的 cgroup 路径是 `/host-cgroup/kubepods.slice`，如果 kubelet 的 cgroupRoot 没有设置为 /，该路径可能不存在。
+为了确保 Koordinator 在 Kind 中能够成功部署和正常运行，请按照以下步骤操作：
+
+- 创建自定义 Kubelet 配置的 Kind 集群
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+   - role: control-plane
+   - role: worker
+   - role: worker
+kubeadmConfigPatches:
+   - |
+      kind: InitConfiguration
+      nodeRegistration:
+        kubeletExtraArgs:
+          "cgroup-root": "/"
+      ---
+      kind: KubeletConfiguration
+      cgroupRoot: /
+```
+然后使用该配置创建集群：
+
+```yaml
+kind create cluster --config=kind-config.yaml
+```
+
+- 通过 Helm 安装 Koordinator
+
+添加 Koordinator 的 Helm 仓库：
+
+
+```bash
+helm repo add koordinator-sh https://koordinator-sh.github.io/koordinator/
+helm repo update
+```
+
+使用以下命令安装 Koordinator：
+
+
+```bash
+helm install koordinator koordinator-sh/koordinator --version 1.6.0
+```
+
 ## 卸载
 
 请注意，这将导致 Koordinator 创建的所有资源，包括 Webhook 配置、Services、Namespace、CRD 和由 Koordinator 控制器管理的 CR 实例，都被删除！
