@@ -19,7 +19,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Install the latest version.
-$ helm install koordinator koordinator-sh/koordinator --version 1.6.0
+$ helm install koordinator koordinator-sh/koordinator --version 1.6.1
 ```
 
 ## 使用 Helm 升级
@@ -32,7 +32,7 @@ $ helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
 $ helm repo update
 
 # Upgrade the latest version.
-$ helm upgrade koordinator koordinator-sh/koordinator --version 1.6.0 [--force]
+$ helm upgrade koordinator koordinator-sh/koordinator --version 1.6.1 [--force]
 ```
 
 注意：
@@ -80,7 +80,7 @@ NRI 资源管理模式是*默认启用*的。你无需修改 koordlet 配置就�
 | `manager.log.level`                       | Log level that koord-manager printed                             | `4`                             |
 | `manager.replicas`                        | Replicas of koord-manager deployment                             | `2`                             |
 | `manager.image.repository`                | Repository for koord-manager image                               | `koordinatorsh/koord-manager`   |
-| `manager.image.tag`                       | Tag for koord-manager image                                      | `v1.6.0`                        |
+| `manager.image.tag`                       | Tag for koord-manager image                                      | `v1.6.1`                        |
 | `manager.resources.limits.cpu`            | CPU resource limit of koord-manager container                    | `1000m`                         |
 | `manager.resources.limits.memory`         | Memory resource limit of koord-manager container                 | `1Gi`                           |
 | `manager.resources.requests.cpu`          | CPU resource request of koord-manager container                  | `500m`                          |
@@ -95,7 +95,7 @@ NRI 资源管理模式是*默认启用*的。你无需修改 koordlet 配置就�
 | `scheduler.log.level`                     | Log level that koord-scheduler printed                           | `4`                             |
 | `scheduler.replicas`                      | Replicas of koord-scheduler deployment                           | `2`                             |
 | `scheduler.image.repository`              | Repository for koord-scheduler image                             | `koordinatorsh/koord-scheduler` |
-| `scheduler.image.tag`                     | Tag for koord-scheduler image                                    | `v1.6.0`                        |
+| `scheduler.image.tag`                     | Tag for koord-scheduler image                                    | `v1.6.1`                        |
 | `scheduler.resources.limits.cpu`          | CPU resource limit of koord-scheduler container                  | `1000m`                         |
 | `scheduler.resources.limits.memory`       | Memory resource limit of koord-scheduler container               | `1Gi`                           |
 | `scheduler.resources.requests.cpu`        | CPU resource request of koord-scheduler container                | `500m`                          |
@@ -107,7 +107,7 @@ NRI 资源管理模式是*默认启用*的。你无需修改 koordlet 配置就�
 | `scheduler.hostNetwork`                   | Whether koord-scheduler pod should run with hostnetwork          | `false`                         |
 | `koordlet.log.level`                      | Log level that koordlet printed                                  | `4`                             |
 | `koordlet.image.repository`               | Repository for koordlet image                                    | `koordinatorsh/koordlet`        |
-| `koordlet.image.tag`                      | Tag for koordlet image                                           | `v1.6.0`                        |
+| `koordlet.image.tag`                      | Tag for koordlet image                                           | `v1.6.1`                        |
 | `koordlet.resources.limits.cpu`           | CPU resource limit of koordlet container                         | `500m`                          |
 | `koordlet.resources.limits.memory`        | Memory resource limit of koordlet container                      | `256Mi`                         |
 | `koordlet.resources.requests.cpu`         | CPU resource request of koordlet container                       | `0`                             |
@@ -172,7 +172,7 @@ $ helm install koordinator https://... --set imageRepositoryHost=registry.cn-bei
 例如，你可能会收到以下报错：
 
 ```bash
-$ helm install koordinator koordinator-sh/koordinator --version 1.6.0
+$ helm install koordinator koordinator-sh/koordinator --version 1.6.1
 Error: INSTALLATION FAILED: rendered manifests contain a resource that already exists. Unable to continue with install: CustomResourceDefinition "reservations.scheduling.koordinator.sh" in namespace "" exists and cannot be imported into the current release: invalid ownership metadata; label validation error: missing key "app.kubernetes.io/managed-by": must be set to "Helm"; annotation validation error: missing key "meta.helm.sh/release-name": must be set to "koordinator"; annotation validation error: missing key "meta.helm.sh/release-namespace": must be set to "default"
 ```
 
