@@ -52,61 +52,102 @@ In this section, a Custom Resource Definition (CRD) named `Reservation` is propo
 ![image](/img/resource-reservation.svg)
 
 ```go
-// Reservation objects are non-namespaced.
-// It can reserve resources for pods of any namespace. Any affinity/anti-affinity of reservation scheduling can be
-// specified in the pod template.
+// Reservation is the Schema for the reservation API.
+// A Reservation object is non-namespaced.
+// Any namespaced affinity/anti-affinity of reservation scheduling can be specified in the spec.template.
 type Reservation struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              ReservationSpec   `json:"spec,omitempty"`
-	Status            ReservationStatus `json:"status,omitempty"`
+
+	Spec   ReservationSpec   `json:"spec,omitempty"`
+	Status ReservationStatus `json:"status,omitempty"`
 }
 
+// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
 type ReservationSpec struct {
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
 	// Template defines the scheduling requirements (resources, affinities, images, ...) processed by the scheduler just
 	// like a normal pod.
 	// If the `template.spec.nodeName` is specified, the scheduler will not choose another node but reserve resources on
 	// the specified node.
-	Template *corev1.PodTemplateSpec `json:"template,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:validation:Required
+	Template *corev1.PodTemplateSpec `json:"template"`
 	// Specify the owners who can allocate the reserved resources.
 	// Multiple owner selectors and ORed.
-	Owners []ReservationOwner `json:"owners,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinItems=1
+	Owners []ReservationOwner `json:"owners"`
+	// Time-to-Live period for the reservation.
+	// `expires` and `ttl` are mutually exclusive. Defaults to 24h. Set 0 to disable expiration.
+	// +kubebuilder:default="24h"
+	// +optional
+	TTL *metav1.Duration `json:"ttl,omitempty"`
+	// Expired timestamp when the reservation is expected to expire.
+	// If both `expires` and `ttl` are set, `expires` is checked first.
+	// `expires` and `ttl` are mutually exclusive. Defaults to being set dynamically at runtime based on the `ttl`.
+	// +optional
+	Expires *metav1.Time `json:"expires,omitempty"`
 	// By default, the resources requirements of reservation (specified in `template.spec`) is filtered by whether the
-	// node has sufficient free resources (i.e. ReservationRequest <  NodeFree).
+	// node has sufficient free resources (i.e. Reservation Request <  Node Free).
 	// When `preAllocation` is set, the scheduler will skip this validation and allow overcommitment. The scheduled
 	// reservation would be waiting to be available until free resources are sufficient.
-	// NOTE: Not supported in v0.6.
+	// +optional
 	PreAllocation bool `json:"preAllocation,omitempty"`
-	// Time-to-Live period for the reservation.
-	// `expires` and `ttl` are mutually exclusive. If both `ttl` and `expires` are not specified, a very
-	// long TTL will be picked as default. Set 0 to disable the expiration.
-	TTL *metav1.Duration `json:"ttl,omitempty"`
-	// Expired timestamp when the reservation expires.
-	// `expires` and `ttl` are mutually exclusive. Defaults to being set dynamically at runtime based on the `ttl`.
-	Expires *metav1.Time `json:"expires,omitempty"`
+	// When `AllocateOnce` is set, the reserved resources are only available for the first owner who allocates successfully
+	// and are not allocatable to other owners anymore. Defaults to true.
+	// +kubebuilder:default=true
+	// +optional
+	AllocateOnce *bool `json:"allocateOnce,omitempty"`
+	// AllocatePolicy represents the allocation policy of reserved resources that Reservation expects.
+	// +kubebuilder:validation:Enum=Aligned;Restricted
+	// +optional
+	AllocatePolicy ReservationAllocatePolicy `json:"allocatePolicy,omitempty"`
+	// Unschedulable controls reservation schedulability of new pods. By default, reservation is schedulable.
+	// +optional
+	Unschedulable bool `json:"unschedulable,omitempty"`
 }
 
 type ReservationStatus struct {
-	// The `phase` indicates whether is reservation is waiting for process (`Pending`), available to allocate
-	// (`Available`) or timeout/expired to get cleanup (Failed).
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
+	// The `phase` indicates whether is reservation is waiting for process, available to allocate or failed/expired to
+	// get cleanup.
+	// +optional
 	Phase ReservationPhase `json:"phase,omitempty"`
 	// The `conditions` indicate the messages of reason why the reservation is still pending.
+	// +optional
 	Conditions []ReservationCondition `json:"conditions,omitempty"`
 	// Current resource owners which allocated the reservation resources.
+	// +optional
 	CurrentOwners []corev1.ObjectReference `json:"currentOwners,omitempty"`
 	// Name of node the reservation is scheduled on.
+	// +optional
 	NodeName string `json:"nodeName,omitempty"`
 	// Resource reserved and allocatable for owners.
+	// +optional
 	Allocatable corev1.ResourceList `json:"allocatable,omitempty"`
 	// Resource allocated by current owners.
+	// +optional
 	Allocated corev1.ResourceList `json:"allocated,omitempty"`
 }
 
+// ReservationOwner indicates the owner specification which can allocate reserved resources.
+// +kubebuilder:validation:MinProperties=1
 type ReservationOwner struct {
 	// Multiple field selectors are ANDed.
-	Object        *corev1.ObjectReference         `json:"object,omitempty"`
-	Controller    *ReservationControllerReference `json:"controller,omitempty"`
-	LabelSelector *metav1.LabelSelector           `json:"labelSelector,omitempty"`
+	// +optional
+	Object *corev1.ObjectReference `json:"object,omitempty"`
+	// +optional
+	Controller *ReservationControllerReference `json:"controller,omitempty"`
+	// +optional
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 }
 
 type ReservationControllerReference struct {
@@ -123,6 +164,8 @@ const (
 	ReservationPending ReservationPhase = "Pending"
 	// ReservationAvailable indicates the Reservation is both scheduled and available for allocation.
 	ReservationAvailable ReservationPhase = "Available"
+	// ReservationSucceeded indicates the Reservation is scheduled and allocated for a owner, but not allocatable anymore.
+	ReservationSucceeded ReservationPhase = "Succeeded"
 	// ReservationWaiting indicates the Reservation is scheduled, but the resources to reserve are not ready for
 	// allocation (e.g. in pre-allocation for running pods).
 	ReservationWaiting ReservationPhase = "Waiting"
@@ -158,8 +201,10 @@ const (
 const (
 	ReasonReservationScheduled     = "Scheduled"
 	ReasonReservationUnschedulable = "Unschedulable"
-	ReasonReservationAvailable     = "Available"
-	ReasonReservationExpired       = "Expired"
+
+	ReasonReservationAvailable = "Available"
+	ReasonReservationSucceeded = "Succeeded"
+	ReasonReservationExpired   = "Expired"
 )
 ```
 
