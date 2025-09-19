@@ -32,6 +32,7 @@ const sidebars = {
         'architecture/resource-model',
         'architecture/priority',
         'architecture/qos',
+        'architecture/job',
       ],
     },
     {
