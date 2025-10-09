@@ -65,6 +65,10 @@ data:
           reserve:
             enabled:
               - name: LoadAwareScheduling
+          # supported Koordinator >= v1.7.0, calculates and stores reusable data
+          preFilter:
+            enabled:
+              - name: LoadAwareScheduling
           ...
         pluginConfig:
         # configure the thresholds and weights for the plugin
@@ -110,12 +114,19 @@ New configurations will take effect after the koord-scheduler restarts.
 |-------|-------------| --------|
 | filterExpiredNodeMetrics | filterExpiredNodeMetrics indicates whether to filter nodes where koordlet fails to update NodeMetric. Enabled by default but in Helm chart, it's disabled. | >= v0.4.0 |
 | nodeMetricExpirationSeconds | nodeMetricExpirationSeconds indicates the NodeMetric expiration in seconds. When NodeMetrics expired, the node is considered abnormal. Default is 180 seconds.| >= v0.4.0 |
+| enableScheduleWhenNodeMetricsExpired | enableScheduleWhenNodeMetricsExpired indicates whether nodes with expired nodeMetrics are allowed to schedule pods. | >= v1.5.0 |
 | resourceWeights | resourceWeights indicates the weights of resources. The weights of CPU and Memory are both 1 by default.| >= v0.4.0 |
+| dominantResourceWeight | dominantResourceWeight indicates the weight of the dominant resource. Dominant resource is the resource with the maximum utilization, which is based on the concept of Dominant Resource Fairness. | >= v1.7.0 |
 | usageThresholds | usageThresholds indicates the resource utilization threshold of the whole machine. The default for CPU is 65%, and the default for memory is 95%.| >= v0.4.0 |
 | estimatedScalingFactors | estimatedScalingFactors indicates the factor when estimating resource usage. The default value of CPU is 85%, and the default value of Memory is 70%. | >= v0.4.0 |
 | prodUsageThresholds| prodUsageThresholds indicates the resource utilization threshold of Prod Pods compared to the whole machine. Not enabled by default. | >= v1.1.0 |
+| prodUsageIncludeSys | prodUsageIncludeSys indicates whether to include system usage (not used by pods) when summing up current usage for prod pods. | >= v1.7.0 |
 | scoreAccordingProdUsage | scoreAccordingProdUsage controls whether to score according to the utilization of Prod Pod. | >= v1.1.0 |
 | aggregated | aggregated supports resource utilization filtering and scoring based on percentile statistics. | >= v1.1.0 |
+| estimatedSecondsAfterPodScheduled | estimatedSecondsAfterPodScheduled indicates the force estimation duration after pod condition PodScheduled transition to True in seconds. | >= v1.7.0 |
+| estimatedSecondsAfterInitialized | estimatedSecondsAfterInitialized indicates the force estimation duration after pod condition Initialized transition to True in seconds. | >= v1.7.0 |
+| allowCustomizeEstimation | allowCustomizeEstimation indicates whether to allow reading estimation args from pod's metadata. | >= v1.7.0 |
+| supportedResources | supportedResources is the list of extra resource names that can be used in load-aware scheduling. cpu, memory and all other resources that show up in args are supported by default. If more resource are added in collection, don't show up as filter thresholds or score weights in plugin args and only set up in custom node annotations, we should pass these resource names in plugin args explicitly. | >= v1.7.0 |
 
 The fields of Aggregated:
 
@@ -298,6 +309,7 @@ Enable relevant optimizations by setting the following parameters:
 | Field | Description | Version |
 |-------|-------------| --------|
 | prodUsageThresholds| prodUsageThresholds indicates the resource utilization threshold of Prod Pods compared to the whole machine. Not enabled by default. | >= v1.1.0 |
+| prodUsageIncludeSys | prodUsageIncludeSys indicates whether to include system usage (not used by pods) when summing up current usage for prod pods. | >= v1.7.0 |
 | scoreAccordingProdUsage | scoreAccordingProdUsage controls whether to score according to the utilization of Prod Pod. | >= v1.1.0 |
 
 ### Load-aware scheduling based on percentile statistics
@@ -322,3 +334,16 @@ The fields of Aggregated:
 
 The `aggregated` and the `usageThresholds` parameter are mutually exclusive. When both are configured, the `aggregated` will be used.
 In addition, Pod type awareness is not currently supported.
+
+### Resource Estimation in Load Aware Scheduling
+
+Load aware based only on real-time usage is not good enough for some scenarios, since utilization are mutable. A common case is that a pod needs several minutes to load remote data from network in bootstrapping and begins its computing operators after the data is ready, which means the cpu usage is underestimated when bootstrapping.
+
+Pod usage resource estimation in Koordinator are controlled by `estimatedScalingFactors` in LoadAwareSchedulingArgs by default. It can be customized by setting `scheduling.koordinator.sh/load-estimated-scaling-factors` annotation on pod. The result is `estimated = max(factor * max(pod-requests[resource], pod-limits[resource]), pod-usage[resource])`.
+
+Pod usage estimation is activated for pods in these status:
+
+1. Incoming pod in scheduling.
+2. Existing and not terminated pod on node when usage for this pod is not collected in NodeMetric (just scheduled or other reasons).
+3. Existing pod which metrics is still in the report interval (`metric.updateTime - reportInterval < podScheduledTime`) which means the pod doesn't exist for a full report interval and doesn't have enough metrics point.
+4. Existing pod is configured in estimation: `estimatedSecondsAfterPodScheduled` and `estimatedSecondsAfterInitialized` in args, and `scheduling.koordinator.sh/load-estimated-seconds-after-pod-scheduled` and `scheduling.koordinator.sh/load-estimated-seconds-after-initialized` annotation on pod if customization is allowed. These configuration force the pod to be estimated in pod bootstrapping.

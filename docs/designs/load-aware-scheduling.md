@@ -65,20 +65,20 @@ Resource estimation for allocatable and usage in load aware plugin should be sim
 
 Node allocatable resource estimation are fetched from node's `.status.allocatable` field by default. It can be customized by setting `node.koordinator.sh/raw-allocatable` annotation on node.
 
-Pod usage resource estimation are controlled by `estimatedScalingFactors` in LoadAwareSchedulingArgs by default. It can be customized by setting `scheduling.koordinator.sh/load-estimated-scaling-factors` annotation on pod. The result is `estimated = factor * max(pod-requests[resource], pod-limits[resource])`.
+Pod usage resource estimation are controlled by `estimatedScalingFactors` in LoadAwareSchedulingArgs by default. It can be customized by setting `scheduling.koordinator.sh/load-estimated-scaling-factors` annotation on pod. The result is `estimated = max(factor * max(pod-requests[resource], pod-limits[resource]), pod-usage[resource])`.
 
 Pod usage estimation is activated for pods in these status:
 
 1. Incoming pod in scheduling.
 2. Existing and not terminated pod on node when usage for this pod is not collected in NodeMetric (just scheduled or other reasons).
-3. Existing pod which metrics is still in the report interval (`metric.updateTime - reportInterval < podScheduledTime`) which means the pod doesn't exist for a full report interval and does't have enough metrics point.
+3. Existing pod which metrics is still in the report interval (`metric.updateTime - reportInterval < podScheduledTime`) which means the pod doesn't exist for a full report interval and doesn't have enough metrics point.
 4. Existing pod is configured in estimation: `estimatedSecondsAfterPodScheduled` and `estimatedSecondsAfterInitialized` in args, and `scheduling.koordinator.sh/load-estimated-seconds-after-pod-scheduled` and `scheduling.koordinator.sh/load-estimated-seconds-after-initialized` annotation on pod if customization is allowed. These configuration force the pod to be estimated in pod bootstrapping.
 
 ### Performance Improvement
 
 We can improve load aware filtering and scoring performance by storing all intermediate results in cache to avoid duplicated evaluation on assigned pods and converting resources list to vector to avoid value retrieval from many small map.
 
-Vectorization is useful in load aware because we can should only evaluate on real limited resources that we can collect or estimate.
+Vectorization is useful in load aware because we should only evaluate on real limited kind of resources that we can collect or estimate.
 
 ### Plugin Configuration
 
