@@ -56,6 +56,10 @@ data:
           reserve:
             enabled:
               - name: LoadAwareScheduling
+          # supported Koordinator >= v1.7.0, calculates and stores reusable data
+          preFilter:
+            enabled:
+              - name: LoadAwareScheduling
           ...
         pluginConfig:
         # configure the thresholds and weights for the plugin
@@ -99,13 +103,20 @@ koord-descheduler 是通过 Configmap 加载[调度器配置](https://kubernetes
 | 字段 | 说明 | 版本 |
 |-------|-------------| --------|
 | filterExpiredNodeMetrics | filterExpiredNodeMetrics 表示是否过滤koordlet更新NodeMetric失败的节点。 默认情况下启用，但在 Helm chart 中，它被禁用。| >= v0.4.0 |
-| nodeMetricExpirationSeconds | nodeMetricExpirationSeconds 指示 NodeMetric 过期时间（以秒为单位）。 当 NodeMetrics 过期时，节点被认为是异常的。 默认为 180 秒。| >= v0.4.0 |
+| nodeMetricExpirationSeconds | nodeMetricExpirationSeconds 表示 NodeMetric 过期时间（以秒为单位）。 当 NodeMetrics 过期时，节点被认为是异常的。 默认为 180 秒。| >= v0.4.0 |
+| enableScheduleWhenNodeMetricsExpired | enableScheduleWhenNodeMetricsExpired 表示是否允许具有过期 nodeMetrics 的节点调度 Pod。 | >= v1.5.0 |
 | resourceWeights | resourceWeights 表示资源的权重。 CPU 和 Memory 的权重默认都是 1。| >= v0.4.0 |
+| dominantResourceWeight | dominantResourceWeight 表示主导资源的权重。主导资源是利用率最大的资源，基于主导资源公平性概念。 | >= v1.7.0 |
 | usageThresholds | usageThresholds 表示整机的资源利用率阈值。 CPU 的默认值为 65%，内存的默认值为 95%。| >= v0.4.0 |
 | estimatedScalingFactors | estimatedScalingFactors 表示估计资源使用时的因子。 CPU 默认值为 85%，Memory 默认值为 70%。| >= v0.4.0 |
 | prodUsageThresholds| prodUsageThresholds 表示 Prod Pod 相对于整机的资源利用率阈值。 默认情况下不启用。 | >= v1.1.0 |
-| scoreAccordingProdUsage | scoreAccordingProdUsage 控制是否根据 Prod Pod 的利用率进行评分。| >= v1.1.0 |
-| aggregated | aggregated 支持基于百分位数统计的资源利用率过滤和评分。| >= v1.1.0 |
+| prodUsageIncludeSys | prodUsageIncludeSys 表示在汇总当前 prod pod 使用量时是否包含系统使用量（非 pod 使用）。 | >= v1.7.0 |
+| scoreAccordingProdUsage | scoreAccordingProdUsage 控制是否根据 Prod Pod 的利用率进行评分。 | >= v1.1.0 |
+| aggregated | aggregated 支持基于百分位数统计的资源利用率过滤和评分。 | >= v1.1.0 |
+| estimatedSecondsAfterPodScheduled | estimatedSecondsAfterPodScheduled 表示 Pod 条件 PodScheduled 转换为 True 后的强制估算持续时间（秒）。 | >= v1.7.0 |
+| estimatedSecondsAfterInitialized | estimatedSecondsAfterInitialized 表示 Pod 条件 Initialized 转换为 True 后的强制估算持续时间（秒）。 | >= v1.7.0 |
+| allowCustomizeEstimation | allowCustomizeEstimation 表示是否允许从 Pod 的元数据中读取估算参数。 | >= v1.7.0 |
+| supportedResources | supportedResources 是可以在负载感知调度中使用的额外资源名称列表。cpu、memory 和参数中出现的所有其他资源都默认支持。如果在收集过程中添加了更多资源，但未在插件参数中显示为过滤阈值或评分权重，仅在自定义节点注解中设置，我们应该在插件参数中显式传递这些资源名称。 | >= v1.7.0 |
 
 Aggregated 支持的字段:
 
@@ -286,6 +297,7 @@ nginx-with-loadaware-5646666d56-z79dn   1/1     Running   0          18s   10.0.
 | 字段 | 说明 | 版本 |
 |-------|-------------| --------|
 | prodUsageThresholds| prodUsageThresholds 表示 Prod Pod 相对于整机的资源利用率阈值。 默认情况下不启用。 | >= v1.1.0 |
+| prodUsageIncludeSys | prodUsageIncludeSys 表示在汇总当前 prod pod 使用量时是否包含系统使用量（非 pod 使用）。 | >= v1.7.0 |
 | scoreAccordingProdUsage | scoreAccordingProdUsage 控制是否根据 Prod Pod 的利用率进行评分。| >= v1.1.0 |
 
 ### 感知基于百分位数统计的利用率进行调度
@@ -309,3 +321,16 @@ Aggregated 支持的字段:
 | scoreAggregatedDuration | scoreAggregatedDuration 表示打分时 Prod Pod 利用率百分位的统计周期。 不设置该字段时，调度器默认使用 NodeMetrics 中最大周期的数据。| >= v1.1.0 |
 
 `aggregated` 和 `usageThresholds` 参数是互斥的。 当两者都配置时，将使用 `aggregated`。此外，目前不支持 Pod 类型感知。
+
+### 负载感知调度中的资源估算
+
+仅基于实时使用率的负载感知对某些场景来说还不够好，因为使用率是持续变化的。一个常见的情况是，Pod 在启动时需要几分钟时间从网络加载远程数据，数据准备好后才开始执行算子，这意味着在启动阶段中 CPU 使用量被低估。
+
+在 Koordinator 中，Pod 使用资源估算默认由 LoadAwareSchedulingArgs 中的 `estimatedScalingFactors` 控制。可以通过在 Pod 上设置 `scheduling.koordinator.sh/load-estimated-scaling-factors` 注解来自定义。结果是 `estimated = max(factor * max(pod-requests[resource], pod-limits[resource]), pod-usage[resource])`。
+
+以下状态的 Pod 会激活使用量估算：
+
+1. 调度中的新 Pod。
+2. 节点上现有的未终止 Pod 且 NodeMetric 中未收集到此 Pod 的使用率（刚调度或其他原因）。
+3. 现有 Pod 的指标仍在报告间隔内（`metric.updateTime - reportInterval < podScheduledTime`），这意味着 Pod 不存在完整报告间隔，没有足够的指标点。
+4. 现有 Pod 在估算中配置：插件参数中的 `estimatedSecondsAfterPodScheduled` 和 `estimatedSecondsAfterInitialized`，以及如果允许自定义的话，在 Pod 上设置的 `scheduling.koordinator.sh/load-estimated-seconds-after-pod-scheduled` 和 `scheduling.koordinator.sh/load-estimated-seconds-after-initialized` 注解。这些配置强制 Pod 在启动时进行估算。
