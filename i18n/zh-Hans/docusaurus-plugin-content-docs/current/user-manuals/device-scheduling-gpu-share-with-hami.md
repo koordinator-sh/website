@@ -137,6 +137,7 @@ $ kubectl exec -it -n default pod-example bash
 ## View vGPU monitoring
 
 If the vgpuMonitor is enabled during the installation of hami-daemon and a default Prometheus is present in the cluster, then vGPU-related metrics can be queried from Prometheus.
+
 | Metrics Name                              | Description                                            |
 | ----------------------------------------- | -------------------------------------------------------|
 | `HostGPUMemoryUsage`                      | GPU device memory usage                                |
