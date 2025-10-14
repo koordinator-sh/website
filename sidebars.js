@@ -48,6 +48,7 @@ const sidebars = {
           'Heterogeneous Resources Scheduling': [
             'user-manuals/fine-grained-device-scheduling',
             'user-manuals/device-scheduling-gpu-share-with-hami',
+            'user-manuals/gpu-and-rdma-joint-allocation',
           ],
           'Heterogeneous Scheduling Strategy' : [
             'user-manuals/node-resource-fit-plus-scoring',
@@ -112,7 +113,6 @@ const sidebars = {
         'best-practices/colocation-of-hadoop-yarn',
         'best-practices/network-qos-with-terwayqos',
         'best-practices/develop-custom-deschedule-plugins',
-        'best-practices/gpu-and-rdma-joint-allocation',
       ],
     },
   ],
