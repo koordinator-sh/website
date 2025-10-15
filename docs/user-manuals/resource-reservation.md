@@ -251,9 +251,38 @@ spec:
   expires: "YYYY-MM-DDTHH:MM:SSZ"
 ```
 
-<!--
-TODO: update pre-allocation and preemption api
--->
+#### Field: `allocateOnce`
+
+- Type: `*bool`
+- Default: `true`
+- Description: When set to `true`, the reserved resources are only available for the first owner who allocates successfully and are not allocatable to other owners anymore. When set to `false`, the reservation can be allocated by multiple owners as long as there are sufficient resources.
+
+#### Field: `allocatePolicy`
+
+- Type: `ReservationAllocatePolicy`
+- Optional values: `Aligned`, `Restricted`
+- Description: Specifies the allocation policy for the reservation.
+  - `Aligned`: The Pod allocates resources from the Reservation first. If the remaining resources of the Reservation are insufficient, it can be allocated from the node, but it is required to strictly follow the resource specifications of the Pod. This avoids the problem that a Pod uses multiple Reservations at the same time.
+  - `Restricted`: The resources requested by the Pod that overlap with the resources reserved by the Reservation can only be allocated from the Reservation. Resources declared in Pods but not reserved in Reservations can be allocated from Nodes. `Restricted` includes the semantics of `Aligned`.
+
+#### Field: `preAllocation`
+
+- Type: `bool`
+- Default: `false`
+- Description: When `preAllocation` is set to `true`, the reservation can bind to already scheduled pods on nodes. The reservation will pre-allocate the resources from these running pods. When the bound pod terminates, the reservation automatically transitions from binding state to a normal reservation that reserves the freed resources.
+
+This is useful for scenarios like resource migration and graceful pod rescheduling, where you want to ensure resource continuity before a pod exits.
+
+#### Field: `unschedulable`
+
+- Type: `bool`
+- Default: `false`
+- Description: Controls reservation schedulability of new pods. By default, reservation is schedulable. When set to `true`, no new pods can allocate this reservation.
+
+#### Field: `taints`
+
+- Type: `[]corev1.Taint`
+- Description: Specifies the reservation's taints. Pods must tolerate these taints to allocate the reserved resources.
 
 ### Example: Reserve on Specified Node, with Multiple Owners
 

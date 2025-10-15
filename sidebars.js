@@ -109,6 +109,7 @@ const sidebars = {
       label: 'Best Practices',
       collapsed: true,
       items: [
+        'best-practices/batch-colocation-quick-start',
         'best-practices/colocation-of-spark-jobs',
         'best-practices/anolis_plugsched',
         'best-practices/fine-grained-cpu-orchestration',
