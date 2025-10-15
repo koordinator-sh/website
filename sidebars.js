@@ -43,6 +43,7 @@ const sidebars = {
         {
           'Task Scheduling': [
             'user-manuals/gang-scheduling',
+            'user-manuals/job-level-preemption',
             'user-manuals/capacity-scheduling',
           ],
           'Heterogeneous Resources Scheduling': [
