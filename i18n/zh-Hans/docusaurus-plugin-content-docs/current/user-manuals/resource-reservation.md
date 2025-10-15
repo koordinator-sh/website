@@ -249,9 +249,38 @@ spec:
   expires: "YYYY-MM-DDTHH:MM:SSZ"
 ```
 
-<!--
-TODO: update pre-allocation and preemption api
--->
+#### 字段: `allocateOnce`
+
+- 类型: `*bool`
+- 默认值: `true`
+- 描述: 当设置为 `true` 时,预留资源仅对第一个成功分配的属主可用,之后不再对其他属主可分配。当设置为 `false` 时,只要有足够的资源,预留资源可以被多个属主分配。
+
+#### 字段: `allocatePolicy`
+
+- 类型: `ReservationAllocatePolicy`
+- 可选值: `Aligned`, `Restricted`
+- 描述: 指定预留资源的分配策略。
+  - `Aligned`: Pod 优先从 Reservation 分配资源。如果 Reservation 的剩余资源不足,可以从节点分配,但需要严格遵循 Pod 的资源规范。这避免了 Pod 同时使用多个 Reservation 的问题。
+  - `Restricted`: Pod 请求的资源与 Reservation 预留的资源重叠部分只能从 Reservation 分配。Pod 中声明但 Reservation 中未预留的资源可以从节点分配。`Restricted` 包含 `Aligned` 的语义。
+
+#### 字段: `preAllocation`
+
+- 类型: `bool`
+- 默认值: `false`
+- 描述: 当 `preAllocation` 设置为 `true` 时,预留资源可以绑定到节点上已调度的 Pod。预留将预占这些运行中 Pod 的资源。当被绑定的 Pod 退出后,预留自动从绑定状态转变为预留已释放资源的普通预留。
+
+这对于资源迁移和优雅的 Pod 重新调度等场景非常有用,可以在 Pod 退出之前确保资源连续性。
+
+#### 字段: `unschedulable`
+
+- 类型: `bool`
+- 默认值: `false`
+- 描述: 控制新 Pod 对预留资源的可调度性。默认情况下,预留是可调度的。当设置为 `true` 时,没有新的 Pod 可以分配此预留资源。
+
+#### 字段: `taints`
+
+- 类型: `[]corev1.Taint`
+- 描述: 指定预留资源的污点。Pod 必须容忍这些污点才能分配预留资源。
 
 ### 案例：多个属主在同一个节点预留资源
 
