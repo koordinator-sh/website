@@ -33,6 +33,7 @@ const sidebars = {
         'architecture/priority',
         'architecture/qos',
         'architecture/job',
+        'architecture/device',
       ],
     },
     {
