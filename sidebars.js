@@ -52,6 +52,8 @@ const sidebars = {
             'user-manuals/fine-grained-device-scheduling',
             'user-manuals/device-scheduling-gpu-share-with-hami',
             'user-manuals/gpu-and-rdma-joint-allocation',
+            'user-manuals/device-scheduling-ascend-npu',
+            'user-manuals/device-scheduling-cambricon-mlu',
           ],
           'Heterogeneous Scheduling Strategy' : [
             'user-manuals/node-resource-fit-plus-scoring',
