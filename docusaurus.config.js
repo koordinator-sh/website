@@ -30,6 +30,8 @@ const config = {
   favicon: 'img/favicon.ico',
   organizationName: 'koordinator-sh', // Usually your GitHub org/user name.
   projectName: 'koordinator.sh', // Usually your repo name.
+  trailingSlash: false,
+
 
   presets: [
     [
@@ -95,10 +97,12 @@ const config = {
         content:
           '⭐️ If you like Koordinator, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/koordinator-sh/koordinator">GitHub</a>! ⭐️',
       },
-      algolia: { // TODO(FillZpp)
+      algolia: {
         apiKey: '72ec0a3c892141cf32490c676bb66628',
-        indexName: 'openkruise',
+        indexName: 'koordinator',
         appId: 'FKASWWQYOP',
+        contextualSearch: false,
+        searchParameters: {},
       },
       navbar: {
         title: 'Koordinator',
