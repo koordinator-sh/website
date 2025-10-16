@@ -19,7 +19,7 @@ Batch 混部是一种将批处理工作负载(如数据分析、机器学习训�
 
 Koordinator 可以帮助你:
 - **回收** 在线服务的空闲资源
-- **运行批处理作业** 使用这些回收的资源
+- **运行 Batch 作业** 使用这些回收的资源
 - **提高利用率** 至 50-80%,同时保证服务质量
 
 ## 核心概念
@@ -36,7 +36,7 @@ Koordinator 为不同类型的工作负载定义了五种 QoS(服务质量)等�
 | **LS** | 共享延迟敏感 | 共享,支持突发 | 典型微服务 |
 | **BE** | 尽力而为 | 无保证,可被限流/驱逐 | **批处理作业** ⭐ |
 
-对于批处理工作负载,你主要使用 **BE (Best Effort)** QoS 等级。
+对于具备批处理特征的工作负载,你主要使用 **BE (Best Effort)** QoS 等级。
 
 ### 2. 优先级类别
 
@@ -70,8 +70,8 @@ Koordinator 为批处理工作负载引入了特殊的资源类型:
 
 | 资源类型 | 描述 | 在 Pod 规格中使用 |
 |---------|------|-----------------|
-| `kubernetes.io/batch-cpu` | 批处理工作负载的 CPU | ✅ 必需 |
-| `kubernetes.io/batch-memory` | 批处理工作负载的内存 | ✅ 必需 |
+| `kubernetes.io/batch-cpu` | Batch 工作负载的 CPU | ✅ 必需 |
+| `kubernetes.io/batch-memory` | Batch 工作负载的内存 | ✅ 必需 |
 
 这些资源从集群的可回收资源池中分配。
 
@@ -137,11 +137,11 @@ koord-mid           7000        false        10m
 koord-prod          9000        false        10m
 ```
 
-## 运行你的第一个批处理工作负载
+## 运行你的第一个 Batch 工作负载
 
 ### 方法 1: 使用 ClusterColocationProfile (推荐)
 
-ClusterColocationProfile 可以根据标签自动向 Pod 注入混部配置。这是批处理工作负载最简单的方式。
+ClusterColocationProfile 可以根据标签自动向 Pod 注入混部配置。这是 Batch 工作负载最简单的方式。
 
 #### 步骤 1: 创建命名空间
 
@@ -168,7 +168,7 @@ spec:
   selector:
     matchLabels:
       app-type: batch
-  # 为批处理工作负载设置 QoS 为 BE
+  # 为 Batch 工作负载设置 QoS 为 BE
   qosClass: BE
   # 设置优先级类别
   priorityClassName: koord-batch
@@ -255,7 +255,7 @@ spec:
   - name: worker
     resources:
       limits:
-        kubernetes.io/batch-cpu: "2000"      # ✅ 转换为批处理资源
+        kubernetes.io/batch-cpu: "2000"      # ✅ 转换为 Batch 资源
         kubernetes.io/batch-memory: "4Gi"
       requests:
         kubernetes.io/batch-cpu: "2000"
@@ -289,7 +289,7 @@ spec:
         command: ["python", "-c", "print('你好,来自批处理作业'); import time; time.sleep(30)"]
         resources:
           requests:
-            kubernetes.io/batch-cpu: "1000"     # 使用批处理资源
+            kubernetes.io/batch-cpu: "1000"     # 使用 Batch 资源
             kubernetes.io/batch-memory: "2Gi"
           limits:
             kubernetes.io/batch-cpu: "1000"
@@ -313,7 +313,7 @@ kubectl apply -f manual-batch-job.yaml
 kubectl get node -o yaml | grep -A 10 "allocatable:"
 ```
 
-你应该看到可用的批处理资源:
+你应该看到可用的 Batch 资源:
 
 ```yaml
 allocatable:
@@ -419,7 +419,7 @@ spec:
 
 ```yaml
 spec:
-  schedulerName: koord-scheduler  # 批处理资源调度所必需
+  schedulerName: koord-scheduler  # Batch 资源调度所必需
 ```
 
 如果不设置这个,Pod 将使用默认的 Kubernetes 调度器,无法享受混部功能的好处。
@@ -512,7 +512,7 @@ kubectl describe pod <pod-name> -n batch-demo
 ```
 
 **常见原因**:
-- 可用批处理资源不足
+- 可用 Batch 资源不足
 - 节点选择器约束
 - 资源请求过高
 
@@ -537,7 +537,7 @@ kubectl get events -n batch-demo --sort-by='.lastTimestamp'
 - 使用检查点处理驱逐
 - 调整 Koordinator 资源预留设置(高级)
 
-### 问题 3: 批处理资源不可用
+### 问题 3: Batch 资源不可用
 
 **症状**: 节点上没有 `kubernetes.io/batch-cpu` 资源
 

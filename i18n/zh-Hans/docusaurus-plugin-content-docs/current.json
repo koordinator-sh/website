@@ -18,5 +18,13 @@
   "sidebar.docs.category.Best Practices": {
     "message": "最佳实践",
     "description": "The label for category Best Practices in sidebar docs"
+  },
+  "sidebar.docs.category.Best Practices": {
+    "message": "开发者手册",
+    "description": "The label for category Developer Guide in sidebar docs"
+  },
+  "sidebar.docs.category.Best Practices": {
+    "message": "API参考",
+    "description": "The label for category API Reference in sidebar docs"
   }
 }
