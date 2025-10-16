@@ -118,6 +118,30 @@ const sidebars = {
         'best-practices/develop-custom-deschedule-plugins',
       ],
     },
+    {
+      type: 'category',
+      label: 'Developer Guide',
+      collapsed: true,
+      items: [
+        'developer-guide/component-guide',
+        'developer-guide/metrics-collection',
+        'developer-guide/extensibility',
+        'developer-guide/plugin-development',
+        'developer-guide/custom-scheduling-policies',
+        'developer-guide/webhook-extensions',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'API Reference',
+      collapsed: true,
+      items: [
+        'api-reference/custom-resource-definitions',
+        'api-reference/client-libraries',
+        'api-reference/metrics-endpoints',
+        'api-reference/webhook-endpoints',
+      ],
+    },
   ],
 };
 
