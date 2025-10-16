@@ -41,29 +41,23 @@ Components:
 
 Supports joint allocation of multiple device types, ensuring related devices (GPU and memory) are allocated from the same physical unit for optimal performance. Supports hierarchical topology scopes (device, PCIe, NUMA, node) for allocation constraints.
 
-```mermaid
-classDiagram
-class DeviceSharePlugin {
-+Name() string
-+PreFilter()
-+Filter()
-+Reserve()
-+PreBind()
-}
-class DeviceAllocations {
-+DeviceType[]
-+Resources ResourceList
-+ID string
-}
-class DeviceAllocateHints {
-+Selector LabelSelector
-+AllocateStrategy DeviceAllocateStrategy
-+RequiredTopologyScope DeviceTopologyScope
-}
-DeviceSharePlugin --> DeviceAllocations : "manages"
-DeviceSharePlugin --> DeviceAllocateHints : "uses"
-DeviceAllocations --> DeviceAllocation : "contains"
-```
+**Device Sharing Plugin Class Structure:**
+
+Core classes and relationships:
+
+- **DeviceSharePlugin** (Device sharing plugin)
+  - Methods: `Name()`, `PreFilter()`, `Filter()`, `Reserve()`, `PreBind()`
+  - Manages DeviceAllocations
+  - Uses DeviceAllocateHints
+
+- **DeviceAllocations** (Device allocation set)
+  - Fields: `DeviceType[]`, `Resources ResourceList`, `ID string`
+  - Contains DeviceAllocation (single device allocation)
+
+- **DeviceAllocateHints** (Device allocation hints)
+  - Fields: `Selector LabelSelector`
+  - `AllocateStrategy DeviceAllocateStrategy` (allocation strategy)
+  - `RequiredTopologyScope DeviceTopologyScope` (topology scope)
 
 **Diagram sources **
 - [device_share.go](https://github.com/koordinator-sh/koordinator/tree/main/apis/extension/device_share.go#L0-L394)
@@ -80,32 +74,25 @@ Uses a tree structure with parent quotas governing total limits for children. Ea
 
 Integrates via PreFilter and Reserve extension points. PreFilter checks if resources are available within the pod's quota, considering guaranteed and borrowable resources. Reserve updates quota usage and prevents over-allocation. Includes controllers for quota lifecycle and resource reclaiming when quotas exceed limits.
 
-```mermaid
-classDiagram
-class ElasticQuotaPlugin {
-+Name() string
-+PreFilter()
-+PostFilter()
-+Reserve()
-+Unreserve()
-}
-class QuotaInfo {
-+Name string
-+Min ResourceList
-+Max ResourceList
-+Used ResourceList
-+NonPreemptibleUsed ResourceList
-}
-class GroupQuotaManager {
-+GetQuotaInfoByName()
-+ReservePod()
-+UnreservePod()
-+InitHookPlugins()
-}
-ElasticQuotaPlugin --> GroupQuotaManager : "uses"
-GroupQuotaManager --> QuotaInfo : "manages"
-ElasticQuotaPlugin --> QuotaInfo : "accesses"
-```
+**Elastic Quota Plugin Class Structure:**
+
+Core classes and relationships:
+
+- **ElasticQuotaPlugin** (Elastic quota plugin)
+  - Methods: `Name()`, `PreFilter()`, `PostFilter()`, `Reserve()`, `Unreserve()`
+  - Uses GroupQuotaManager
+  - Accesses QuotaInfo
+
+- **GroupQuotaManager** (Group quota manager)
+  - Methods: `GetQuotaInfoByName()`, `ReservePod()`, `UnreservePod()`, `InitHookPlugins()`
+  - Manages QuotaInfo
+
+- **QuotaInfo** (Quota information)
+  - Fields: `Name string`
+  - `Min ResourceList` (minimum guaranteed resources)
+  - `Max ResourceList` (maximum limit resources)
+  - `Used ResourceList` (used resources)
+  - `NonPreemptibleUsed ResourceList` (non-preemptible resources)
 
 **Diagram sources **
 - [elastic_quota.go](https://github.com/koordinator-sh/koordinator/tree/main/apis/extension/elastic_quota.go#L0-L232)

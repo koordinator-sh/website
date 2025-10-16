@@ -10,18 +10,24 @@ Koordinator implements Kubernetes admission webhooks to enforce custom policies 
 ## Webhook Registration
 Koordinator registers its admission webhooks through `MutatingWebhookConfiguration` and `ValidatingWebhookConfiguration` resources defined in `manifests.yaml`. These configurations specify the webhook server endpoint, rules for when webhooks are invoked, failure policies, and supported API versions.
 
-```mermaid
-graph TD
-A[MutatingWebhookConfiguration] --> B[mutate-pod]
-A --> C[mutate-node-status]
-A --> D[mutate-scheduling-sigs-k8s-io-v1alpha1-elasticquota]
-A --> E[mutate-reservation]
-F[ValidatingWebhookConfiguration] --> G[validate-pod]
-F --> H[validate-node]
-F --> I[validate-scheduling-sigs-k8s-io-v1alpha1-elasticquota]
-F --> J[validate-configmap]
-K[Webhook Server] --> A
-K --> F
+**Webhook Registration Architecture:**
+
+```
+MutatingWebhookConfiguration
+  ├── mutate-pod
+  ├── mutate-node-status
+  ├── mutate-scheduling-sigs-k8s-io-v1alpha1-elasticquota
+  └── mutate-reservation
+
+ValidatingWebhookConfiguration
+  ├── validate-pod
+  ├── validate-node
+  ├── validate-scheduling-sigs-k8s-io-v1alpha1-elasticquota
+  └── validate-configmap
+
+Webhook Server
+  ├─→ MutatingWebhookConfiguration
+  └─→ ValidatingWebhookConfiguration
 ```
 
 **Diagram sources**
@@ -225,16 +231,21 @@ The webhook server is configured to listen on port 9443 with TLS certificates ma
 
 Timeouts are controlled by the Kubernetes API server, typically defaulting to 30 seconds. The webhook implementation includes internal timeout handling to ensure timely responses.
 
-```mermaid
-sequenceDiagram
-participant API as Kubernetes API Server
-participant Webhook as Koordinator Webhook
-participant Client as kubectl
-Client->>API : Create Pod
-API->>Webhook : AdmissionReview Request
-Webhook->>Webhook : Process Request
-Webhook->>API : AdmissionReview Response
-API->>Client : Operation Result
+**Webhook Processing Flow:**
+
+```
+Participants:
+- Kubernetes API Server
+- Koordinator Webhook
+- kubectl (Client)
+
+Flow:
+
+1. kubectl → Kubernetes API Server: Create Pod
+2. Kubernetes API Server → Koordinator Webhook: AdmissionReview Request
+3. Koordinator Webhook internal: Process Request
+4. Koordinator Webhook → Kubernetes API Server: AdmissionReview Response
+5. Kubernetes API Server → kubectl: Operation Result
 ```
 
 **Diagram sources**

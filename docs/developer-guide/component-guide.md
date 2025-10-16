@@ -17,12 +17,13 @@ Key configuration options:
 - `--config-namespace`: Specify configuration namespace
 - Webhook server: Runs on port 9876 for admission control
 
-```mermaid
-graph TB
-Manager[koord-manager] --> Webhook[Webhook Server]
-Manager --> Leader[Leader Election]
-Manager --> Scheduler[koord-scheduler]
-Manager --> Koordlet[koordlet]
+**Component Interaction:**
+```
+koord-manager
+  ├── Webhook Server (Port 9876)
+  ├── Leader Election (High Availability)
+  ├── Coordinates with koord-scheduler
+  └── Coordinates with koordlet
 ```
 
 **Diagram sources**
@@ -46,19 +47,20 @@ Key scheduling plugins:
 - **Coscheduling**: Gang scheduling for pod groups
 - **DeviceShare**: Shared device management (GPU, RDMA, FPGA)
 
-```mermaid
-graph TD
-A[Scheduler Configuration] --> B[Global Settings]
-A --> C[Plugin Configurations]
-A --> D[Framework Extensions]
-B --> F[InsecureServing]
-C --> G[LoadAwareScheduling]
-C --> H[NodeNUMAResource]
-C --> I[Reservation]
-C --> J[ElasticQuota]
-C --> K[Coscheduling]
-C --> L[DeviceShare]
-D --> M[ServicesEngine]
+**Scheduler Configuration Hierarchy:**
+```
+Scheduler Configuration
+├── Global Settings
+│   └── InsecureServing
+├── Plugin Configurations
+│   ├── LoadAwareScheduling (Load-aware scheduling)
+│   ├── NodeNUMAResource (NUMA resource management)
+│   ├── Reservation (Resource reservation)
+│   ├── ElasticQuota (Elastic quota)
+│   ├── Coscheduling (Gang scheduling)
+│   └── DeviceShare (Device sharing)
+└── Framework Extensions
+    └── ServicesEngine
 ```
 
 **Diagram sources**
@@ -90,43 +92,28 @@ Architecture subsystems:
 - **Prediction**: Provides resource usage prediction
 - **StatesInformer**: Maintains consistent pod and node state views
 
-```mermaid
-classDiagram
-class daemon {
-+metricAdvisor MetricAdvisor
-+statesInformer StatesInformer
-+metricCache MetricCache
-+qosManager QOSManager
-+runtimeHook RuntimeHook
-+predictServer PredictServer
-+executor ResourceUpdateExecutor
-+extensionControllers []Controller
-}
-class MetricAdvisor {
-+Run(stopCh <-chan struct{})
-+HasSynced() bool
-}
-class StatesInformer {
-+Run(stopCh <-chan struct{})
-+HasSynced() bool
-}
-class MetricCache {
-+Run(stopCh <-chan struct{})
-}
-class QOSManager {
-+Run(stopCh <-chan struct{})
-}
-class RuntimeHook {
-+Run(stopCh <-chan struct{})
-}
-class PredictServer {
-+Setup(statesInformer StatesInformer, metricCache MetricCache)
-+Run(stopCh <-chan struct{})
-}
-class ResourceUpdateExecutor {
-+Run(stopCh <-chan struct{})
-}
-```
+**koordlet Daemon Components:**
+
+Core components and responsibilities:
+- **daemon**: Main daemon process containing subsystems
+  - **MetricAdvisor**: Metrics analyzer
+    - `Run(stopCh)`: Run main loop
+    - `HasSynced()`: Check sync status
+  - **StatesInformer**: State notifier
+    - `Run(stopCh)`: Run main loop  
+    - `HasSynced()`: Check sync status
+  - **MetricCache**: Metrics cache
+    - `Run(stopCh)`: Run main loop
+  - **QOSManager**: QoS manager
+    - `Run(stopCh)`: Run main loop
+  - **RuntimeHook**: Runtime hooks
+    - `Run(stopCh)`: Run main loop
+  - **PredictServer**: Prediction server
+    - `Setup()`: Setup dependencies
+    - `Run(stopCh)`: Run main loop
+  - **ResourceUpdateExecutor**: Resource update executor
+    - `Run(stopCh)`: Run main loop
+  - **extensionControllers**: Extension controllers list
 
 **Diagram sources**
 - [koordlet.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/koordlet.go#L1-L210)
@@ -148,22 +135,23 @@ Operates as a Kubernetes controller manager with:
 - **Informer Factory**: Maintains cached cluster resource views
 - **Eviction Limiter**: Controls pod eviction rate to prevent disruption
 
-```mermaid
-graph TB
-A[koord-descheduler] --> B[Descheduler Core]
-A --> C[Controller Manager]
-B --> D[Profiles]
-D --> E[Deschedule Plugins]
-D --> F[Balance Plugins]
-D --> G[Filter Plugins]
-D --> H[Evict Plugins]
-C --> I[Migration Controller]
-C --> J[Drain Controller]
-B --> K[Eviction Limiter]
-B --> L[Informer Factory]
-L --> M[Node Informer]
-L --> N[Pod Informer]
-L --> O[Custom Resource Informers]
+**koord-descheduler Architecture:**
+```
+koord-descheduler
+├── Descheduler Core
+│   ├── Profiles
+│   │   ├── Deschedule Plugins
+│   │   ├── Balance Plugins
+│   │   ├── Filter Plugins
+│   │   └── Evict Plugins
+│   ├── Eviction Limiter
+│   └── Informer Factory
+│       ├── Node Informer
+│       ├── Pod Informer
+│       └── Custom Resource Informers
+└── Controller Manager
+    ├── Migration Controller
+    └── Drain Controller
 ```
 
 **Diagram sources**
@@ -190,17 +178,25 @@ Architecture components:
 - **Manager Map**: Registry for different hardware type device managers
 - **Configuration**: Manages component configuration from files, environment, and CLI
 
-```mermaid
-flowchart TD
-Start([Start]) --> LoadConfig["Load Configuration"]
-LoadConfig --> CreatePrinters["Create Printers"]
-CreatePrinters --> GeneratePrints["Generate Prints"]
-GeneratePrints --> OutputPrints["Output Prints"]
-OutputPrints --> CheckOneshot["Check Oneshot Mode"]
-CheckOneshot --> |Yes| Exit([Exit])
-CheckOneshot --> |No| Sleep["Sleep Interval"]
-Sleep --> Rerun["Rerun Discovery"]
-Rerun --> GeneratePrints
+**koord-device-daemon Execution Flow:**
+```
+1. Start
+   ↓
+2. Load Configuration
+   ↓
+3. Create Printers
+   ↓
+4. Generate Device Prints
+   ↓
+5. Output Device Prints
+   ↓
+6. Check Oneshot Mode
+   ├─ Yes → Exit
+   └─ No → Sleep Interval
+              ↓
+           Rerun Discovery
+              ↓
+           Return to Step 4
 ```
 
 **Diagram sources**
@@ -230,20 +226,20 @@ Architecture:
 - **Dispatcher**: Routes CRI calls to handlers
 - **Resource Executor**: Applies resource policies to containers
 
-```mermaid
-graph TD
-A[koord-runtime-proxy] --> B[Runtime Proxy Endpoint]
-A --> C[Backend Runtime Mode]
-C --> D[Containerd]
-C --> E[Docker]
-D --> F[CRI Server]
-E --> G[Docker Server]
-A --> H[Runtime Hook Server Key/Val]
-H --> I[Skip Hook Server Pods]
-F --> J[Intercept CRI Calls]
-G --> J
-J --> K[Apply Resource Policies]
-K --> L[Forward to Backend Runtime]
+**koord-runtime-proxy Workflow:**
+```
+koord-runtime-proxy
+├── Runtime Proxy Endpoint
+├── Backend Runtime Mode
+│   ├── Containerd Mode
+│   │   └── CRI Server
+│   └── Docker Mode
+│       └── Docker Server
+└── Runtime Hook Server Key/Val
+    └── Skip Hook Server Pods
+
+Data Flow:
+Intercept CRI Calls → Apply Resource Policies → Forward to Backend Runtime
 ```
 
 **Diagram sources**
@@ -272,22 +268,34 @@ Integration workflow:
 5. koord-runtime-proxy intercepts container runtime calls
 6. Components coordinate through API server shared state
 
-```mermaid
-sequenceDiagram
-participant API as Kubernetes API Server
-participant Manager as koord-manager
-participant Scheduler as koord-scheduler
-participant Koordlet as koordlet
-participant Device as koord-device-daemon
-participant Proxy as koord-runtime-proxy
-Manager->>API : Watch CRDs and ConfigMaps
-Scheduler->>API : Register as scheduler
-Koordlet->>API : Report node metrics
-Device->>API : Update node labels with device info
-Proxy->>API : Intercept CRI calls
-API->>Scheduler : Provide metrics for scheduling
-Scheduler->>API : Schedule pods with QoS policies
-API->>Koordlet : Apply QoS policies to pods
+**Component Communication Sequence:**
+
+```
+Communication Flow:
+
+1. koord-manager → API Server
+   - Watch CRDs and ConfigMaps
+
+2. koord-scheduler → API Server
+   - Register as scheduler
+
+3. koordlet → API Server
+   - Report node metrics
+
+4. koord-device-daemon → API Server
+   - Update node device labels
+
+5. koord-runtime-proxy → API Server
+   - Intercept CRI calls
+
+6. API Server → koord-scheduler
+   - Provide scheduling metrics
+
+7. koord-scheduler → API Server
+   - Schedule pods with QoS policies
+
+8. API Server → koordlet
+   - Apply QoS policies to pods
 ```
 
 **Diagram sources**
@@ -342,20 +350,32 @@ Performance and scalability depend on cluster size, workload characteristics, an
 - Tune metric collection frequency
 - Use node affinity and taints for component placement
 
-```mermaid
-flowchart TD
-Start([Cluster Deployment]) --> DetermineReplicas["Determine koord-manager Replicas"]
-DetermineReplicas --> |Small Cluster| DeploySingleReplica["Deploy Single Replica"]
-DetermineReplicas --> |Large Cluster| DeployMultipleReplicas["Deploy Multiple Replicas"]
-DeploySingleReplica --> ConfigureWebhook["Configure Webhook Settings"]
-DeployMultipleReplicas --> ConfigureWebhook
-ConfigureWebhook --> SetTimeouts["Set Webhook Timeouts"]
-SetTimeouts --> ConfigureConcurrency["Configure Concurrency Settings"]
-ConfigureConcurrency --> ConfigureQueue["Configure Request Queue"]
-ConfigureQueue --> ConfigureRetry["Configure Retry Policy"]
-ConfigureRetry --> MonitorPerformance["Monitor Performance"]
-MonitorPerformance --> AdjustConfiguration["Adjust Configuration as Needed"]
-AdjustConfiguration --> ConfigureWebhook
+**Performance and Scaling Configuration Flow:**
+
+```
+Cluster Deployment Process:
+
+1. Cluster Deployment
+   ↓
+2. Determine koord-manager Replicas
+   ├─ Small Cluster → Deploy Single Replica
+   └─ Large Cluster → Deploy Multiple Replicas
+   ↓
+3. Configure Webhook Settings
+   ↓
+4. Set Webhook Timeouts
+   ↓
+5. Configure Concurrency Settings
+   ↓
+6. Configure Request Queue
+   ↓
+7. Configure Retry Policy
+   ↓
+8. Monitor Performance
+   ↓
+9. Adjust Configuration as Needed
+   ↓
+   Return to Step 3 (iterate as needed)
 ```
 
 **Diagram sources**

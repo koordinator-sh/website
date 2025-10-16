@@ -10,39 +10,25 @@ Koordinator provides a comprehensive extensibility framework for custom policies
 ## Plugin Architecture and Registration
 Koordinator's plugin architecture builds on an enhanced Kubernetes scheduling framework with additional extension points while maintaining compatibility. Uses a factory pattern for plugin registration that intercepts initialization to inject extended functionality.
 
-```mermaid
-classDiagram
-class FrameworkExtender {
-+ExtendedHandle
-+SetConfiguredPlugins()
-+RunReservationExtensionPreRestoreReservation()
-+RunReservationExtensionRestoreReservation()
-+RunReservationScorePlugins()
-+RunReservationFilterPlugins()
-+RunNUMATopologyManagerAdmit()
-+RunAllocatePlugins()
-}
-class ExtendedHandle {
-+Scheduler()
-+KoordinatorClientSet()
-+KoordinatorSharedInformerFactory()
-+RegisterErrorHandlerFilters()
-+RegisterForgetPodHandler()
-+GetReservationNominator()
-+GetNetworkTopologyTreeManager()
-}
-class FrameworkExtenderFactory {
-+NewFrameworkExtender()
-+GetExtender()
-+InitScheduler()
-+PluginFactoryProxy()
-+updatePlugins()
-}
-FrameworkExtender <|-- frameworkExtenderImpl
-ExtendedHandle <|-- frameworkExtenderImpl
-FrameworkExtenderFactory --> frameworkExtenderImpl : creates
-FrameworkExtenderFactory --> PluginFactoryProxy : uses
-```
+**Framework Extender Class Structure:**
+
+Core components and relationships:
+
+- **FrameworkExtender** (Framework extender interface)
+  - Methods: `SetConfiguredPlugins()`, `RunReservationExtensionPreRestoreReservation()`, `RunReservationExtensionRestoreReservation()`, `RunReservationScorePlugins()`, `RunReservationFilterPlugins()`, `RunNUMATopologyManagerAdmit()`, `RunAllocatePlugins()`
+  - Contains ExtendedHandle
+
+- **ExtendedHandle** (Extended handle interface)
+  - Methods: `Scheduler()`, `KoordinatorClientSet()`, `KoordinatorSharedInformerFactory()`, `RegisterErrorHandlerFilters()`, `RegisterForgetPodHandler()`, `GetReservationNominator()`, `GetNetworkTopologyTreeManager()`
+
+- **FrameworkExtenderFactory** (Framework extender factory)
+  - Methods: `NewFrameworkExtender()`, `GetExtender()`, `InitScheduler()`, `PluginFactoryProxy()`, `updatePlugins()`
+  - Creates frameworkExtenderImpl
+  - Uses PluginFactoryProxy
+
+Relationships:
+- frameworkExtenderImpl implements FrameworkExtender and ExtendedHandle interfaces
+- FrameworkExtenderFactory creates and manages frameworkExtenderImpl
 
 **Diagram sources**
 - [framework_extender.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/scheduler/frameworkext/framework_extender.go)
@@ -63,21 +49,30 @@ Transformer plugins modify scheduling objects (Pods and NodeInfo) before core op
 - AllocatePlugins (at Reserve phase)
 - Bind Phase
 
-```mermaid
-flowchart TD
-Start([Scheduling Cycle]) --> PreFilterPhase["PreFilter Phase"]
-PreFilterPhase --> BeforePreFilter["BeforePreFilter Transformers"]
-BeforePreFilter --> CorePreFilter["Core PreFilter Plugins"]
-CorePreFilter --> AfterPreFilter["AfterPreFilter Transformers"]
-AfterPreFilter --> FilterPhase["Filter Phase"]
-FilterPhase --> BeforeFilter["BeforeFilter Transformers"]
-BeforeFilter --> CoreFilter["Core Filter Plugins"]
-CoreFilter --> ScorePhase["Score Phase"]
-ScorePhase --> BeforeScore["BeforeScore Transformers"]
-BeforeScore --> CoreScore["Core Score Plugins"]
-CoreScore --> ReservePhase["Reserve Phase"]
-ReservePhase --> AllocatePlugins["Allocate Plugins"]
-AllocatePlugins --> BindPhase["Bind Phase"]
+**Transformer Extension Point Execution Flow:**
+
+```
+Scheduling Cycle Phases:
+
+1. Scheduling Cycle Start
+   ↓
+2. PreFilter Phase
+   ├─ BeforePreFilter Transformers
+   ├─ Core PreFilter Plugins
+   └─ AfterPreFilter Transformers
+   ↓
+3. Filter Phase
+   ├─ BeforeFilter Transformers
+   └─ Core Filter Plugins
+   ↓
+4. Score Phase
+   ├─ BeforeScore Transformers
+   └─ Core Score Plugins
+   ↓
+5. Reserve Phase
+   └─ Allocate Plugins
+   ↓
+6. Bind Phase
 ```
 
 **Section sources**
@@ -92,23 +87,39 @@ Koordinator provides specialized extension points for reservation-based scheduli
 4. RunReservationScorePlugins
 5. NominateReservation
 
-```mermaid
-sequenceDiagram
-participant Pod as "Pod to Schedule"
-participant Framework as "FrameworkExtender"
-participant Reservation as "Reservation Plugin"
-Pod->>Framework : Schedule Request
-Framework->>Framework : RunReservationExtensionPreRestoreReservation
-Framework->>Reservation : RestoreReservation (matched/unmatched)
-Reservation-->>Framework : PluginToReservationRestoreStates
-Framework->>Framework : RunReservationFilterPlugins
-Framework->>Reservation : FilterReservation
-Reservation-->>Framework : Filter Status
-Framework->>Framework : RunReservationScorePlugins
-Framework->>Reservation : ScoreReservation
-Reservation-->>Framework : Reservation Scores
-Framework->>Framework : NominateReservation
-Framework-->>Pod : Selected Node and Reservation
+**Reservation Management Extension Point Interaction Flow:**
+
+```
+Participants:
+- Pod to Schedule (pod to be scheduled)
+- FrameworkExtender (framework extender)
+- Reservation Plugin (reservation plugin)
+
+Flow:
+
+1. Pod → FrameworkExtender: Schedule Request
+
+2. FrameworkExtender: Execute RunReservationExtensionPreRestoreReservation
+
+3. FrameworkExtender → ReservationPlugin: RestoreReservation(matched/unmatched)
+
+4. ReservationPlugin → FrameworkExtender: Return PluginToReservationRestoreStates
+
+5. FrameworkExtender: Execute RunReservationFilterPlugins
+
+6. FrameworkExtender → ReservationPlugin: FilterReservation
+
+7. ReservationPlugin → FrameworkExtender: Return Filter Status
+
+8. FrameworkExtender: Execute RunReservationScorePlugins
+
+9. FrameworkExtender → ReservationPlugin: ScoreReservation
+
+10. ReservationPlugin → FrameworkExtender: Return Reservation Scores
+
+11. FrameworkExtender: Execute NominateReservation
+
+12. FrameworkExtender → Pod: Return Selected Node and Reservation
 ```
 
 **Diagram sources**
@@ -121,29 +132,17 @@ Koordinator's webhook system provides admission control through mutating and val
 ### Webhook Architecture
 The webhook server architecture follows a modular design with centralized registration and feature-based activation:
 
-```mermaid
-graph TB
-subgraph "API Server"
-API[API Server]
-end
-subgraph "Webhook Server"
-Server[Webhook Server]
-HandlerRegistry[Handler Registry]
-HealthChecker[Health Checker]
-end
-subgraph "Webhook Components"
-PodWebhook[Pod Webhooks]
-NodeWebhook[Node Webhooks]
-ReservationWebhook[Reservation Webhooks]
-end
-API --> Server
-Server --> HandlerRegistry
-HandlerRegistry --> PodWebhook
-HandlerRegistry --> NodeWebhook
-HandlerRegistry --> ReservationWebhook
-Server --> HealthChecker
-style Server fill:#f9f,stroke:#333
-style HandlerRegistry fill:#bbf,stroke:#333
+**Webhook Server Architecture:**
+
+```
+API Server
+  ↓ (requests)
+Webhook Server
+  ├── Handler Registry
+  │   ├── Pod Webhooks
+  │   ├── Node Webhooks
+  │   └── Reservation Webhooks
+  └── Health Checker
 ```
 
 **Diagram sources**
@@ -158,18 +157,26 @@ The cluster colocation profile webhook demonstrates mutation logic applying QoS 
 4. Apply Mutations from Profiles
 5. Handle Resource Specifications
 
-```mermaid
-flowchart TD
-Start([Admission Request]) --> ProfileCheck["Load ClusterColocationProfiles"]
-ProfileCheck --> MatchProfiles["Match Profiles to Pod"]
-MatchProfiles --> HasMatch{"Profiles Matched?"}
-HasMatch --> |No| AllowRequest["Allow Request"]
-HasMatch --> |Yes| SortProfiles["Sort Profiles by Name"]
-SortProfiles --> ApplyMutations["Apply Mutations from Profiles"]
-ApplyMutations --> HandleResources["Handle Resource Specifications"]
-HandleResources --> CompleteRequest["Complete Request"]
-AllowRequest --> CompleteRequest
-CompleteRequest --> End([Request Complete])
+**Cluster Colocation Profile Webhook Processing Flow:**
+
+```
+1. Admission Request
+   ↓
+2. Load ClusterColocationProfiles
+   ↓
+3. Match Profiles to Pod
+   ↓
+4. Profiles Matched?
+   ├─ No → Allow Request
+   └─ Yes → Continue
+   ↓
+5. Sort Profiles by Name
+   ↓
+6. Apply Mutations from Profiles
+   ↓
+7. Handle Resource Specifications
+   ↓
+8. Complete Request
 ```
 
 **Section sources**
@@ -182,23 +189,37 @@ Koordinator's QoS enforcement combines webhook mutations and scheduling framewor
 ### QoS Policy Application Flow
 The QoS policy application follows a multi-stage process that begins with webhook mutation and continues through the scheduling pipeline:
 
-```mermaid
-sequenceDiagram
-participant User as "User"
-participant API as "API Server"
-participant Webhook as "Koordinator Webhook"
-participant Scheduler as "Koordinator Scheduler"
-User->>API : Create Pod
-API->>Webhook : Admission Review
-Webhook->>Webhook : Match ClusterColocationProfiles
-Webhook->>Webhook : Apply QoS Labels and Annotations
-Webhook->>Webhook : Transform Resource Specifications
-Webhook-->>API : Patch Operations
-API->>API : Apply Patches
-API->>Scheduler : Schedule Pod
-Scheduler->>Scheduler : Apply QoS-aware Scheduling
-Scheduler->>Scheduler : Enforce Resource Isolation
-Scheduler-->>User : Pod Scheduled
+**QoS Policy Application Flow:**
+
+```
+Participants:
+- User
+- API Server
+- Koordinator Webhook
+- Koordinator Scheduler
+
+Flow:
+
+1. User → API Server: Create Pod
+
+2. API Server → Koordinator Webhook: Admission Review
+
+3. Koordinator Webhook internal processing:
+   - Match ClusterColocationProfiles
+   - Apply QoS Labels and Annotations
+   - Transform Resource Specifications
+
+4. Koordinator Webhook → API Server: Patch Operations
+
+5. API Server internal: Apply Patches
+
+6. API Server → Koordinator Scheduler: Schedule Pod
+
+7. Koordinator Scheduler internal processing:
+   - Apply QoS-aware Scheduling
+   - Enforce Resource Isolation
+
+8. Koordinator Scheduler → User: Pod Scheduled
 ```
 
 **Section sources**
@@ -220,19 +241,22 @@ Developing custom plugins requires understanding plugin registration, extension 
 - **Integration Testing**: Test with real components for framework integration
 - **End-to-End Testing**: Validate system behavior in cluster
 
-```mermaid
-flowchart TD
-subgraph "Testing Levels"
-UnitTest[Unit Testing]
-IntegrationTest[Integration Testing]
-E2ETest[End-to-End Testing]
-end
-UnitTest --> |Mocks| PluginLogic["Plugin Business Logic"]
-IntegrationTest --> |Real Components| FrameworkIntegration["Framework Integration"]
-E2ETest --> |Cluster| SystemBehavior["System Behavior"]
-style UnitTest fill:#dfd,stroke:#333
-style IntegrationTest fill:#ddf,stroke:#333
-style E2ETest fill:#fdd,stroke:#333
+**Plugin Testing Strategy Levels:**
+
+```
+Testing Levels:
+
+1. Unit Testing
+   - Uses Mocks
+   - Tests Plugin Business Logic
+
+2. Integration Testing
+   - Uses Real Components
+   - Tests Framework Integration
+
+3. End-to-End Testing
+   - Uses Cluster Environment
+   - Tests System Behavior
 ```
 
 **Section sources**

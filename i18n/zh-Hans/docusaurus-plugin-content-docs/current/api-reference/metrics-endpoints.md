@@ -10,17 +10,17 @@ Koordinator exposes comprehensive Prometheus metrics through its various compone
 ## Component Metrics Endpoints
 Each Koordinator component exposes metrics through a dedicated HTTP endpoint with specific port configurations and security settings. The metrics endpoints follow the standard Prometheus exposition format and are accessible via the /metrics path.
 
-```mermaid
-graph TD
-A[Koord-manager] --> B[/metrics<br/>Port: 8080]
-C[Koord-scheduler] --> D[/metrics<br/>Port: 10251]
-E[Koordlet] --> F[/metrics<br/>Port: 9808]
-G[Koord-descheduler] --> H[/metrics<br/>Port: 10260]
-B --> I[Metrics Collection]
-D --> I
-F --> I
-H --> I
-I --> J[Prometheus Server]
+**Component Metrics Endpoints:**
+
+```
+Koord-manager → /metrics (Port: 8080)
+Koord-scheduler → /metrics (Port: 10251)
+Koordlet → /metrics (Port: 9808)
+Koord-descheduler → /metrics (Port: 10260)
+  ↓
+Metrics Collection
+  ↓
+Prometheus Server
 ```
 
 **Diagram sources**
@@ -39,38 +39,28 @@ The koordlet component, running as a daemon on each node, exposes detailed metri
 ### Resource Utilization Metrics
 Koordlet collects and exposes various resource utilization metrics at both node and container levels, including CPU, memory, and specialized metrics like PSI (Pressure Stall Information).
 
-```mermaid
-classDiagram
-class NodeResourceAllocatable {
-+string node
-+string resource
-+string unit
-+float64 value
-+help "the node allocatable of resources updated by koordinator"
-}
-class ContainerResourceRequests {
-+string node
-+string resource
-+string unit
-+string pod_uid
-+string pod_name
-+string pod_namespace
-+string container_id
-+string container_name
-+float64 value
-+help "the container requests of resources updated by koordinator"
-}
-class NodePredictedResourceReclaimable {
-+string node
-+string predictor
-+string resource
-+string unit
-+float64 value
-+help "the node reclaimable resources predicted by koordinator"
-}
-NodeResourceAllocatable --> ContainerResourceRequests : "contains"
-NodeResourceAllocatable --> NodePredictedResourceReclaimable : "relates to"
-```
+**Node Resource Metrics Class Structure:**
+
+Core metric classes and relationships:
+
+- **NodeResourceAllocatable**
+  - Labels: `node`, `resource`, `unit`
+  - Value: `float64`
+  - Help: "the node allocatable of resources updated by koordinator"
+
+- **ContainerResourceRequests**
+  - Labels: `node`, `resource`, `unit`, `pod_uid`, `pod_name`, `pod_namespace`, `container_id`, `container_name`
+  - Value: `float64`
+  - Help: "the container requests of resources updated by koordinator"
+
+- **NodePredictedResourceReclaimable**
+  - Labels: `node`, `predictor`, `resource`, `unit`
+  - Value: `float64`
+  - Help: "the node reclaimable resources predicted by koordinator"
+
+Relationships:
+- NodeResourceAllocatable contains ContainerResourceRequests
+- NodeResourceAllocatable relates to NodePredictedResourceReclaimable
 
 **Diagram sources**
 - [metrics.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/metrics/resource_summary.go)
@@ -82,46 +72,28 @@ NodeResourceAllocatable --> NodePredictedResourceReclaimable : "relates to"
 ### Performance and QoS Metrics
 Koordlet exposes specialized metrics for performance monitoring and QoS enforcement, including CPU burst, core scheduling, and PSI metrics that help identify resource contention and performance bottlenecks.
 
-```mermaid
-classDiagram
-class ContainerScaledCFSBurstUS {
-+string node
-+string pod_namespace
-+string pod_name
-+string container_id
-+string container_name
-+float64 value
-+help "The maximum accumulated run-time(in microseconds) in container-level set by koordlet"
-}
-class ContainerPSI {
-+string node
-+string container_id
-+string container_name
-+string pod_uid
-+string pod_name
-+string pod_namespace
-+string psi_resource_type
-+string psi_precision
-+string psi_degree
-+string cpu_full_supported
-+float64 value
-+help "Container psi collected by koordlet"
-}
-class ContainerCoreSchedCookie {
-+string node
-+string pod_name
-+string pod_namespace
-+string pod_uid
-+string container_name
-+string container_id
-+string core_sched_group
-+string core_sched_cookie
-+float64 value
-+help "the core scheduling cookie of the container"
-}
-ContainerScaledCFSBurstUS --> ContainerPSI : "correlates with"
-ContainerScaledCFSBurstUS --> ContainerCoreSchedCookie : "influences"
-```
+**Performance and QoS Metrics Class Structure:**
+
+Core metric classes and relationships:
+
+- **ContainerScaledCFSBurstUS**
+  - Labels: `node`, `pod_namespace`, `pod_name`, `container_id`, `container_name`
+  - Value: `float64`
+  - Help: "The maximum accumulated run-time(in microseconds) in container-level set by koordlet"
+
+- **ContainerPSI**
+  - Labels: `node`, `container_id`, `container_name`, `pod_uid`, `pod_name`, `pod_namespace`, `psi_resource_type`, `psi_precision`, `psi_degree`, `cpu_full_supported`
+  - Value: `float64`
+  - Help: "Container psi collected by koordlet"
+
+- **ContainerCoreSchedCookie**
+  - Labels: `node`, `pod_name`, `pod_namespace`, `pod_uid`, `container_name`, `container_id`, `core_sched_group`, `core_sched_cookie`
+  - Value: `float64`
+  - Help: "the core scheduling cookie of the container"
+
+Relationships:
+- ContainerScaledCFSBurstUS correlates with ContainerPSI
+- ContainerScaledCFSBurstUS influences ContainerCoreSchedCookie
 
 **Diagram sources**
 - [metrics.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/metrics/cpu_burst.go)
@@ -137,32 +109,34 @@ The koord-scheduler component extends the Kubernetes scheduler with additional s
 ### Scheduling Performance Metrics
 Koord-scheduler provides detailed metrics about the scheduling process, including latency, node evaluation statistics, and timeout information.
 
-```mermaid
-classDiagram
-class PodSchedulingEvaluatedNodes {
-+float64 value
-+help "The number of nodes the scheduler evaluated the pod against in the filtering phase and beyond when find the suggested node"
-+buckets exponential(1,2,24)
-}
-class PodSchedulingFeasibleNodes {
-+float64 value
-+help "The number of of nodes out of the evaluated ones that fit the pod when find the suggested node"
-+buckets exponential(1,2,24)
-}
-class SchedulingTimeout {
-+string profile
-+float64 value
-+help "The currently scheduled Pod exceeds the maximum acceptable time interval"
-}
-class ElasticQuotaProcessLatency {
-+string operation
-+float64 value
-+help "elastic quota process latency in second"
-+buckets exponential(0.00001,2,24)
-}
-PodSchedulingEvaluatedNodes --> PodSchedulingFeasibleNodes : "subset of"
-SchedulingTimeout --> ElasticQuotaProcessLatency : "related to"
-```
+**Scheduling Performance Metrics Class Structure:**
+
+Core metric classes and relationships:
+
+- **PodSchedulingEvaluatedNodes**
+  - Value: `float64`
+  - Help: "The number of nodes the scheduler evaluated the pod against in the filtering phase and beyond when find the suggested node"
+  - Buckets: exponential(1,2,24)
+
+- **PodSchedulingFeasibleNodes**
+  - Value: `float64`
+  - Help: "The number of of nodes out of the evaluated ones that fit the pod when find the suggested node"
+  - Buckets: exponential(1,2,24)
+
+- **SchedulingTimeout**
+  - Labels: `profile`
+  - Value: `float64`
+  - Help: "The currently scheduled Pod exceeds the maximum acceptable time interval"
+
+- **ElasticQuotaProcessLatency**
+  - Labels: `operation`
+  - Value: `float64`
+  - Help: "elastic quota process latency in second"
+  - Buckets: exponential(0.00001,2,24)
+
+Relationships:
+- PodSchedulingEvaluatedNodes is a subset of PodSchedulingFeasibleNodes
+- SchedulingTimeout is related to ElasticQuotaProcessLatency
 
 **Diagram sources**
 - [metrics.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/scheduler/metrics/metrics.go)
@@ -173,29 +147,27 @@ SchedulingTimeout --> ElasticQuotaProcessLatency : "related to"
 ### Reservation and Quota Metrics
 The scheduler exposes metrics related to resource reservations and elastic quotas, which are essential for understanding resource allocation and utilization patterns.
 
-```mermaid
-classDiagram
-class ReservationStatusPhase {
-+string name
-+string phase
-+float64 value
-+help "The current number of reservations in each status phase (e.g. Pending, Available, Succeeded, Failed)"
-}
-class ReservationResource {
-+string type
-+string name
-+string resource
-+string unit
-+float64 value
-+help "Resource metrics for a reservation, including allocatable, allocated, and utilization with unit."
-}
-class WaitingGangGroupNumber {
-+float64 value
-+help "The number of GangGroups in Waiting"
-}
-ReservationStatusPhase --> ReservationResource : "contains"
-ReservationStatusPhase --> WaitingGangGroupNumber : "affects"
-```
+**Reservation and Quota Metrics Class Structure:**
+
+Core metric classes and relationships:
+
+- **ReservationStatusPhase**
+  - Labels: `name`, `phase`
+  - Value: `float64`
+  - Help: "The current number of reservations in each status phase (e.g. Pending, Available, Succeeded, Failed)"
+
+- **ReservationResource**
+  - Labels: `type`, `name`, `resource`, `unit`
+  - Value: `float64`
+  - Help: "Resource metrics for a reservation, including allocatable, allocated, and utilization with unit."
+
+- **WaitingGangGroupNumber**
+  - Value: `float64`
+  - Help: "The number of GangGroups in Waiting"
+
+Relationships:
+- ReservationStatusPhase contains ReservationResource
+- ReservationStatusPhase affects WaitingGangGroupNumber
 
 **Diagram sources**
 - [metrics.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/scheduler/metrics/metrics.go)
@@ -209,23 +181,22 @@ The koord-descheduler component is responsible for evicting pods to improve reso
 ### Pod Eviction Metrics
 The descheduler tracks all pod eviction activities, including successful evictions, failed attempts, and the strategies that triggered the evictions.
 
-```mermaid
-classDiagram
-class PodsEvicted {
-+string result
-+string strategy
-+string namespace
-+string node
-+float64 value
-+help "Number of evicted pods, by the result, by the strategy, by the namespace, by the node name. 'error' result means a pod could not be evicted"
-}
-class SecondaryDeviceNotWellPlannedNodes {
-+string node_name
-+float64 value
-+help "The number of secondary device not well planned"
-}
-PodsEvicted --> SecondaryDeviceNotWellPlannedNodes : "correlates with"
-```
+**Pod Eviction Metrics Class Structure:**
+
+Core metric classes and relationships:
+
+- **PodsEvicted**
+  - Labels: `result`, `strategy`, `namespace`, `node`
+  - Value: `float64`
+  - Help: "Number of evicted pods, by the result, by the strategy, by the namespace, by the node name. 'error' result means a pod could not be evicted"
+
+- **SecondaryDeviceNotWellPlannedNodes**
+  - Labels: `node_name`
+  - Value: `float64`
+  - Help: "The number of secondary device not well planned"
+
+Relationships:
+- PodsEvicted correlates with SecondaryDeviceNotWellPlannedNodes
 
 **Diagram sources**
 - [metrics.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/descheduler/metrics/metrics.go)
@@ -239,32 +210,28 @@ The koord-manager component serves as the control plane for Koordinator, managin
 ### SLO Controller Metrics
 The SLO controller within koord-manager tracks various reconciliation activities and resource management operations.
 
-```mermaid
-classDiagram
-class NodeMetricReconcileCount {
-+string node
-+string status
-+string reason
-+float64 value
-+help "The count of node metric reconciliations"
-}
-class NodeResourceReconcileCount {
-+string node
-+string status
-+string reason
-+float64 value
-+help "The count of node resource reconciliations"
-}
-class NodeSLOReconcileCount {
-+string node
-+string status
-+string reason
-+float64 value
-+help "The count of node SLO reconciliations"
-}
-NodeMetricReconcileCount --> NodeResourceReconcileCount : "occurs with"
-NodeResourceReconcileCount --> NodeSLOReconcileCount : "leads to"
-```
+**SLO Controller Metrics Class Structure:**
+
+Core metric classes and relationships:
+
+- **NodeMetricReconcileCount**
+  - Labels: `node`, `status`, `reason`
+  - Value: `float64`
+  - Help: "The count of node metric reconciliations"
+
+- **NodeResourceReconcileCount**
+  - Labels: `node`, `status`, `reason`
+  - Value: `float64`
+  - Help: "The count of node resource reconciliations"
+
+- **NodeSLOReconcileCount**
+  - Labels: `node`, `status`, `reason`
+  - Value: `float64`
+  - Help: "The count of node SLO reconciliations"
+
+Relationships:
+- NodeMetricReconcileCount occurs with NodeResourceReconcileCount
+- NodeResourceReconcileCount leads to NodeSLOReconcileCount
 
 **Diagram sources**
 - [metrics.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/slo-controller/metrics/metrics.go)
@@ -275,19 +242,23 @@ NodeResourceReconcileCount --> NodeSLOReconcileCount : "leads to"
 ## Metrics Collection and Configuration
 Koordlet includes a built-in metric cache system that collects, stores, and exposes metrics with configurable retention and collection intervals. This system uses TSDB (Time Series Database) storage for efficient time-series data management.
 
-```mermaid
-flowchart TD
-A[Metric Collection] --> B[In-Memory Buffer]
-B --> C{TSDB Storage}
-C --> D[Data Persistence]
-C --> E[Prometheus Export]
-F[Configuration] --> G[MetricGCIntervalSeconds]
-F --> H[MetricExpireSeconds]
-F --> I[TSDBRetentionDuration]
-G --> C
-H --> C
-I --> C
-J[Prometheus] --> E
+**Metrics Collection and Configuration Flow:**
+
+```
+Metric Collection
+  ↓
+In-Memory Buffer
+  ↓
+TSDB Storage
+  ├── Data Persistence
+  └── Prometheus Export
+
+Configuration Parameters:
+  ├── MetricGCIntervalSeconds → TSDB Storage
+  ├── MetricExpireSeconds → TSDB Storage
+  └── TSDBRetentionDuration → TSDB Storage
+
+Prometheus → Prometheus Export
 ```
 
 **Diagram sources**

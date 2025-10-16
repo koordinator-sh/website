@@ -30,12 +30,13 @@ koord-manager 是 Koordinator 的控制平面，管理 CRD 和 webhook，同时�
 - `--config-namespace`：指定配置命名空间
 - Webhook 服务器：在 9876 端口运行，用于准入控制
 
-```mermaid
-graph TB
-Manager[koord-manager] --> Webhook[Webhook Server]
-Manager --> Leader[Leader Election]
-Manager --> Scheduler[koord-scheduler]
-Manager --> Koordlet[koordlet]
+**组件交互关系：**
+```
+koord-manager
+  ├── Webhook Server (端口 9876)
+  ├── Leader Election (高可用)
+  ├── 与 koord-scheduler 协调
+  └── 与 koordlet 协调
 ```
 
 **图表来源**
@@ -59,19 +60,20 @@ koord-scheduler 通过基于插件的架构扩展 Kubernetes 调度器，为混�
 - **Coscheduling**：Pod 组的 Gang 调度
 - **DeviceShare**：共享设备管理（GPU、RDMA、FPGA）
 
-```mermaid
-graph TD
-A[Scheduler Configuration] --> B[Global Settings]
-A --> C[Plugin Configurations]
-A --> D[Framework Extensions]
-B --> F[InsecureServing]
-C --> G[LoadAwareScheduling]
-C --> H[NodeNUMAResource]
-C --> I[Reservation]
-C --> J[ElasticQuota]
-C --> K[Coscheduling]
-C --> L[DeviceShare]
-D --> M[ServicesEngine]
+**调度器配置层次结构：**
+```
+Scheduler Configuration
+├── Global Settings
+│   └── InsecureServing
+├── Plugin Configurations
+│   ├── LoadAwareScheduling (负载感知调度)
+│   ├── NodeNUMAResource (NUMA 资源管理)
+│   ├── Reservation (资源预留)
+│   ├── ElasticQuota (弹性配额)
+│   ├── Coscheduling (协同调度)
+│   └── DeviceShare (设备共享)
+└── Framework Extensions
+    └── ServicesEngine
 ```
 
 **图表来源**
@@ -103,43 +105,28 @@ koordlet 作为守护进程运行在每个节点上，收集指标、强制执�
 - **Prediction**：提供资源使用预测
 - **StatesInformer**：维护一致的 Pod 和节点状态视图
 
-```mermaid
-classDiagram
-class daemon {
-+metricAdvisor MetricAdvisor
-+statesInformer StatesInformer
-+metricCache MetricCache
-+qosManager QOSManager
-+runtimeHook RuntimeHook
-+predictServer PredictServer
-+executor ResourceUpdateExecutor
-+extensionControllers []Controller
-}
-class MetricAdvisor {
-+Run(stopCh <-chan struct{})
-+HasSynced() bool
-}
-class StatesInformer {
-+Run(stopCh <-chan struct{})
-+HasSynced() bool
-}
-class MetricCache {
-+Run(stopCh <-chan struct{})
-}
-class QOSManager {
-+Run(stopCh <-chan struct{})
-}
-class RuntimeHook {
-+Run(stopCh <-chan struct{})
-}
-class PredictServer {
-+Setup(statesInformer StatesInformer, metricCache MetricCache)
-+Run(stopCh <-chan struct{})
-}
-class ResourceUpdateExecutor {
-+Run(stopCh <-chan struct{})
-}
-```
+**koordlet 守护进程组件结构：**
+
+核心组件及其职责：
+- **daemon**: 主守护进程，包含以下子系统
+  - **MetricAdvisor**: 指标分析器
+    - `Run(stopCh)`: 运行主循环
+    - `HasSynced()`: 检查同步状态
+  - **StatesInformer**: 状态通知器
+    - `Run(stopCh)`: 运行主循环  
+    - `HasSynced()`: 检查同步状态
+  - **MetricCache**: 指标缓存
+    - `Run(stopCh)`: 运行主循环
+  - **QOSManager**: QoS 管理器
+    - `Run(stopCh)`: 运行主循环
+  - **RuntimeHook**: 运行时钩子
+    - `Run(stopCh)`: 运行主循环
+  - **PredictServer**: 预测服务器
+    - `Setup()`: 设置依赖
+    - `Run(stopCh)`: 运行主循环
+  - **ResourceUpdateExecutor**: 资源更新执行器
+    - `Run(stopCh)`: 运行主循环
+  - **extensionControllers**: 扩展控制器列表
 
 **图表来源**
 - [koordlet.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/koordlet.go#L1-L210)
@@ -161,22 +148,23 @@ koord-descheduler 通过基于模块化、配置文件的架构来识别和驱�
 - **Informer Factory**：维护集群资源的缓存视图
 - **Eviction Limiter**：控制 Pod 驱逐速率以防止中断
 
-```mermaid
-graph TB
-A[koord-descheduler] --> B[Descheduler Core]
-A --> C[Controller Manager]
-B --> D[Profiles]
-D --> E[Deschedule Plugins]
-D --> F[Balance Plugins]
-D --> G[Filter Plugins]
-D --> H[Evict Plugins]
-C --> I[Migration Controller]
-C --> J[Drain Controller]
-B --> K[Eviction Limiter]
-B --> L[Informer Factory]
-L --> M[Node Informer]
-L --> N[Pod Informer]
-L --> O[Custom Resource Informers]
+**koord-descheduler 架构组成：**
+```
+koord-descheduler
+├── Descheduler Core (核心调度器)
+│   ├── Profiles (配置文件)
+│   │   ├── Deschedule Plugins (驱逐插件)
+│   │   ├── Balance Plugins (均衡插件)
+│   │   ├── Filter Plugins (过滤插件)
+│   │   └── Evict Plugins (驱逐执行插件)
+│   ├── Eviction Limiter (驱逐限流器)
+│   └── Informer Factory (资源监听工厂)
+│       ├── Node Informer
+│       ├── Pod Informer
+│       └── Custom Resource Informers
+└── Controller Manager (控制器管理器)
+    ├── Migration Controller (迁移控制器)
+    └── Drain Controller (排空控制器)
 ```
 
 **图表来源**
@@ -203,17 +191,25 @@ koord-device-daemon 负责发现和标记节点上的异构设备（GPU、NPU �
 - **Manager Map**：不同硬件类型设备管理器的注册表
 - **Configuration**：从文件、环境变量和 CLI 管理组件配置
 
-```mermaid
-flowchart TD
-Start([Start]) --> LoadConfig["Load Configuration"]
-LoadConfig --> CreatePrinters["Create Printers"]
-CreatePrinters --> GeneratePrints["Generate Prints"]
-GeneratePrints --> OutputPrints["Output Prints"]
-OutputPrints --> CheckOneshot["Check Oneshot Mode"]
-CheckOneshot --> |Yes| Exit([Exit])
-CheckOneshot --> |No| Sleep["Sleep Interval"]
-Sleep --> Rerun["Rerun Discovery"]
-Rerun --> GeneratePrints
+**koord-device-daemon 执行流程：**
+```
+1. 启动 (Start)
+   ↓
+2. 加载配置 (Load Configuration)
+   ↓
+3. 创建输出器 (Create Printers)
+   ↓
+4. 生成设备信息 (Generate Prints)
+   ↓
+5. 输出设备信息 (Output Prints)
+   ↓
+6. 检查运行模式 (Check Oneshot Mode)
+   ├─ 是 → 退出 (Exit)
+   └─ 否 → 休眠等待 (Sleep Interval)
+              ↓
+           重新发现 (Rerun Discovery)
+              ↓
+           返回步骤 4
 ```
 
 **图表来源**
@@ -243,20 +239,20 @@ koord-runtime-proxy 作为 kubelet 和容器运行时之间的中间件，拦截
 - **Dispatcher**：将 CRI 调用路由到处理器
 - **Resource Executor**：将资源策略应用于容器
 
-```mermaid
-graph TD
-A[koord-runtime-proxy] --> B[Runtime Proxy Endpoint]
-A --> C[Backend Runtime Mode]
-C --> D[Containerd]
-C --> E[Docker]
-D --> F[CRI Server]
-E --> G[Docker Server]
-A --> H[Runtime Hook Server Key/Val]
-H --> I[Skip Hook Server Pods]
-F --> J[Intercept CRI Calls]
-G --> J
-J --> K[Apply Resource Policies]
-K --> L[Forward to Backend Runtime]
+**koord-runtime-proxy 工作流程：**
+```
+koord-runtime-proxy
+├── Runtime Proxy Endpoint (代理端点)
+├── Backend Runtime Mode (后端运行时模式)
+│   ├── Containerd 模式
+│   │   └── CRI Server
+│   └── Docker 模式
+│       └── Docker Server
+└── Runtime Hook Server Key/Val (钩子服务器标识)
+    └── Skip Hook Server Pods (跳过钩子服务器 Pod)
+
+数据流：
+拦截 CRI 调用 → 应用资源策略 → 转发到后端运行时
 ```
 
 **图表来源**
@@ -285,22 +281,34 @@ Koordinator 组件通过 Kubernetes API 服务器通信，并通过 ConfigMap �
 5. koord-runtime-proxy 拦截容器运行时调用
 6. 组件通过 API 服务器共享状态进行协调
 
-```mermaid
-sequenceDiagram
-participant API as Kubernetes API Server
-participant Manager as koord-manager
-participant Scheduler as koord-scheduler
-participant Koordlet as koordlet
-participant Device as koord-device-daemon
-participant Proxy as koord-runtime-proxy
-Manager->>API : Watch CRDs and ConfigMaps
-Scheduler->>API : Register as scheduler
-Koordlet->>API : Report node metrics
-Device->>API : Update node labels with device info
-Proxy->>API : Intercept CRI calls
-API->>Scheduler : Provide metrics for scheduling
-Scheduler->>API : Schedule pods with QoS policies
-API->>Koordlet : Apply QoS policies to pods
+**组件通信时序图：**
+
+```
+通信流程：
+
+1. koord-manager → API Server
+   - 监听 CRD 和 ConfigMaps
+
+2. koord-scheduler → API Server
+   - 注册为调度器
+
+3. koordlet → API Server
+   - 上报节点指标
+
+4. koord-device-daemon → API Server
+   - 更新节点设备标签
+
+5. koord-runtime-proxy → API Server
+   - 拦截 CRI 调用
+
+6. API Server → koord-scheduler
+   - 提供调度指标
+
+7. koord-scheduler → API Server
+   - 使用 QoS 策略调度 Pod
+
+8. API Server → koordlet
+   - 应用 QoS 策略到 Pod
 ```
 
 **图表来源**
@@ -355,20 +363,32 @@ API->>Koordlet : Apply QoS policies to pods
 - 调整指标收集频率
 - 使用节点亲和性和污点进行组件放置
 
-```mermaid
-flowchart TD
-Start([Cluster Deployment]) --> DetermineReplicas["Determine koord-manager Replicas"]
-DetermineReplicas --> |Small Cluster| DeploySingleReplica["Deploy Single Replica"]
-DetermineReplicas --> |Large Cluster| DeployMultipleReplicas["Deploy Multiple Replicas"]
-DeploySingleReplica --> ConfigureWebhook["Configure Webhook Settings"]
-DeployMultipleReplicas --> ConfigureWebhook
-ConfigureWebhook --> SetTimeouts["Set Webhook Timeouts"]
-SetTimeouts --> ConfigureConcurrency["Configure Concurrency Settings"]
-ConfigureConcurrency --> ConfigureQueue["Configure Request Queue"]
-ConfigureQueue --> ConfigureRetry["Configure Retry Policy"]
-ConfigureRetry --> MonitorPerformance["Monitor Performance"]
-MonitorPerformance --> AdjustConfiguration["Adjust Configuration as Needed"]
-AdjustConfiguration --> ConfigureWebhook
+**性能与扩展性配置流程：**
+
+```
+集群部署流程：
+
+1. 集群部署 (Cluster Deployment)
+   ↓
+2. 确定 koord-manager 副本数 (Determine Replicas)
+   ├─ 小型集群 → 部署单副本 (Deploy Single Replica)
+   └─ 大型集群 → 部署多副本 (Deploy Multiple Replicas)
+   ↓
+3. 配置 Webhook 设置 (Configure Webhook Settings)
+   ↓
+4. 设置 Webhook 超时 (Set Webhook Timeouts)
+   ↓
+5. 配置并发设置 (Configure Concurrency Settings)
+   ↓
+6. 配置请求队列 (Configure Request Queue)
+   ↓
+7. 配置重试策略 (Configure Retry Policy)
+   ↓
+8. 监控性能 (Monitor Performance)
+   ↓
+9. 调整配置 (Adjust Configuration as Needed)
+   ↓
+   返回步骤 3 (根据需要循环调整)
 ```
 
 **图表来源**

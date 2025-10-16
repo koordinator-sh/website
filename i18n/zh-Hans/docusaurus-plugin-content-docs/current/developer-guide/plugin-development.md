@@ -102,13 +102,20 @@ Koordinator 对调度器插件和 QoS manager 插件使用不同的注册机制�
 2. 将插件映射展平为调度器命令的选项
 3. 在调度器初始化期间注册插件
 
-```mermaid
-flowchart TD
-Start([Plugin Registration]) --> DefineMap["Define Plugin Map"]
-DefineMap --> Flatten["Flatten to Options"]
-Flatten --> Register["Register with Scheduler"]
-Register --> Initialize["Initialize During Startup"]
-Initialize --> End([Plugins Ready])
+**调度器插件注册流程：**
+
+```
+1. 插件注册 (Plugin Registration)
+   ↓
+2. 定义插件映射 (Define Plugin Map)
+   ↓
+3. 展开为选项 (Flatten to Options)
+   ↓
+4. 向调度器注册 (Register with Scheduler)
+   ↓
+5. 启动时初始化 (Initialize During Startup)
+   ↓
+6. 插件就绪 (Plugins Ready)
 ```
 
 **图表来源**

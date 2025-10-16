@@ -23,44 +23,34 @@ FrameworkExtender key capabilities:
 
 Plugins register during initialization and are invoked at specific extension points. FrameworkExtender manages plugin lifecycle and coordinates execution across scheduling phases.
 
-```mermaid
-classDiagram
-class FrameworkExtender {
-+Scheduler() Scheduler
-+KoordinatorClientSet() Interface
-+GetReservationNominator() ReservationNominator
-+RunReservationFilterPlugins() *framework.Status
-+RunReservationScorePlugins() (PluginToReservationScores, *framework.Status)
-+RunReservationRestoreReservation() (interface{}, *framework.Status)
-}
-class ExtendedHandle {
-+Scheduler() Scheduler
-+KoordinatorClientSet() Interface
-+GetReservationNominator() ReservationNominator
-+RegisterErrorHandlerFilters()
-+RegisterForgetPodHandler()
-}
-class SchedulingTransformer {
-+Name() string
-}
-class PreFilterTransformer {
-+BeforePreFilter()
-+AfterPreFilter()
-}
-class FilterTransformer {
-+BeforeFilter()
-}
-class ScoreTransformer {
-+BeforeScore()
-}
-FrameworkExtender <|-- ExtendedHandle
-SchedulingTransformer <|-- PreFilterTransformer
-SchedulingTransformer <|-- FilterTransformer
-SchedulingTransformer <|-- ScoreTransformer
-ExtendedHandle --> PreFilterTransformer
-ExtendedHandle --> FilterTransformer
-ExtendedHandle --> ScoreTransformer
-```
+**Scheduler Plugin Architecture Class Structure:**
+
+Core classes and relationships:
+
+- **FrameworkExtender** (Framework extender)
+  - Methods: `Scheduler()`, `KoordinatorClientSet()`, `GetReservationNominator()`, `RunReservationFilterPlugins()`, `RunReservationScorePlugins()`, `RunReservationRestoreReservation()`
+
+- **ExtendedHandle** (Extended handle)
+  - Inherits: FrameworkExtender
+  - Additional methods: `RegisterErrorHandlerFilters()`, `RegisterForgetPodHandler()`
+
+- **SchedulingTransformer** (Scheduling transformer base interface)
+  - Methods: `Name() string`
+
+- **PreFilterTransformer** (PreFilter transformer)
+  - Inherits: SchedulingTransformer
+  - Methods: `BeforePreFilter()`, `AfterPreFilter()`
+
+- **FilterTransformer** (Filter transformer)
+  - Inherits: SchedulingTransformer
+  - Methods: `BeforeFilter()`
+
+- **ScoreTransformer** (Score transformer)
+  - Inherits: SchedulingTransformer
+  - Methods: `BeforeScore()`
+
+Relationships:
+- ExtendedHandle contains and uses PreFilterTransformer, FilterTransformer, ScoreTransformer
 
 **Diagram sources**
 - [interface.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/scheduler/frameworkext/interface.go#L37-L55)
@@ -89,32 +79,43 @@ Components:
 
 Plugins register using feature gates for dynamic control. The QoS manager orchestrates plugin lifecycle, ensuring proper initialization and startup.
 
-```mermaid
-classDiagram
-class ExtensionPlugin {
-+InitFlags(fs *flag.FlagSet)
-+Setup(client clientset.Interface, metricCache metriccache.MetricCache, statesInformer statesinformer.StatesInformer)
-+Run(stopCh <-chan struct{})
-}
-class QOSExtensionConfig {
-+FeatureGates map[string]bool
-+InitFlags(fs *flag.FlagSet)
-}
-class QOSManager {
-+Run(stopCh <-chan struct{})
-}
-ExtensionPlugin <|-- CustomQOSPlugin
-QOSExtensionConfig --> ExtensionPlugin : configures
-QOSManager --> ExtensionPlugin : manages
-QOSManager --> QOSExtensionConfig : uses
-note right of ExtensionPlugin
-Interface for QOS extension plugins
-Each plugin must implement these methods
-end
-note right of QOSExtensionConfig
-Configuration for QOS extension plugins
-Uses feature gates to enable/disable plugins
-end
+**QoS Manager Plugin Architecture Class Diagram:**
+
+```
+Core Classes:
+
+1. ExtensionPlugin
+   Methods:
+   - InitFlags(fs *flag.FlagSet)
+   - Setup(client clientset.Interface, metricCache metriccache.MetricCache, statesInformer statesinformer.StatesInformer)
+   - Run(stopCh <-chan struct{})
+   
+   Notes:
+   - Interface for QOS extension plugins
+   - Each plugin must implement these methods
+
+2. QOSExtensionConfig
+   Fields:
+   - FeatureGates: map[string]bool
+   Methods:
+   - InitFlags(fs *flag.FlagSet)
+   
+   Notes:
+   - Configuration for QOS extension plugins
+   - Uses feature gates to enable/disable plugins
+
+3. QOSManager
+   Methods:
+   - Run(stopCh <-chan struct{})
+
+4. CustomQOSPlugin
+   - Inherits from ExtensionPlugin
+
+Relationships:
+- CustomQOSPlugin inherits from ExtensionPlugin
+- QOSExtensionConfig → ExtensionPlugin (configures)
+- QOSManager → ExtensionPlugin (manages)
+- QOSManager → QOSExtensionConfig (uses)
 ```
 
 **Diagram sources**
@@ -180,13 +181,20 @@ Scheduler plugins are registered through the main.go file in the koord-scheduler
 2. Flattening the plugin map into options for the scheduler command
 3. Registering the plugins during scheduler initialization
 
-```mermaid
-flowchart TD
-Start([Plugin Registration]) --> DefineMap["Define Plugin Map"]
-DefineMap --> Flatten["Flatten to Options"]
-Flatten --> Register["Register with Scheduler"]
-Register --> Initialize["Initialize During Startup"]
-Initialize --> End([Plugins Ready])
+**Scheduler Plugin Registration Flow:**
+
+```
+1. Plugin Registration
+   ↓
+2. Define Plugin Map
+   ↓
+3. Flatten to Options
+   ↓
+4. Register with Scheduler
+   ↓
+5. Initialize During Startup
+   ↓
+6. Plugins Ready
 ```
 
 **Diagram sources**
@@ -264,16 +272,26 @@ The New function serves as the entry point for plugin creation and handles:
 - Dependency injection through the framework handle
 - Event registration for cluster events the plugin needs to monitor
 
-```mermaid
-flowchart TD
-Start([Plugin Initialization]) --> ParseConfig["Parse Configuration Object"]
-ParseConfig --> ValidateConfig["Validate Configuration"]
-ValidateConfig --> CreateClient["Create Clientset if needed"]
-CreateClient --> SetupInformer["Setup Shared Informers"]
-SetupInformer --> RegisterHandlers["Register Event Handlers"]
-RegisterHandlers --> RegisterForgetHandler["Register ForgetPodHandler"]
-RegisterForgetHandler --> ReturnPlugin["Return Plugin Instance"]
-ReturnPlugin --> End([Plugin Ready])
+**Plugin Initialization Flow:**
+
+```
+1. Plugin Initialization
+   ↓
+2. Parse Configuration Object
+   ↓
+3. Validate Configuration
+   ↓
+4. Create Clientset (if needed)
+   ↓
+5. Setup Shared Informers
+   ↓
+6. Register Event Handlers
+   ↓
+7. Register ForgetPodHandler
+   ↓
+8. Return Plugin Instance
+   ↓
+9. Plugin Ready
 ```
 
 **Diagram sources**

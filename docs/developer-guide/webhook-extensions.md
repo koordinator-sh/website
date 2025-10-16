@@ -12,39 +12,29 @@ Koordinator provides an extensible webhook framework that enables custom admissi
 
 ## Webhook Framework Architecture
 
-```mermaid
-graph TB
-subgraph "Webhook Core"
-Server[Webhook Server]
-HandlerBuilder[HandlerBuilder Interface]
-HandlerMap[HandlerBuilderMap]
-end
-subgraph "Webhook Types"
-Mutating[Mutating Webhooks]
-Validating[Validating Webhooks]
-end
-subgraph "Resource-Specific Handlers"
-PodWebhook[Pod Webhooks]
-NodeWebhook[Node Webhooks]
-QuotaWebhook[Quota Webhooks]
-ConfigMapWebhook[ConfigMap Webhooks]
-ReservationWebhook[Reservation Webhooks]
-end
-HandlerBuilder --> HandlerMap
-HandlerMap --> Server
-Server --> Mutating
-Server --> Validating
-Mutating --> PodWebhook
-Mutating --> NodeWebhook
-Mutating --> QuotaWebhook
-Validating --> PodWebhook
-Validating --> NodeWebhook
-Validating --> QuotaWebhook
-Validating --> ConfigMapWebhook
-Validating --> ReservationWebhook
-style HandlerBuilder fill:#f9f,stroke:#333
-style HandlerMap fill:#bbf,stroke:#333
-style Server fill:#9f9,stroke:#333
+**Webhook Core Architecture:**
+
+```
+Webhook Core Components
+  ├── Webhook Server
+  ├── HandlerBuilder Interface
+  └── HandlerBuilderMap
+
+Webhook Types
+  ├── Mutating Webhooks
+  └── Validating Webhooks
+
+Resource-Specific Handlers
+  ├── Pod Webhooks
+  ├── Node Webhooks
+  ├── Quota Webhooks
+  ├── ConfigMap Webhooks
+  └── Reservation Webhooks
+
+Relationship Flow:
+HandlerBuilder → HandlerBuilderMap → Webhook Server
+Webhook Server → Mutating/Validating Webhooks
+Mutating/Validating Webhooks → Various Resource Handlers
 ```
 
 **Diagram sources**
@@ -61,50 +51,32 @@ The webhook framework defines a standardized interface for both mutating and val
 
 Mutating webhooks modify resources during creation or update operations, while validating webhooks reject requests that don't meet specific criteria. Both types follow the same registration pattern but serve different purposes in the admission control process.
 
-```mermaid
-classDiagram
-class HandlerBuilder {
-<<interface>>
-+WithControllerManager(mgr ctrl.Manager) HandlerBuilder
-+Build() admission.Handler
-}
-class PodMutatingHandler {
-+Client client.Client
-+Decoder *admission.Decoder
-+Handle(ctx context.Context, req admission.Request) admission.Response
-+InjectClient(c client.Client) error
-+InjectDecoder(d *admission.Decoder) error
-}
-class PodValidatingHandler {
-+Client client.Client
-+Decoder *admission.Decoder
-+QuotaEvaluator quotaevaluate.Evaluator
-+PodEnhancedValidator *PodEnhancedValidator
-+Handle(ctx context.Context, req admission.Request) admission.Response
-+InjectClient(c client.Client) error
-+InjectDecoder(d *admission.Decoder) error
-}
-class NodeMutatingHandler {
-+Client client.Client
-+Decoder *admission.Decoder
-+ignoreFilter IgnoreFilter
-+Handle(ctx context.Context, req admission.Request) admission.Response
-+InjectClient(c client.Client) error
-+InjectDecoder(d *admission.Decoder) error
-}
-class ElasticQuotaMutatingHandler {
-+Client client.Client
-+Decoder *admission.Decoder
-+Handle(ctx context.Context, req admission.Request) admission.Response
-+InjectClient(c client.Client) error
-+InjectDecoder(decoder *admission.Decoder) error
-+InjectCache(cache cache.Cache) error
-}
-HandlerBuilder <|-- PodMutatingHandler
-HandlerBuilder <|-- PodValidatingHandler
-HandlerBuilder <|-- NodeMutatingHandler
-HandlerBuilder <|-- ElasticQuotaMutatingHandler
-```
+**Webhook Handler Class Structure:**
+
+Core classes and relationships:
+
+- **HandlerBuilder** (Handler builder interface)
+  - Methods: `WithControllerManager(mgr ctrl.Manager) HandlerBuilder`, `Build() admission.Handler`
+
+- **PodMutatingHandler** (Pod mutating handler)
+  - Fields: `Client client.Client`, `Decoder *admission.Decoder`
+  - Methods: `Handle(ctx, req)`, `InjectClient(c)`, `InjectDecoder(d)`
+  - Implements: HandlerBuilder
+
+- **PodValidatingHandler** (Pod validating handler)
+  - Fields: `Client client.Client`, `Decoder *admission.Decoder`, `QuotaEvaluator`, `PodEnhancedValidator`
+  - Methods: `Handle(ctx, req)`, `InjectClient(c)`, `InjectDecoder(d)`
+  - Implements: HandlerBuilder
+
+- **NodeMutatingHandler** (Node mutating handler)
+  - Fields: `Client client.Client`, `Decoder *admission.Decoder`, `ignoreFilter IgnoreFilter`
+  - Methods: `Handle(ctx, req)`, `InjectClient(c)`, `InjectDecoder(d)`
+  - Implements: HandlerBuilder
+
+- **ElasticQuotaMutatingHandler** (Elastic quota mutating handler)
+  - Fields: `Client client.Client`, `Decoder *admission.Decoder`
+  - Methods: `Handle(ctx, req)`, `InjectClient(c)`, `InjectDecoder(decoder)`, `InjectCache(cache)`
+  - Implements: HandlerBuilder
 
 **Diagram sources**
 - [builder.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/webhook/util/framework/builder.go#L1-L28)
@@ -124,28 +96,42 @@ The pod mutating webhook implements multiple mutation functions that are execute
 
 The pod validating webhook performs comprehensive validation checks, including cluster reservation validation, cluster colocation profile validation, elastic quota validation, quota evaluation, device resource validation, and enhanced validation. These validations are executed in sequence, and any failure results in the rejection of the pod creation request.
 
-```mermaid
-sequenceDiagram
-participant Client
-participant APIserver
-participant PodMutatingWebhook
-participant PodValidatingWebhook
-Client->>APIserver : Create Pod Request
-APIserver->>PodMutatingWebhook : Admission Review
-PodMutatingWebhook->>PodMutatingWebhook : Apply ClusterColocationProfile
-PodMutatingWebhook->>PodMutatingWebhook : Apply ExtendedResourceSpec
-PodMutatingWebhook->>PodMutatingWebhook : Add MultiQuotaTree Affinity
-PodMutatingWebhook->>PodMutatingWebhook : Apply DeviceResourceSpec
-PodMutatingWebhook-->>APIserver : Mutated Pod
-APIserver->>PodValidatingWebhook : Admission Review
-PodValidatingWebhook->>PodValidatingWebhook : Validate ClusterReservation
-PodValidatingWebhook->>PodValidatingWebhook : Validate ClusterColocationProfile
-PodValidatingWebhook->>PodValidatingWebhook : Validate ElasticQuota
-PodValidatingWebhook->>PodValidatingWebhook : Evaluate Quota
-PodValidatingWebhook->>PodValidatingWebhook : Validate DeviceResource
-PodValidatingWebhook->>PodValidatingWebhook : Enhanced Validation
-PodValidatingWebhook-->>APIserver : Validation Response
-APIserver-->>Client : Pod Created or Rejected
+**Pod Webhook Processing Flow:**
+
+```
+Participants:
+- Client
+- APIserver
+- PodMutatingWebhook (Pod mutating webhook)
+- PodValidatingWebhook (Pod validating webhook)
+
+Flow:
+
+1. Client → APIserver: Create Pod Request
+
+2. APIserver → PodMutatingWebhook: Admission Review
+
+3. PodMutatingWebhook internal processing:
+   - Apply ClusterColocationProfile
+   - Apply ExtendedResourceSpec
+   - Add MultiQuotaTree Affinity
+   - Apply DeviceResourceSpec
+
+4. PodMutatingWebhook → APIserver: Return Mutated Pod
+
+5. APIserver → PodValidatingWebhook: Admission Review
+
+6. PodValidatingWebhook internal validation:
+   - Validate ClusterReservation
+   - Validate ClusterColocationProfile
+   - Validate ElasticQuota
+   - Evaluate Quota
+   - Validate DeviceResource
+   - Enhanced Validation
+
+7. PodValidatingWebhook → APIserver: Validation Response
+
+8. APIserver → Client: Pod Created or Rejected
 ```
 
 **Diagram sources**
@@ -166,27 +152,42 @@ Node webhooks in Koordinator focus on mutating node status resources rather than
 
 The node mutating webhook uses a plugin-based architecture where multiple plugins can be registered to handle different aspects of node mutation. Currently, the resource amplification plugin is implemented to adjust node resource reporting. The webhook specifically targets the node status sub-resource, ensuring that only status updates are processed.
 
-```mermaid
-flowchart TD
-Start([Node Status Update]) --> CheckResource{"Resource = nodes?"}
-CheckResource --> |No| Allow[Allow Request]
-CheckResource --> |Yes| CheckSubResource{"SubResource = status?"}
-CheckSubResource --> |No| Allow
-CheckSubResource --> |Yes| Decode[Decode Node Object]
-Decode --> Clone[Create Deep Copy]
-Clone --> PluginLoop[For each plugin]
-PluginLoop --> Admit[Call plugin.Admit]
-Admit --> CheckError{"Error?"}
-CheckError --> |Yes| Reject[Reject Request]
-CheckError --> |No| NextPlugin[Next Plugin]
-NextPlugin --> CheckLast{"Last Plugin?"}
-CheckLast --> |No| PluginLoop
-CheckLast --> |Yes| Compare{"Modified?"}
-Compare --> |No| Allow
-Compare --> |Yes| GeneratePatch[Generate JSON Patch]
-GeneratePatch --> ReturnPatch[Return Patch Response]
-style Allow fill:#9f9,stroke:#333
-style Reject fill:#f99,stroke:#333
+**Node Webhook Processing Flow:**
+
+```
+1. Node Status Update
+   ↓
+2. Check Resource Type (Resource = nodes?)
+   ├─ No → Allow Request
+   └─ Yes → Continue
+   ↓
+3. Check SubResource (SubResource = status?)
+   ├─ No → Allow Request
+   └─ Yes → Continue
+   ↓
+4. Decode Node Object
+   ↓
+5. Create Deep Copy
+   ↓
+6. For Each Plugin
+   ↓
+7. Call plugin.Admit
+   ↓
+8. Check Error?
+   ├─ Yes → Reject Request
+   └─ No → Next Plugin
+   ↓
+9. Last Plugin?
+   ├─ No → Return to Step 6
+   └─ Yes → Continue
+   ↓
+10. Modified?
+    ├─ No → Allow Request
+    └─ Yes → Continue
+    ↓
+11. Generate JSON Patch
+    ↓
+12. Return Patch Response
 ```
 
 **Diagram sources**
@@ -205,23 +206,40 @@ Quota webhooks in Koordinator handle the admission control for elastic quota res
 
 The elastic quota mutating webhook processes quota creation and updates by applying necessary mutations through the quota plugin system. The webhook specifically targets the elasticquotas resource and uses the quota topology plugin to perform the actual mutation logic. The implementation includes proper error handling and metrics collection for performance monitoring.
 
-```mermaid
-sequenceDiagram
-participant Client
-participant APIserver
-participant QuotaMutatingWebhook
-Client->>APIserver : Create/Update ElasticQuota
-APIserver->>QuotaMutatingWebhook : Admission Review
-QuotaMutatingWebhook->>QuotaMutatingWebhook : Decode Quota Object
-QuotaMutatingWebhook->>QuotaMutatingWebhook : Create Copy
-QuotaMutatingWebhook->>QuotaPlugin : NewPlugin
-QuotaMutatingWebhook->>QuotaPlugin : AdmitQuota
-QuotaPlugin->>QuotaPlugin : Apply Quota Topology
-QuotaPlugin-->>QuotaMutatingWebhook : Mutation Result
-QuotaMutatingWebhook->>QuotaMutatingWebhook : Compare Original vs Modified
-QuotaMutatingWebhook->>QuotaMutatingWebhook : Generate JSON Patch if Modified
-QuotaMutatingWebhook-->>APIserver : Patch Response
-APIserver-->>Client : Quota Created/Updated or Rejected
+**Elastic Quota Webhook Processing Flow:**
+
+```
+Participants:
+- Client
+- APIserver
+- QuotaMutatingWebhook (Quota mutating webhook)
+- QuotaPlugin (Quota plugin)
+
+Flow:
+
+1. Client → APIserver: Create/Update ElasticQuota
+
+2. APIserver → QuotaMutatingWebhook: Admission Review
+
+3. QuotaMutatingWebhook internal processing:
+   - Decode Quota Object
+   - Create Copy
+
+4. QuotaMutatingWebhook → QuotaPlugin: NewPlugin
+
+5. QuotaMutatingWebhook → QuotaPlugin: AdmitQuota
+
+6. QuotaPlugin internal: Apply Quota Topology
+
+7. QuotaPlugin → QuotaMutatingWebhook: Mutation Result
+
+8. QuotaMutatingWebhook internal:
+   - Compare Original vs Modified
+   - Generate JSON Patch if Modified
+
+9. QuotaMutatingWebhook → APIserver: Patch Response
+
+10. APIserver → Client: Quota Created/Updated or Rejected
 ```
 
 **Diagram sources**
@@ -240,20 +258,30 @@ Developing custom webhook plugins in Koordinator follows a standardized pattern 
 
 The process involves creating a new package under the webhook directory for the target resource, implementing the mutating or validating handler struct, and registering the handler builder in the package's `webhooks.go` file. Feature gates control the enablement of webhook plugins, allowing for gradual rollout and testing.
 
-```mermaid
-flowchart TD
-Start[Create New Webhook Package] --> ImplementHandler[Implement Handler Struct]
-ImplementHandler --> FulfillInterface[Fulfill HandlerBuilder Interface]
-FulfillInterface --> ImplementWithControllerManager[Implement WithControllerManager]
-ImplementWithControllerManager --> ImplementBuild[Implement Build]
-ImplementBuild --> CreateWebhooksGo[Create webhooks.go]
-CreateWebhooksGo --> RegisterHandler[Register HandlerBuilderMap]
-RegisterHandler --> AddInit[Add to init() in add_<resource>.go]
-AddInit --> UseFeatureGate[Use Feature Gate for Enablement]
-UseFeatureGate --> Test[Implement Unit Tests]
-Test --> Integrate[Integrate with Webhook Server]
-style Start fill:#f96,stroke:#333
-style Integrate fill:#9f9,stroke:#333
+**Custom Webhook Plugin Development Flow:**
+
+```
+1. Create New Webhook Package
+   ↓
+2. Implement Handler Struct
+   ↓
+3. Fulfill HandlerBuilder Interface
+   ↓
+4. Implement WithControllerManager Method
+   ↓
+5. Implement Build Method
+   ↓
+6. Create webhooks.go File
+   ↓
+7. Register Handler to HandlerBuilderMap
+   ↓
+8. Add to init() in add_<resource>.go
+   ↓
+9. Use Feature Gate for Enablement
+   ↓
+10. Implement Unit Tests
+    ↓
+11. Integrate with Webhook Server
 ```
 
 **Section sources**
@@ -270,24 +298,37 @@ Each resource-specific webhook is registered in its corresponding `add_<resource
 
 The registration process also includes setting up the webhook server with the appropriate host, port, and certificate directory, which are configured through the webhook utility package.
 
-```mermaid
-sequenceDiagram
-participant Main
-participant WebhookServer
-participant HandlerRegistry
-Main->>WebhookServer : SetupWithManager
-WebhookServer->>HandlerRegistry : filterActiveHandlers
-HandlerRegistry->>HandlerRegistry : Check Feature Gates
-HandlerRegistry->>HandlerRegistry : Remove Disabled Handlers
-WebhookServer->>HandlerRegistry : Iterate HandlerBuilderMap
-loop For each HandlerBuilder
-HandlerRegistry->>HandlerBuilder : WithControllerManager
-HandlerBuilder->>HandlerBuilder : Build
-WebhookServer->>WebhookServer : Register Handler
-end
-WebhookServer->>WebhookServer : Register Conversion Handler
-WebhookServer->>WebhookServer : Register Health Handler
-WebhookServer->>Main : Return Success
+**Webhook Registration and Configuration Flow:**
+
+```
+Participants:
+- Main (main program)
+- WebhookServer (webhook server)
+- HandlerRegistry (handler registry)
+- HandlerBuilder (handler builder)
+
+Flow:
+
+1. Main → WebhookServer: SetupWithManager
+
+2. WebhookServer → HandlerRegistry: filterActiveHandlers
+
+3. HandlerRegistry internal processing:
+   - Check Feature Gates
+   - Remove Disabled Handlers
+
+4. WebhookServer → HandlerRegistry: Iterate HandlerBuilderMap
+
+5. For each HandlerBuilder:
+   - HandlerRegistry → HandlerBuilder: WithControllerManager
+   - HandlerBuilder internal: Build
+   - WebhookServer: Register Handler
+
+6. WebhookServer internal:
+   - Register Conversion Handler
+   - Register Health Handler
+
+7. WebhookServer → Main: Return Success
 ```
 
 **Diagram sources**
