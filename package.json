@@ -16,8 +16,10 @@
   "dependencies": {
     "@docusaurus/core": "^2.4.1",
     "@docusaurus/preset-classic": "^2.4.1",
+    "@docusaurus/theme-mermaid": "2.4.1",
     "@mdx-js/react": "^1.6.22",
     "clsx": "^1.1.1",
+    "cytoscape": "^3.29.2",
     "docusaurus": "^0.0.2",
     "prism-react-renderer": "^1.2.1",
     "react": "^17.0.1",
