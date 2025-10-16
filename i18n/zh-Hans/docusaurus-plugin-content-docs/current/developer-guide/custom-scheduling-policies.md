@@ -49,29 +49,23 @@ Koordinator 的框架提供扩展点，使自定义插件能够在各个阶段�
 
 支持多种设备类型的联合分配，确保相关设备（GPU 和内存）从同一物理单元分配以获得最佳性能。支持分层拓扑范围（设备、PCIe、NUMA、节点）的分配约束。
 
-```mermaid
-classDiagram
-class DeviceSharePlugin {
-+Name() string
-+PreFilter()
-+Filter()
-+Reserve()
-+PreBind()
-}
-class DeviceAllocations {
-+DeviceType[]
-+Resources ResourceList
-+ID string
-}
-class DeviceAllocateHints {
-+Selector LabelSelector
-+AllocateStrategy DeviceAllocateStrategy
-+RequiredTopologyScope DeviceTopologyScope
-}
-DeviceSharePlugin --> DeviceAllocations : "manages"
-DeviceSharePlugin --> DeviceAllocateHints : "uses"
-DeviceAllocations --> DeviceAllocation : "contains"
-```
+**设备共享插件类结构：**
+
+核心类和关系：
+
+- **DeviceSharePlugin** (设备共享插件)
+  - 方法：`Name()`, `PreFilter()`, `Filter()`, `Reserve()`, `PreBind()`
+  - 管理 DeviceAllocations
+  - 使用 DeviceAllocateHints
+
+- **DeviceAllocations** (设备分配集合)
+  - 字段：`DeviceType[]`, `Resources ResourceList`, `ID string`
+  - 包含 DeviceAllocation (单个设备分配)
+
+- **DeviceAllocateHints** (设备分配提示)
+  - 字段：`Selector LabelSelector`
+  - `AllocateStrategy DeviceAllocateStrategy` (分配策略)
+  - `RequiredTopologyScope DeviceTopologyScope` (拓扑范围)
 
 **图表来源**
 - [device_share.go](https://github.com/koordinator-sh/koordinator/tree/main/apis/extension/device_share.go#L0-L394)
@@ -88,32 +82,25 @@ DeviceAllocations --> DeviceAllocation : "contains"
 
 通过 PreFilter 和 Reserve 扩展点集成。PreFilter 检查资源是否在 Pod 的配额内可用，考虑保证和可借用资源。Reserve 更新配额使用统计并防止过度分配。包括配额生命周期管理和资源回收的控制器。
 
-```mermaid
-classDiagram
-class ElasticQuotaPlugin {
-+Name() string
-+PreFilter()
-+PostFilter()
-+Reserve()
-+Unreserve()
-}
-class QuotaInfo {
-+Name string
-+Min ResourceList
-+Max ResourceList
-+Used ResourceList
-+NonPreemptibleUsed ResourceList
-}
-class GroupQuotaManager {
-+GetQuotaInfoByName()
-+ReservePod()
-+UnreservePod()
-+InitHookPlugins()
-}
-ElasticQuotaPlugin --> GroupQuotaManager : "uses"
-GroupQuotaManager --> QuotaInfo : "manages"
-ElasticQuotaPlugin --> QuotaInfo : "accesses"
-```
+**弹性配额插件类结构：**
+
+核心类和关系：
+
+- **ElasticQuotaPlugin** (弹性配额插件)
+  - 方法：`Name()`, `PreFilter()`, `PostFilter()`, `Reserve()`, `Unreserve()`
+  - 使用 GroupQuotaManager
+  - 访问 QuotaInfo
+
+- **GroupQuotaManager** (组配额管理器)
+  - 方法：`GetQuotaInfoByName()`, `ReservePod()`, `UnreservePod()`, `InitHookPlugins()`
+  - 管理 QuotaInfo
+
+- **QuotaInfo** (配额信息)
+  - 字段：`Name string`
+  - `Min ResourceList` (最小保证资源)
+  - `Max ResourceList` (最大限制资源)
+  - `Used ResourceList` (已使用资源)
+  - `NonPreemptibleUsed ResourceList` (不可抢占资源)
 
 **图表来源**
 - [elastic_quota.go](https://github.com/koordinator-sh/koordinator/tree/main/apis/extension/elastic_quota.go#L0-L232)

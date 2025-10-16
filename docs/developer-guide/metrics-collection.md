@@ -16,40 +16,28 @@ The metrics advisor implements a plugin-based architecture for collecting and pr
 
 Designed for easy extension with new collectors for additional metrics or device types. Integrates with statesinformer for pod metadata and metriccache for metric storage. The advisor coordinates collection at configurable intervals while managing collector dependencies.
 
-```mermaid
-classDiagram
-class MetricAdvisor {
-+Run(stopCh <-chan struct{}) error
-+HasSynced() bool
-}
-class framework.Options {
-+Config *Config
-+StatesInformer StatesInformer
-+MetricCache MetricCache
-+CgroupReader CgroupReader
-+PodFilters map[string]PodFilter
-}
-class framework.Context {
-+DeviceCollectors map[string]DeviceCollector
-+Collectors map[string]Collector
-+State *SharedState
-}
-class framework.Collector {
-+Enabled() bool
-+Setup(*Context)
-+Run(<-chan struct{})
-+Started() bool
-}
-class framework.SharedState {
-+GetNodeUsage() (*CPUQuantity, *MemoryQuantity)
-+GetPodsUsageByCollector() (map[string]*CPUQuantity, map[string]*MemoryQuantity)
-+GetHostAppUsage() (*CPUQuantity, *MemoryQuantity)
-}
-MetricAdvisor --> framework.Options : "uses"
-MetricAdvisor --> framework.Context : "manages"
-framework.Context --> framework.Collector : "contains"
-framework.Context --> framework.SharedState : "contains"
-```
+**Metrics Advisor Framework Class Structure:**
+
+Core classes and relationships:
+
+- **MetricAdvisor** (Metric advisor)
+  - Methods: `Run(stopCh <-chan struct{}) error`, `HasSynced() bool`
+  - Uses framework.Options
+  - Manages framework.Context
+
+- **framework.Options** (Framework options)
+  - Fields: `Config *Config`, `StatesInformer StatesInformer`, `MetricCache MetricCache`, `CgroupReader CgroupReader`, `PodFilters map[string]PodFilter`
+
+- **framework.Context** (Framework context)
+  - Fields: `DeviceCollectors map[string]DeviceCollector`, `Collectors map[string]Collector`, `State *SharedState`
+  - Contains Collector set
+  - Contains SharedState
+
+- **framework.Collector** (Collector interface)
+  - Methods: `Enabled() bool`, `Setup(*Context)`, `Run(<-chan struct{})`, `Started() bool`
+
+- **framework.SharedState** (Shared state)
+  - Methods: `GetNodeUsage() (*CPUQuantity, *MemoryQuantity)`, `GetPodsUsageByCollector() (map[string]*CPUQuantity, map[string]*MemoryQuantity)`, `GetHostAppUsage() (*CPUQuantity, *MemoryQuantity)`
 
 **Diagram sources**
 - [metrics_advisor.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/metricsadvisor/metrics_advisor.go#L1-L136)
@@ -64,47 +52,31 @@ The metrics advisor framework provides well-defined interfaces for gathering new
 
 Supports two specialized types: PodCollector for pod-specific metrics and DeviceCollector for device-specific metrics. These extend the base Collector interface with additional tailored methods. The framework provides factory functions (CollectorFactory and DeviceFactory) for creating collectors based on configuration.
 
-```mermaid
-classDiagram
-class Collector {
-+Enabled() bool
-+Setup(s *Context)
-+Run(stopCh <-chan struct{})
-+Started() bool
-}
-class PodCollector {
-+PodFilter
-+GetPodMetric(uid, podParentDir string, cs []corev1.ContainerStatus) []metriccache.MetricSample
-}
-class DeviceCollector {
-+Shutdown()
-+Infos() metriccache.Devices
-+GetNodeMetric() []metriccache.MetricSample
-+GetContainerMetric(containerID, podParentDir string, c *corev1.ContainerStatus) []metriccache.MetricSample
-}
-class CollectorFactory {
-+Create(opt *Options) Collector
-}
-class DeviceFactory {
-+Create(opt *Options) DeviceCollector
-}
-Collector <|-- PodCollector
-Collector <|-- DeviceCollector
-CollectorFactory --> Collector : creates
-DeviceFactory --> DeviceCollector : creates
-note right of Collector
-Base interface for all metrics collectors
-Provides lifecycle management methods
-end
-note right of PodCollector
-Specialized collector for pod-level metrics
-Implements PodFilter interface
-end
-note right of DeviceCollector
-Specialized collector for device metrics
-Provides device-specific information
-end
-```
+**Collector Interfaces and Extension Points Class Structure:**
+
+Core classes and relationships:
+
+- **Collector** (Base collector interface)
+  - Methods: `Enabled() bool`, `Setup(s *Context)`, `Run(stopCh <-chan struct{})`, `Started() bool`
+  - Note: Base interface for all metrics collectors, provides lifecycle management methods
+
+- **PodCollector** (Specialized Pod metrics collector)
+  - Inherits: Collector
+  - Additional methods: `PodFilter`, `GetPodMetric(uid, podParentDir string, cs []corev1.ContainerStatus) []metriccache.MetricSample`
+  - Note: Implements PodFilter interface
+
+- **DeviceCollector** (Specialized device metrics collector)
+  - Inherits: Collector
+  - Additional methods: `Shutdown()`, `Infos() metriccache.Devices`, `GetNodeMetric() []metriccache.MetricSample`, `GetContainerMetric(containerID, podParentDir string, c *corev1.ContainerStatus) []metriccache.MetricSample`
+  - Note: Provides device-specific information
+
+- **CollectorFactory** (Collector factory)
+  - Methods: `Create(opt *Options) Collector`
+  - Creates Collector
+
+- **DeviceFactory** (Device collector factory)
+  - Methods: `Create(opt *Options) DeviceCollector`
+  - Creates DeviceCollector
 
 **Diagram sources**
 - [plugin.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/metricsadvisor/framework/plugin.go)
@@ -124,18 +96,29 @@ Monitors CPU Performance Indicators (CPI) and Pressure Stall Information (PSI) f
 ### System Resource Collector
 Calculates system-level resource usage: system usage = node usage - pod usage - host app usage. Depends on other collectors for input metrics, demonstrating framework support for collector dependencies. Validates input metric freshness before calculations to ensure accurate derived metrics.
 
-```mermaid
-sequenceDiagram
-participant Collector as NodeResourceCollector
-participant StatesInformer as StatesInformer
-participant MetricCache as MetricCache
-participant DeviceCollector as DeviceCollector
-Collector->>StatesInformer : GetAllPods()
-Collector->>MetricCache : Get(NodeCPUInfoKey)
-Collector->>DeviceCollector : GetNodeMetric()
-Collector->>MetricCache : Appender().Append()
-Collector->>MetricCache : Appender().Commit()
-Collector->>SharedState : UpdateNodeUsage()
+**Node Resource Collector Interaction Flow:**
+
+```
+Participants:
+- NodeResourceCollector (node resource collector)
+- StatesInformer (states informer)
+- MetricCache (metric cache)
+- DeviceCollector (device collector)
+- SharedState (shared state)
+
+Flow:
+
+1. NodeResourceCollector → StatesInformer: GetAllPods()
+
+2. NodeResourceCollector → MetricCache: Get(NodeCPUInfoKey)
+
+3. NodeResourceCollector → DeviceCollector: GetNodeMetric()
+
+4. NodeResourceCollector → MetricCache: Appender().Append()
+
+5. NodeResourceCollector → MetricCache: Appender().Commit()
+
+6. NodeResourceCollector → SharedState: UpdateNodeUsage()
 ```
 
 **Diagram sources**
@@ -177,16 +160,22 @@ Metrics registered using Prometheus client libraries and exposed through merged 
 - `/internal/metrics`: Internal debugging metrics
 - `/external/metrics`: External operational metrics
 
-```mermaid
-graph LR
-P[Prometheus Server] --> |scrapes| SM[ServiceMonitor]
-SM --> |targets| K[koordlet]
-SM --> |targets| SC[SLO Controller]
-SM --> |targets| D[Descheduler]
-K --> |exposes| ME[/metrics]
-SC --> |exposes| ME
-D --> |exposes| ME
-ME --> |returns| M[Metric Data]
+**Prometheus Integration Architecture:**
+
+```
+Prometheus Server (monitoring server)
+  ↓ (scrapes)
+ServiceMonitor (service monitor)
+  ↓ (targets)
+  ├── koordlet
+  │   └── Exposes /metrics
+  ├── SLO Controller
+  │   └── Exposes /metrics
+  └── Descheduler
+      └── Exposes /metrics
+
+/metrics Endpoint
+  └── Returns Metric Data
 ```
 
 **Diagram sources**
@@ -213,22 +202,22 @@ Key parameters:
 
 These options allow fine-tuning based on requirements, balancing monitoring granularity with system performance. Feature gates provide additional control over collector enablement based on capabilities.
 
-```mermaid
-classDiagram
-class MetricsAdvisorConfig {
-+duration CollectResUsedInterval
-+duration CollectSysMetricOutdatedInterval
-+duration CollectNodeCPUInfoInterval
-+duration CollectNodeStorageInfoInterval
-+duration CPICollectorInterval
-+duration PSICollectorInterval
-+duration CPICollectorTimeWindow
-+duration ColdPageCollectorInterval
-+duration ResctrlCollectorInterval
-+bool EnablePageCacheCollector
-+bool EnableResctrlCollector
-}
-```
+**Metrics Advisor Configuration Class Structure:**
+
+Configuration parameters:
+
+- **MetricsAdvisorConfig** (Metrics advisor configuration)
+  - `CollectResUsedInterval` (duration): Resource usage collection interval
+  - `CollectSysMetricOutdatedInterval` (duration): System metric outdated interval
+  - `CollectNodeCPUInfoInterval` (duration): Node CPU info collection interval
+  - `CollectNodeStorageInfoInterval` (duration): Node storage info collection interval
+  - `CPICollectorInterval` (duration): CPI metric collection interval
+  - `PSICollectorInterval` (duration): PSI metric collection interval
+  - `CPICollectorTimeWindow` (duration): CPI collector time window
+  - `ColdPageCollectorInterval` (duration): Cold page collection interval
+  - `ResctrlCollectorInterval` (duration): Resctrl collection interval
+  - `EnablePageCacheCollector` (bool): Enable page cache collector
+  - `EnableResctrlCollector` (bool): Enable resctrl collector
 
 **Diagram sources**
 - [pkg/koordlet/metricsadvisor/framework/config.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/metricsadvisor/framework/config.go#L1-L72)

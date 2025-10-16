@@ -11,36 +11,44 @@ This document provides comprehensive documentation for Koordinator's Go client l
 
 The Koordinator clientset provides a unified interface for accessing all Koordinator custom resources through versioned API groups. The architecture follows Kubernetes client-go conventions with typed clients for each API group.
 
-```mermaid
-classDiagram
-class Clientset {
-+*discovery.DiscoveryClient
-+analysisV1alpha1 *AnalysisV1alpha1Client
-+configV1alpha1 *ConfigV1alpha1Client
-+quotaV1alpha1 *QuotaV1alpha1Client
-+schedulingV1alpha1 *SchedulingV1alpha1Client
-+sloV1alpha1 *SloV1alpha1Client
-}
-class AnalysisV1alpha1Client {
-+*rest.RESTClient
-+recommendations *RecommendationInterface
-}
-class SchedulingV1alpha1Client {
-+*rest.RESTClient
-+reservations *ReservationInterface
-+podMigrationJobs *PodMigrationJobInterface
-}
-class SloV1alpha1Client {
-+*rest.RESTClient
-+nodeMetrics *NodeMetricInterface
-+nodeSLOs *NodeSLOInterface
-}
-Clientset --> AnalysisV1alpha1Client : "has"
-Clientset --> SchedulingV1alpha1Client : "has"
-Clientset --> SloV1alpha1Client : "has"
-AnalysisV1alpha1Client --> RecommendationInterface : "implements"
-SchedulingV1alpha1Client --> ReservationInterface : "implements"
-SloV1alpha1Client --> NodeMetricInterface : "implements"
+**Clientset Architecture Diagram:**
+
+```
+Core Classes:
+
+1. Clientset
+   Fields:
+   - *discovery.DiscoveryClient
+   - analysisV1alpha1: *AnalysisV1alpha1Client
+   - configV1alpha1: *ConfigV1alpha1Client
+   - quotaV1alpha1: *QuotaV1alpha1Client
+   - schedulingV1alpha1: *SchedulingV1alpha1Client
+   - sloV1alpha1: *SloV1alpha1Client
+
+2. AnalysisV1alpha1Client
+   Fields:
+   - *rest.RESTClient
+   - recommendations: *RecommendationInterface
+
+3. SchedulingV1alpha1Client
+   Fields:
+   - *rest.RESTClient
+   - reservations: *ReservationInterface
+   - podMigrationJobs: *PodMigrationJobInterface
+
+4. SloV1alpha1Client
+   Fields:
+   - *rest.RESTClient
+   - nodeMetrics: *NodeMetricInterface
+   - nodeSLOs: *NodeSLOInterface
+
+Relationships:
+- Clientset → AnalysisV1alpha1Client (has)
+- Clientset → SchedulingV1alpha1Client (has)
+- Clientset → SloV1alpha1Client (has)
+- AnalysisV1alpha1Client → RecommendationInterface (implements)
+- SchedulingV1alpha1Client → ReservationInterface (implements)
+- SloV1alpha1Client → NodeMetricInterface (implements)
 ```
 
 **Diagram sources**
@@ -56,25 +64,30 @@ SloV1alpha1Client --> NodeMetricInterface : "implements"
 
 The clientset provides typed interfaces for performing CRUD operations on Koordinator custom resources. Each API group has its own client that exposes resource-specific operations through interface methods.
 
-```mermaid
-sequenceDiagram
-participant App as Application
-participant Clientset as KoordinatorClientset
-participant REST as RESTClient
-participant API as KubernetesAPI
-App->>Clientset : NewForConfig(config)
-Clientset->>Clientset : Initialize clients for all API groups
-Clientset-->>App : Return Clientset
-App->>Clientset : Get SLO client
-Clientset-->>App : Return SloV1alpha1Client
-App->>REST : Create NodeMetric
-REST->>API : POST /apis/slo.koordinator.sh/v1alpha1/nodemetrics
-API-->>REST : Return created resource
-REST-->>App : Return NodeMetric object
-App->>REST : Update NodeMetric
-REST->>API : PUT /apis/slo.koordinator.sh/v1alpha1/nodemetrics/nodename
-API-->>REST : Return updated resource
-REST-->>App : Return updated NodeMetric
+**CRUD Operations Sequence Diagram:**
+
+```
+Participants:
+- Application
+- KoordinatorClientset
+- RESTClient
+- KubernetesAPI
+
+Flow:
+
+1. Application → KoordinatorClientset: NewForConfig(config)
+2. KoordinatorClientset internal: Initialize clients for all API groups
+3. KoordinatorClientset → Application: Return Clientset
+4. Application → KoordinatorClientset: Get SLO client
+5. KoordinatorClientset → Application: Return SloV1alpha1Client
+6. Application → RESTClient: Create NodeMetric
+7. RESTClient → KubernetesAPI: POST /apis/slo.koordinator.sh/v1alpha1/nodemetrics
+8. KubernetesAPI → RESTClient: Return created resource
+9. RESTClient → Application: Return NodeMetric object
+10. Application → RESTClient: Update NodeMetric
+11. RESTClient → KubernetesAPI: PUT /apis/slo.koordinator.sh/v1alpha1/nodemetrics/nodename
+12. KubernetesAPI → RESTClient: Return updated resource
+13. RESTClient → Application: Return updated NodeMetric
 ```
 
 **Diagram sources**
@@ -93,37 +106,46 @@ REST-->>App : Return updated NodeMetric
 
 The informer pattern enables efficient event-driven programming by maintaining a local cache of Koordinator resources and notifying controllers of changes. Informers watch resources and keep a synchronized cache, reducing direct API server calls.
 
-```mermaid
-classDiagram
-class SharedInformerFactory {
-+client versioned.Interface
-+defaultResync time.Duration
-+informers map[reflect.Type]SharedIndexInformer
-+startedInformers map[reflect.Type]bool
-}
-class NodeMetricInformer {
-+Informer() cache.SharedIndexInformer
-+Lister() NodeMetricLister
-}
-class ReservationInformer {
-+Informer() cache.SharedIndexInformer
-+Lister() ReservationLister
-}
-class RecommendationInformer {
-+Informer() cache.SharedIndexInformer
-+Lister() RecommendationLister
-}
-class SharedIndexInformer {
-+AddEventHandler(handler ResourceEventHandler)
-+GetStore() Store
-+GetController() Controller
-}
-SharedInformerFactory --> NodeMetricInformer : "creates"
-SharedInformerFactory --> ReservationInformer : "creates"
-SharedInformerFactory --> RecommendationInformer : "creates"
-NodeMetricInformer --> SharedIndexInformer : "implements"
-ReservationInformer --> SharedIndexInformer : "implements"
-RecommendationInformer --> SharedIndexInformer : "implements"
+**Informer Pattern Class Diagram:**
+
+```
+Core Classes:
+
+1. SharedInformerFactory
+   Fields:
+   - client: versioned.Interface
+   - defaultResync: time.Duration
+   - informers: map[reflect.Type]SharedIndexInformer
+   - startedInformers: map[reflect.Type]bool
+
+2. NodeMetricInformer
+   Methods:
+   - Informer() cache.SharedIndexInformer
+   - Lister() NodeMetricLister
+
+3. ReservationInformer
+   Methods:
+   - Informer() cache.SharedIndexInformer
+   - Lister() ReservationLister
+
+4. RecommendationInformer
+   Methods:
+   - Informer() cache.SharedIndexInformer
+   - Lister() RecommendationLister
+
+5. SharedIndexInformer
+   Methods:
+   - AddEventHandler(handler ResourceEventHandler)
+   - GetStore() Store
+   - GetController() Controller
+
+Relationships:
+- SharedInformerFactory → NodeMetricInformer (creates)
+- SharedInformerFactory → ReservationInformer (creates)
+- SharedInformerFactory → RecommendationInformer (creates)
+- NodeMetricInformer → SharedIndexInformer (implements)
+- ReservationInformer → SharedIndexInformer (implements)
+- RecommendationInformer → SharedIndexInformer (implements)
 ```
 
 **Diagram sources**
@@ -141,31 +163,39 @@ RecommendationInformer --> SharedIndexInformer : "implements"
 
 Lister interfaces provide read-only access to the local cache maintained by informers, enabling efficient querying of Koordinator resources without direct API server calls. Listers return objects that must be treated as read-only to maintain cache consistency.
 
-```mermaid
-classDiagram
-class NodeMetricLister {
-+List(selector labels.Selector) []*NodeMetric
-+Get(name string) *NodeMetric
-+NodeMetricListerExpansion
-}
-class ReservationLister {
-+List(selector labels.Selector) []*Reservation
-+Get(name string) *Reservation
-+ReservationListerExpansion
-}
-class RecommendationLister {
-+List(selector labels.Selector) []*Recommendation
-+Recommendations(namespace string) RecommendationNamespaceLister
-+RecommendationListerExpansion
-}
-class RecommendationNamespaceLister {
-+List(selector labels.Selector) []*Recommendation
-+Get(name string) *Recommendation
-}
-NodeMetricLister <|-- NodeMetricInformer : "provides"
-ReservationLister <|-- ReservationInformer : "provides"
-RecommendationLister <|-- RecommendationInformer : "provides"
-RecommendationLister --> RecommendationNamespaceLister : "creates"
+**Lister Interfaces Class Diagram:**
+
+```
+Core Classes:
+
+1. NodeMetricLister
+   Methods:
+   - List(selector labels.Selector) []*NodeMetric
+   - Get(name string) *NodeMetric
+   - NodeMetricListerExpansion
+
+2. ReservationLister
+   Methods:
+   - List(selector labels.Selector) []*Reservation
+   - Get(name string) *Reservation
+   - ReservationListerExpansion
+
+3. RecommendationLister
+   Methods:
+   - List(selector labels.Selector) []*Recommendation
+   - Recommendations(namespace string) RecommendationNamespaceLister
+   - RecommendationListerExpansion
+
+4. RecommendationNamespaceLister
+   Methods:
+   - List(selector labels.Selector) []*Recommendation
+   - Get(name string) *Recommendation
+
+Relationships:
+- NodeMetricInformer → NodeMetricLister (provides)
+- ReservationInformer → ReservationLister (provides)
+- RecommendationInformer → RecommendationLister (provides)
+- RecommendationLister → RecommendationNamespaceLister (creates)
 ```
 
 **Diagram sources**
@@ -182,20 +212,26 @@ RecommendationLister --> RecommendationNamespaceLister : "creates"
 
 Shared informer factories enable multiple controllers to share a single informer instance, reducing resource consumption and API server load. The factory manages the lifecycle of informers and ensures cache consistency across controllers.
 
-```mermaid
-flowchart TD
-Start([Create SharedInformerFactory]) --> Configure["Configure with client and resync period"]
-Configure --> Create["Create informer for specific resource"]
-Create --> Start["Start informer with stop channel"]
-Start --> Sync["WaitForCacheSync"]
-Sync --> Ready["Informer ready for use"]
-Ready --> Query["Use Lister to query cache"]
-Ready --> Watch["Add event handlers for create/update/delete"]
-Watch --> Process["Process events in controller logic"]
-Query --> Process
-Process --> End([Handle resource changes])
-style Start fill:#f9f,stroke:#333
-style End fill:#f9f,stroke:#333
+**Shared Informer Management Flow:**
+
+```
+1. Create SharedInformerFactory
+   ↓
+2. Configure with client and resync period
+   ↓
+3. Create informer for specific resource
+   ↓
+4. Start informer with stop channel
+   ↓
+5. WaitForCacheSync
+   ↓
+6. Informer ready for use
+   ├── Use Lister to query cache
+   └── Add event handlers for create/update/delete
+        ↓
+7. Process events in controller logic
+   ↓
+8. Handle resource changes
 ```
 
 **Diagram sources**
@@ -210,23 +246,28 @@ style End fill:#f9f,stroke:#333
 
 The Koordinator client architecture implements delegation patterns with built-in rate limiting and retry mechanisms to ensure reliable communication with the Kubernetes API server while respecting cluster resource constraints.
 
-```mermaid
-flowchart LR
-A[Application] --> B[Delegating Client]
-B --> C[Rate Limiter]
-C --> D[Retry Mechanism]
-D --> E[Kubernetes API Server]
-E --> F[Response]
-F --> D
-D --> C
-C --> B
-B --> A
-subgraph "Client-Side Controls"
-C
-D
-end
-style C fill:#e6f3ff,stroke:#333
-style D fill:#e6f3ff,stroke:#333
+**Delegation, Rate Limiting, and Retry Architecture:**
+
+```
+Application
+  ↓
+Delegating Client
+  ↓
+Rate Limiter ───┬───────────────
+  ↓             │ Client-Side Controls
+Retry Mechanism ─┴───────────────
+  ↓
+Kubernetes API Server
+  ↓
+Response
+  ↓
+Retry Mechanism
+  ↓
+Rate Limiter
+  ↓
+Delegating Client
+  ↓
+Application
 ```
 
 **Diagram sources**
@@ -243,30 +284,38 @@ style D fill:#e6f3ff,stroke:#333
 
 All Koordinator custom resource types include generated DeepCopy methods that enable safe copying of objects in concurrent environments. These methods ensure thread safety when working with cached objects from informers.
 
-```mermaid
-classDiagram
-class Recommendation {
-+DeepCopy() *Recommendation
-+DeepCopyInto(*Recommendation)
-+DeepCopyObject() runtime.Object
-}
-class Reservation {
-+DeepCopy() *Reservation
-+DeepCopyInto(*Reservation)
-+DeepCopyObject() runtime.Object
-}
-class NodeMetric {
-+DeepCopy() *NodeMetric
-+DeepCopyInto(*NodeMetric)
-+DeepCopyObject() runtime.Object
-}
-class DeepCopyInterface {
-+DeepCopy() interface{}
-+DeepCopyInto(interface{})
-}
-Recommendation --> DeepCopyInterface : "implements"
-Reservation --> DeepCopyInterface : "implements"
-NodeMetric --> DeepCopyInterface : "implements"
+**DeepCopy Methods Class Diagram:**
+
+```
+Core Classes:
+
+1. Recommendation
+   Methods:
+   - DeepCopy() *Recommendation
+   - DeepCopyInto(*Recommendation)
+   - DeepCopyObject() runtime.Object
+
+2. Reservation
+   Methods:
+   - DeepCopy() *Reservation
+   - DeepCopyInto(*Reservation)
+   - DeepCopyObject() runtime.Object
+
+3. NodeMetric
+   Methods:
+   - DeepCopy() *NodeMetric
+   - DeepCopyInto(*NodeMetric)
+   - DeepCopyObject() runtime.Object
+
+4. DeepCopyInterface
+   Methods:
+   - DeepCopy() interface{}
+   - DeepCopyInto(interface{})
+
+Relationships:
+- Recommendation → DeepCopyInterface (implements)
+- Reservation → DeepCopyInterface (implements)
+- NodeMetric → DeepCopyInterface (implements)
 ```
 
 **Diagram sources**
@@ -283,27 +332,33 @@ NodeMetric --> DeepCopyInterface : "implements"
 
 Koordinator clients can be seamlessly integrated with controller-runtime to build custom controllers that react to changes in Koordinator resources. The integration leverages the same informer and lister patterns while providing higher-level abstractions.
 
-```mermaid
-sequenceDiagram
-participant Manager as ControllerManager
-participant Builder as ControllerBuilder
-participant Reconciler as CustomReconciler
-participant Client as KoordinatorClient
-participant Cache as SharedInformerCache
-Manager->>Builder : SetupWithManager
-Builder->>Manager : Register Controller
-Manager->>Cache : Start Shared Informers
-Cache->>Cache : Synchronize caches
-loop Event Processing
-Cache->>Reconciler : Trigger Reconcile(request)
-Reconciler->>Client : Get resource from cache via Lister
-Client-->>Reconciler : Return resource
-Reconciler->>Client : Update resource status
-Client->>API : PATCH resource status
-API-->>Client : Return updated resource
-Client-->>Reconciler : Confirm update
-Reconciler-->>Manager : Return result
-end
+**Integration with controller-runtime Sequence Diagram:**
+
+```
+Participants:
+- ControllerManager
+- ControllerBuilder
+- CustomReconciler
+- KoordinatorClient
+- SharedInformerCache
+
+Flow:
+
+1. ControllerManager → ControllerBuilder: SetupWithManager
+2. ControllerBuilder → ControllerManager: Register Controller
+3. ControllerManager → SharedInformerCache: Start Shared Informers
+4. SharedInformerCache internal: Synchronize caches
+
+[Event Processing Loop]
+5. SharedInformerCache → CustomReconciler: Trigger Reconcile(request)
+6. CustomReconciler → KoordinatorClient: Get resource from cache via Lister
+7. KoordinatorClient → CustomReconciler: Return resource
+8. CustomReconciler → KoordinatorClient: Update resource status
+9. KoordinatorClient → API: PATCH resource status
+10. API → KoordinatorClient: Return updated resource
+11. KoordinatorClient → CustomReconciler: Confirm update
+12. CustomReconciler → ControllerManager: Return result
+[Loop End]
 ```
 
 **Diagram sources**
@@ -320,21 +375,32 @@ end
 
 When working with Koordinator client libraries, several best practices ensure efficient and reliable operation:
 
-```mermaid
-flowchart TD
-A[Initialize Clientset] --> B[Create SharedInformerFactory]
-B --> C[Get Informer for Resource]
-C --> D[Add Event Handlers]
-D --> E[Start Informer]
-E --> F[WaitForCacheSync]
-F --> G[Use Lister for Queries]
-G --> H[Handle Events with Reconciliation]
-H --> I[Use DeepCopy when modifying objects]
-I --> J[Handle Resource Version Conflicts]
-J --> K[Implement Proper Error Handling]
-K --> L[Shutdown Gracefully]
-style A fill:#d4edda,stroke:#333
-style L fill:#d4edda,stroke:#333
+**Best Practices Flow:**
+
+```
+1. Initialize Clientset
+   ↓
+2. Create SharedInformerFactory
+   ↓
+3. Get Informer for Resource
+   ↓
+4. Add Event Handlers
+   ↓
+5. Start Informer
+   ↓
+6. WaitForCacheSync
+   ↓
+7. Use Lister for Queries
+   ↓
+8. Handle Events with Reconciliation
+   ↓
+9. Use DeepCopy when modifying objects
+   ↓
+10. Handle Resource Version Conflicts
+    ↓
+11. Implement Proper Error Handling
+    ↓
+12. Shutdown Gracefully
 ```
 
 **Diagram sources**

@@ -26,20 +26,29 @@ Koordinator 提供可扩展的 webhook 框架，通过变更和验证 webhook �
 
 ## Webhook 框架架构
 
-```mermaid
-graph TB
-Server[Webhook Server] --> HandlerBuilder[HandlerBuilder Interface]
-HandlerBuilder --> HandlerMap[HandlerBuilderMap]
-HandlerMap --> Mutating[Mutating Webhooks]
-HandlerMap --> Validating[Validating Webhooks]
-Mutating --> PodWebhook[Pod Webhooks]
-Mutating --> NodeWebhook[Node Webhooks]
-Mutating --> QuotaWebhook[Quota Webhooks]
-Validating --> PodWebhook
-Validating --> NodeWebhook
-Validating --> QuotaWebhook
-Validating --> ConfigMapWebhook[ConfigMap Webhooks]
-Validating --> ReservationWebhook[Reservation Webhooks]
+**Webhook 核心架构：**
+
+```
+Webhook Core (核心组件)
+  ├── Webhook Server
+  ├── HandlerBuilder Interface (处理器构建器接口)
+  └── HandlerBuilderMap (处理器构建器映射)
+
+Webhook Types (类型)
+  ├── Mutating Webhooks (变更 Webhook)
+  └── Validating Webhooks (验证 Webhook)
+
+Resource-Specific Handlers (资源特定处理器)
+  ├── Pod Webhooks
+  ├── Node Webhooks
+  ├── Quota Webhooks
+  ├── ConfigMap Webhooks
+  └── Reservation Webhooks
+
+关系流：
+HandlerBuilder → HandlerBuilderMap → Webhook Server
+Webhook Server → Mutating/Validating Webhooks
+Mutating/Validating Webhooks → 各类资源处理器
 ```
 
 **图表来源**
@@ -67,28 +76,42 @@ Pod 变更 webhook 实现多个变更函数，在 pod 创建期间依次执行�
 
 Pod 验证 webhook 执行全面的验证检查，包括 cluster reservation 验证、cluster colocation profile 验证、elastic quota 验证、quota 评估、设备资源验证和增强验证。这些验证依次执行，任何失败都会导致拒绝 pod 创建请求。
 
-```mermaid
-sequenceDiagram
-participant Client
-participant APIserver
-participant PodMutatingWebhook
-participant PodValidatingWebhook
-Client->>APIserver : Create Pod Request
-APIserver->>PodMutatingWebhook : Admission Review
-PodMutatingWebhook->>PodMutatingWebhook : Apply ClusterColocationProfile
-PodMutatingWebhook->>PodMutatingWebhook : Apply ExtendedResourceSpec
-PodMutatingWebhook->>PodMutatingWebhook : Add MultiQuotaTree Affinity
-PodMutatingWebhook->>PodMutatingWebhook : Apply DeviceResourceSpec
-PodMutatingWebhook-->>APIserver : Mutated Pod
-APIserver->>PodValidatingWebhook : Admission Review
-PodValidatingWebhook->>PodValidatingWebhook : Validate ClusterReservation
-PodValidatingWebhook->>PodValidatingWebhook : Validate ClusterColocationProfile
-PodValidatingWebhook->>PodValidatingWebhook : Validate ElasticQuota
-PodValidatingWebhook->>PodValidatingWebhook : Evaluate Quota
-PodValidatingWebhook->>PodValidatingWebhook : Validate DeviceResource
-PodValidatingWebhook->>PodValidatingWebhook : Enhanced Validation
-PodValidatingWebhook-->>APIserver : Validation Response
-APIserver-->>Client : Pod Created or Rejected
+**Pod Webhook 处理流程：**
+
+```
+参与者：
+- Client (客户端)
+- APIserver
+- PodMutatingWebhook (Pod 变更 Webhook)
+- PodValidatingWebhook (Pod 验证 Webhook)
+
+流程：
+
+1. Client → APIserver: 创建 Pod 请求
+
+2. APIserver → PodMutatingWebhook: Admission Review
+
+3. PodMutatingWebhook 内部处理：
+   - 应用 ClusterColocationProfile
+   - 应用 ExtendedResourceSpec
+   - 添加 MultiQuotaTree Affinity
+   - 应用 DeviceResourceSpec
+
+4. PodMutatingWebhook → APIserver: 返回 Mutated Pod
+
+5. APIserver → PodValidatingWebhook: Admission Review
+
+6. PodValidatingWebhook 内部验证：
+   - 验证 ClusterReservation
+   - 验证 ClusterColocationProfile
+   - 验证 ElasticQuota
+   - 评估配额 (Evaluate Quota)
+   - 验证 DeviceResource
+   - 增强验证 (Enhanced Validation)
+
+7. PodValidatingWebhook → APIserver: 验证响应
+
+8. APIserver → Client: Pod 已创建或被拒绝
 ```
 
 **图表来源**
@@ -107,25 +130,42 @@ Koordinator 中的 Node webhook 专注于变更 node status 资源而不是 node
 
 Node 变更 webhook 使用基于插件的架构，可以注册多个插件来处理节点变更的不同方面。当前实现了资源放大插件以调整节点资源报告。Webhook 专门针对 node status 子资源，确保只处理状态更新。
 
-```mermaid
-flowchart TD
-Start([Node Status Update]) --> CheckResource{"Resource = nodes?"}
-CheckResource --> |No| Allow[Allow Request]
-CheckResource --> |Yes| CheckSubResource{"SubResource = status?"}
-CheckSubResource --> |No| Allow
-CheckSubResource --> |Yes| Decode[Decode Node Object]
-Decode --> Clone[Create Deep Copy]
-Clone --> PluginLoop[For each plugin]
-PluginLoop --> Admit[Call plugin.Admit]
-Admit --> CheckError{"Error?"}
-CheckError --> |Yes| Reject[Reject Request]
-CheckError --> |No| NextPlugin[Next Plugin]
-NextPlugin --> CheckLast{"Last Plugin?"}
-CheckLast --> |No| PluginLoop
-CheckLast --> |Yes| Compare{"Modified?"}
-Compare --> |No| Allow
-Compare --> |Yes| GeneratePatch[Generate JSON Patch]
-GeneratePatch --> ReturnPatch[Return Patch Response]
+**Node Webhook 处理流程：**
+
+```
+1. Node Status Update (节点状态更新)
+   ↓
+2. 检查资源类型 (Resource = nodes?)
+   ├─ 否 → 允许请求 (Allow Request)
+   └─ 是 → 继续
+   ↓
+3. 检查子资源 (SubResource = status?)
+   ├─ 否 → 允许请求
+   └─ 是 → 继续
+   ↓
+4. 解码 Node 对象 (Decode Node Object)
+   ↓
+5. 创建深拷贝 (Create Deep Copy)
+   ↓
+6. 遍历所有插件 (For each plugin)
+   ↓
+7. 调用 plugin.Admit
+   ↓
+8. 检查错误 (Error?)
+   ├─ 是 → 拒绝请求 (Reject Request)
+   └─ 否 → 下一个插件 (Next Plugin)
+   ↓
+9. 是否最后一个插件 (Last Plugin?)
+   ├─ 否 → 返回步骤 6
+   └─ 是 → 继续
+   ↓
+10. 是否修改 (Modified?)
+    ├─ 否 → 允许请求
+    └─ 是 → 继续
+    ↓
+11. 生成 JSON Patch (Generate JSON Patch)
+    ↓
+12. 返回 Patch 响应 (Return Patch Response)
 ```
 
 **图表来源**

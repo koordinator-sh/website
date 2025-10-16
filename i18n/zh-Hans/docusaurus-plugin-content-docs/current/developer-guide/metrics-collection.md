@@ -26,40 +26,28 @@ Metrics advisor 实现了基于插件的架构，用于从系统组件和专用�
 
 设计易于扩展，可为额外指标或设备类型添加新 collector。与 statesinformer 集成以获取 Pod 元数据，与 metriccache 集成以存储指标。Advisor 在可配置间隔协调收集，同时管理 collector 依赖关系。
 
-```mermaid
-classDiagram
-class MetricAdvisor {
-+Run(stopCh <-chan struct{}) error
-+HasSynced() bool
-}
-class framework.Options {
-+Config *Config
-+StatesInformer StatesInformer
-+MetricCache MetricCache
-+CgroupReader CgroupReader
-+PodFilters map[string]PodFilter
-}
-class framework.Context {
-+DeviceCollectors map[string]DeviceCollector
-+Collectors map[string]Collector
-+State *SharedState
-}
-class framework.Collector {
-+Enabled() bool
-+Setup(*Context)
-+Run(<-chan struct{})
-+Started() bool
-}
-class framework.SharedState {
-+GetNodeUsage() (*CPUQuantity, *MemoryQuantity)
-+GetPodsUsageByCollector() (map[string]*CPUQuantity, map[string]*MemoryQuantity)
-+GetHostAppUsage() (*CPUQuantity, *MemoryQuantity)
-}
-MetricAdvisor --> framework.Options : "uses"
-MetricAdvisor --> framework.Context : "manages"
-framework.Context --> framework.Collector : "contains"
-framework.Context --> framework.SharedState : "contains"
-```
+**指标顾问框架类结构：**
+
+核心类和关系：
+
+- **MetricAdvisor** (指标顾问)
+  - 方法：`Run(stopCh <-chan struct{}) error`, `HasSynced() bool`
+  - 使用 framework.Options
+  - 管理 framework.Context
+
+- **framework.Options** (框架选项)
+  - 字段：`Config *Config`, `StatesInformer StatesInformer`, `MetricCache MetricCache`, `CgroupReader CgroupReader`, `PodFilters map[string]PodFilter`
+
+- **framework.Context** (框架上下文)
+  - 字段：`DeviceCollectors map[string]DeviceCollector`, `Collectors map[string]Collector`, `State *SharedState`
+  - 包含 Collector 集合
+  - 包含 SharedState
+
+- **framework.Collector** (收集器接口)
+  - 方法：`Enabled() bool`, `Setup(*Context)`, `Run(<-chan struct{})`, `Started() bool`
+
+- **framework.SharedState** (共享状态)
+  - 方法：`GetNodeUsage() (*CPUQuantity, *MemoryQuantity)`, `GetPodsUsageByCollector() (map[string]*CPUQuantity, map[string]*MemoryQuantity)`, `GetHostAppUsage() (*CPUQuantity, *MemoryQuantity)`
 
 **图表来源**
 - [metrics_advisor.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/metricsadvisor/metrics_advisor.go#L1-L136)
@@ -74,35 +62,31 @@ Metrics advisor 框架提供良好定义的接口，用于从节点和 Pod 收�
 
 支持两种特殊类型：用于 Pod 特定指标的 PodCollector 和用于设备特定指标的 DeviceCollector。这些扩展基础 Collector 接口，添加了针对特定用例的方法。框架提供工厂函数（CollectorFactory 和 DeviceFactory）用于基于配置创建 collector。
 
-```mermaid
-classDiagram
-class Collector {
-+Enabled() bool
-+Setup(s *Context)
-+Run(stopCh <-chan struct{})
-+Started() bool
-}
-class PodCollector {
-+PodFilter
-+GetPodMetric(uid, podParentDir string, cs []corev1.ContainerStatus) []metriccache.MetricSample
-}
-class DeviceCollector {
-+Shutdown()
-+Infos() metriccache.Devices
-+GetNodeMetric() []metriccache.MetricSample
-+GetContainerMetric(containerID, podParentDir string, c *corev1.ContainerStatus) []metriccache.MetricSample
-}
-class CollectorFactory {
-+Create(opt *Options) Collector
-}
-class DeviceFactory {
-+Create(opt *Options) DeviceCollector
-}
-Collector <|-- PodCollector
-Collector <|-- DeviceCollector
-CollectorFactory --> Collector : creates
-DeviceFactory --> DeviceCollector : creates
-```
+**收集器接口和扩展点类结构：**
+
+核心类和关系：
+
+- **Collector** (基础收集器接口)
+  - 方法：`Enabled() bool`, `Setup(s *Context)`, `Run(stopCh <-chan struct{})`, `Started() bool`
+  - 注：所有指标收集器的基础接口，提供生命周期管理方法
+
+- **PodCollector** (特化 Pod 指标收集器)
+  - 继承： Collector
+  - 额外方法：`PodFilter`, `GetPodMetric(uid, podParentDir string, cs []corev1.ContainerStatus) []metriccache.MetricSample`
+  - 注：实现 PodFilter 接口
+
+- **DeviceCollector** (特化设备指标收集器)
+  - 继承： Collector
+  - 额外方法：`Shutdown()`, `Infos() metriccache.Devices`, `GetNodeMetric() []metriccache.MetricSample`, `GetContainerMetric(containerID, podParentDir string, c *corev1.ContainerStatus) []metriccache.MetricSample`
+  - 注：提供设备特定信息
+
+- **CollectorFactory** (收集器工厂)
+  - 方法：`Create(opt *Options) Collector`
+  - 创建 Collector
+
+- **DeviceFactory** (设备收集器工厂)
+  - 方法：`Create(opt *Options) DeviceCollector`
+  - 创建 DeviceCollector
 
 **图表来源**
 - [plugin.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/metricsadvisor/framework/plugin.go)
@@ -122,18 +106,29 @@ Koordinator 包含演示框架监控系统资源能力的内置 collector。
 ### System Resource Collector
 通过计算系统级资源使用：系统使用 = 节点使用 - Pod 使用 - 主机应用使用。依赖其他 collector 提供必要的输入指标，演示框架对 collector 依赖关系的支持。在执行计算之前验证输入指标的新鲜度，确保派生指标基于最新信息。
 
-```mermaid
-sequenceDiagram
-participant Collector as NodeResourceCollector
-participant StatesInformer as StatesInformer
-participant MetricCache as MetricCache
-participant DeviceCollector as DeviceCollector
-Collector->>StatesInformer : GetAllPods()
-Collector->>MetricCache : Get(NodeCPUInfoKey)
-Collector->>DeviceCollector : GetNodeMetric()
-Collector->>MetricCache : Appender().Append()
-Collector->>MetricCache : Appender().Commit()
-Collector->>SharedState : UpdateNodeUsage()
+**节点资源收集器交互流程：**
+
+```
+参与者：
+- NodeResourceCollector (节点资源收集器)
+- StatesInformer (状态通知器)
+- MetricCache (指标缓存)
+- DeviceCollector (设备收集器)
+- SharedState (共享状态)
+
+流程：
+
+1. NodeResourceCollector → StatesInformer: GetAllPods()
+
+2. NodeResourceCollector → MetricCache: Get(NodeCPUInfoKey)
+
+3. NodeResourceCollector → DeviceCollector: GetNodeMetric()
+
+4. NodeResourceCollector → MetricCache: Appender().Append()
+
+5. NodeResourceCollector → MetricCache: Appender().Commit()
+
+6. NodeResourceCollector → SharedState: UpdateNodeUsage()
 ```
 
 **图表来源**
@@ -175,16 +170,22 @@ Koordinator 与 Prometheus 集成，通过标准端点暴露收集的指标。�
 - `/internal/metrics`：内部调试指标
 - `/external/metrics`：外部运维指标
 
-```mermaid
-graph LR
-P[Prometheus Server] --> |scrapes| SM[ServiceMonitor]
-SM --> |targets| K[koordlet]
-SM --> |targets| SC[SLO Controller]
-SM --> |targets| D[Descheduler]
-K --> |exposes| ME[/metrics]
-SC --> |exposes| ME
-D --> |exposes| ME
-ME --> |returns| M[Metric Data]
+**Prometheus 集成架构：**
+
+```
+Prometheus Server (监控服务器)
+  ↓ (抽取)
+ServiceMonitor (服务监控)
+  ↓ (目标)
+  ├── koordlet
+  │   └── 暴露 /metrics
+  ├── SLO Controller
+  │   └── 暴露 /metrics
+  └── Descheduler
+      └── 暴露 /metrics
+
+/metrics 端点
+  └── 返回 Metric Data (指标数据)
 ```
 
 **图表来源**
@@ -211,22 +212,22 @@ ME --> |returns| M[Metric Data]
 
 这些选项允许基于需求进行微调，平衡监控粒度与系统性能。功能门提供基于能力的额外 collector 启用控制。
 
-```mermaid
-classDiagram
-class MetricsAdvisorConfig {
-+duration CollectResUsedInterval
-+duration CollectSysMetricOutdatedInterval
-+duration CollectNodeCPUInfoInterval
-+duration CollectNodeStorageInfoInterval
-+duration CPICollectorInterval
-+duration PSICollectorInterval
-+duration CPICollectorTimeWindow
-+duration ColdPageCollectorInterval
-+duration ResctrlCollectorInterval
-+bool EnablePageCacheCollector
-+bool EnableResctrlCollector
-}
-```
+**指标顾问配置类结构：**
+
+配置参数：
+
+- **MetricsAdvisorConfig** (指标顾问配置)
+  - `CollectResUsedInterval` (duration): 资源使用采集间隔
+  - `CollectSysMetricOutdatedInterval` (duration): 系统指标过期间隔
+  - `CollectNodeCPUInfoInterval` (duration): 节点 CPU 信息采集间隔
+  - `CollectNodeStorageInfoInterval` (duration): 节点存储信息采集间隔
+  - `CPICollectorInterval` (duration): CPI 指标采集间隔
+  - `PSICollectorInterval` (duration): PSI 指标采集间隔
+  - `CPICollectorTimeWindow` (duration): CPI 收集器时间窗口
+  - `ColdPageCollectorInterval` (duration): 冷页采集间隔
+  - `ResctrlCollectorInterval` (duration): Resctrl 采集间隔
+  - `EnablePageCacheCollector` (bool): 启用页缓存收集器
+  - `EnableResctrlCollector` (bool): 启用 Resctrl 收集器
 
 **图表来源**
 - [pkg/koordlet/metricsadvisor/framework/config.go](https://github.com/koordinator-sh/koordinator/tree/main/pkg/koordlet/metricsadvisor/framework/config.go#L1-L72)
