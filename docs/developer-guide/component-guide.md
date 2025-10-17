@@ -1,9 +1,5 @@
 # Component Guide
 
-:::info
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 Koordinator is a QoS-based scheduling system that enhances Kubernetes cluster efficiency and reliability for hybrid workloads. This guide documents each component's purpose, architecture, configuration, and operations. Components communicate through the Kubernetes API server and share configuration via ConfigMaps for coordinated resource management.
 

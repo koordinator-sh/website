@@ -1,4 +1,4 @@
-# 开发自定义的koord-descheduler插件
+# 开发自定义重调度插件
 
 ## 背景
 Koordinator Descheduler (koord-descheduler) 通过重新调度 Pods 来解决资源争夺、负载不平衡和合规性问题，从而帮助管理集群中的资源利用率。该组件基于 [Descheduler Framework ](https://koordinator.sh/zh-Hans/docs/designs/descheduler-framework/)实现，将重调度策略抽象为插件（Plugin），这为用户快速上手 Koordinator Descheduler 的二次开发提供了便捷的可能性。用户只需实现几个简单的接口，就可以按需增加定制化的重调度策略。

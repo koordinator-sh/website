@@ -1,9 +1,5 @@
 # Webhook Extensions
 
-:::info
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 Koordinator provides an extensible webhook framework that enables custom admission control logic through mutating and validating webhooks. This document details the webhook mechanisms available for extending Koordinator's functionality, focusing on pod, node, and quota admission controls. The framework in `pkg/webhook/util/framework` provides a structured approach for implementing custom webhook plugins with proper registration, certificate management, and service configuration.
 

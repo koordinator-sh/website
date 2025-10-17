@@ -1,8 +1,4 @@
-# Plugin Development
-
-:::info
-This document is generated with assistance from Qoder AI.
-:::
+# Developing Custom Scheduler Plugin
 
 ## Introduction
 

@@ -1,4 +1,4 @@
-# Developing Custom Plugins in koord-descheduler
+# Developing Custom Descheduler Plugin
 
 ## Background
 Koordinator Descheduler (koord-descheduler) helps manage cluster resource utilization by descheduling Pods to address resource contention, load imbalance, and compliance issues. Built on the [Koordinator Descheduler Framework](https://koordinator.sh), it abstracts descheduling strategies as plugins, providing users with an easy way to develop custom descheduling strategies. Users only need to implement a few simple interfaces to add custom descheduling strategies as needed.

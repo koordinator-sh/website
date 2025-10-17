@@ -1,9 +1,5 @@
 # Extensibility
 
-:::info
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 Koordinator provides a comprehensive extensibility framework for custom policies and QoS enforcement through scheduling plugins, webhook admission controllers, and runtime hooks. This document details plugin development, extension point architecture, and practical implementation for custom scheduling policies and QoS strategies.
 
