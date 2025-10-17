@@ -1,9 +1,5 @@
 # Plugin Development
 
-:::info
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 
 Koordinator provides a comprehensive plugin system for extending both scheduler and koordlet components. This document details the architecture, interface requirements, and development workflow for creating custom plugins. The plugin system enables developers to extend scheduling decisions and QoS policies through well-defined extension points.

@@ -1,9 +1,5 @@
 # Custom Resource Definitions
 
-:::info
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 Koordinator extends Kubernetes functionality through Custom Resource Definitions (CRDs) that enable advanced scheduling, resource management, and performance optimization. These CRDs provide declarative interfaces for configuring and managing various aspects of cluster behavior, including resource recommendations, colocation policies, quota management, reservations, and system-level objectives. This documentation provides comprehensive details on each CRD, including schema definitions, field descriptions, validation rules, and usage patterns.
 

@@ -1,9 +1,5 @@
 # Metrics Collection
 
-:::info
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 Koordinator's metrics collection system provides comprehensive monitoring for node/pod resource usage, performance characteristics, and system health. The metrics advisor framework collects, processes, and exports metrics from various system components and specialized devices. This document details the metrics collection architecture, extension interfaces, and Prometheus integration. The framework enables resource optimization through periodic collection of resource profiles and detection of container interference (CPU scheduling delays, memory allocation latency, PSI).
 

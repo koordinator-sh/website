@@ -1,9 +1,5 @@
 # Custom Scheduling Policies
 
-:::info
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 Koordinator provides an extensible scheduling framework for developing custom policies addressing specific workload requirements. This document details existing plugin implementations (co-scheduling, device sharing, elastic quota) as examples for building new policies. The framework extends Kubernetes scheduling with well-defined interfaces, enabling sophisticated resource management that integrates seamlessly with Koordinator.
 

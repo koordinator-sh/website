@@ -1,9 +1,5 @@
 # Webhook Endpoints
 
-:::info 文档说明
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 Koordinator implements Kubernetes admission webhooks to enforce custom policies during resource creation, update, and deletion. These webhooks are critical for ensuring proper resource management, quota enforcement, and system stability. The admission control system includes both mutating and validating webhooks for Pods, Nodes, ConfigMaps, ElasticQuota, and Reservations. This document details the endpoints, their configuration, admission logic, and operational considerations.
 

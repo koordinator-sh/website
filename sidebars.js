@@ -45,7 +45,6 @@ const sidebars = {
           'Task Scheduling': [
             'user-manuals/gang-scheduling',
             'user-manuals/job-level-preemption',
-            'user-manuals/network-topology-aware-scheduling',
             'user-manuals/capacity-scheduling',
           ],
           'Heterogeneous Resources Scheduling': [
@@ -116,7 +115,6 @@ const sidebars = {
         'best-practices/fine-grained-cpu-orchestration',
         'best-practices/colocation-of-hadoop-yarn',
         'best-practices/network-qos-with-terwayqos',
-        'best-practices/develop-custom-deschedule-plugins',
       ],
     },
     {
@@ -130,6 +128,7 @@ const sidebars = {
         'developer-guide/plugin-development',
         'developer-guide/custom-scheduling-policies',
         'developer-guide/webhook-extensions',
+        'developer-guide/develop-custom-deschedule-plugins',
       ],
     },
     {

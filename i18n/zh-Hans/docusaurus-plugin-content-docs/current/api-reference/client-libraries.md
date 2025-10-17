@@ -1,9 +1,5 @@
 # Client Libraries
 
-:::info 文档说明
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 This document provides comprehensive documentation for Koordinator's Go client libraries, which enable programmatic interaction with Koordinator's custom resources. The client libraries support standard Kubernetes-style operations for creating, reading, updating, and deleting Custom Resource Definitions (CRDs), including Recommendations, Reservations, and NodeMetrics. The architecture leverages Kubernetes client-go patterns with specialized extensions for efficient event-driven programming through informers and cache synchronization. This documentation covers the full spectrum of client functionality, from basic CRUD operations to advanced patterns involving shared informers, listers, and integration with controller-runtime for building custom controllers.
 

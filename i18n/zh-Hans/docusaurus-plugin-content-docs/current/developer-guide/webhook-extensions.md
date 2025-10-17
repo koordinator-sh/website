@@ -1,22 +1,20 @@
 # Webhook 扩展
 
-:::info 文档说明
-This document is generated with assistance from Qoder AI.
-:::
-
 ## 目录
-1. [简介](#简介)
-2. [Webhook 框架架构](#webhook-框架架构)
-3. [变更和验证 Webhook 接口](#变更和验证-webhook-接口)
-4. [Pod Webhook 实现](#pod-webhook-实现)
-5. [Node Webhook 实现](#node-webhook-实现)
-6. [Quota Webhook 实现](#quota-webhook-实现)
-7. [自定义 Webhook 插件开发](#自定义-webhook-插件开发)
-8. [Webhook 注册与配置](#webhook-注册与配置)
-9. [证书管理与服务配置](#证书管理与服务配置)
-10. [安全注意事项](#安全注意事项)
-11. [性能影响](#性能影响)
-12. [总结](#总结)
+- [Webhook 扩展](#webhook-扩展)
+  - [目录](#目录)
+  - [简介](#简介)
+  - [Webhook 框架架构](#webhook-框架架构)
+  - [变更和验证 Webhook 接口](#变更和验证-webhook-接口)
+  - [Pod Webhook 实现](#pod-webhook-实现)
+  - [Node Webhook 实现](#node-webhook-实现)
+  - [Quota Webhook 实现](#quota-webhook-实现)
+  - [自定义 Webhook 插件开发](#自定义-webhook-插件开发)
+  - [Webhook 注册与配置](#webhook-注册与配置)
+  - [证书管理与服务配置](#证书管理与服务配置)
+  - [安全注意事项](#安全注意事项)
+  - [性能影响](#性能影响)
+  - [总结](#总结)
 
 ## 简介
 Koordinator 提供可扩展的 webhook 框架，通过变更和验证 webhook 实现自定义准入控制逻辑。本文档详细介绍用于扩展 Koordinator 功能的 webhook 机制，重点介绍 pod、node 和 quota 准入控制。`pkg/webhook/util/framework` 中的框架提供了实现自定义 webhook 插件的结构化方法，具有适当的注册、证书管理和服务配置。
