@@ -1,9 +1,5 @@
 # 可扩展性
 
-:::info 文档说明
-This document is generated with assistance from Qoder AI.
-:::
-
 ## 简介
 Koordinator 提供全面的可扩展性框架，通过调度插件、webhook 准入控制器和运行时钩子实现自定义策略和 QoS 强制执行。本文档详细介绍插件开发、扩展点架构以及自定义调度策略和 QoS 策略的实际实现。
 

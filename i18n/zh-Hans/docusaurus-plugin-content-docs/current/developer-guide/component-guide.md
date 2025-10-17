@@ -1,21 +1,19 @@
 # 组件指南
 
-:::info 文档说明
-This document is generated with assistance from Qoder AI.
-:::
-
 ## 目录
-1. [简介](#简介)
-2. [koord-manager](#koord-manager)
-3. [koord-scheduler](#koord-scheduler)
-4. [koordlet](#koordlet)
-5. [koord-descheduler](#koord-descheduler)
-6. [koord-device-daemon](#koord-device-daemon)
-7. [koord-runtime-proxy](#koord-runtime-proxy)
-8. [组件通信与集成](#组件通信与集成)
-9. [运维注意事项](#运维注意事项)
-10. [性能与扩展](#性能与扩展)
-11. [安全与最佳实践](#安全与最佳实践)
+- [组件指南](#组件指南)
+  - [目录](#目录)
+  - [简介](#简介)
+  - [koord-manager](#koord-manager)
+  - [koord-scheduler](#koord-scheduler)
+  - [koordlet](#koordlet)
+  - [koord-descheduler](#koord-descheduler)
+  - [koord-device-daemon](#koord-device-daemon)
+  - [koord-runtime-proxy](#koord-runtime-proxy)
+  - [组件通信与集成](#组件通信与集成)
+  - [运维注意事项](#运维注意事项)
+  - [性能与扩展](#性能与扩展)
+  - [安全与最佳实践](#安全与最佳实践)
 
 ## 简介
 Koordinator 是一个基于 QoS 的调度系统，通过增强 Kubernetes 集群的效率和可靠性来支持混合工作负载。本指南记录了每个组件的用途、架构、配置和运维要点。组件通过 Kubernetes API 服务器通信，并通过 ConfigMap 共享配置以实现协调式资源管理。

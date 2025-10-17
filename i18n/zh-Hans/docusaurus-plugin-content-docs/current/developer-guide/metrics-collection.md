@@ -1,18 +1,19 @@
 # 指标收集
 
-:::info 文档说明
-This document is generated with assistance from Qoder AI.
-:::
-
 ## 目录
-1. [简介](#简介)
-2. [Metrics Advisor 框架](#metrics-advisor-框架)
-3. [Collector 接口与扩展点](#collector-接口与扩展点)
-4. [现有 Collector 实现](#现有-collector-实现)
-5. [自定义 Collector 开发](#自定义-collector-开发)
-6. [Prometheus 集成](#prometheus-集成)
-7. [配置与管理](#配置与管理)
-8. [总结](#总结)
+- [指标收集](#指标收集)
+  - [目录](#目录)
+  - [简介](#简介)
+  - [Metrics Advisor 框架](#metrics-advisor-框架)
+  - [Collector 接口与扩展点](#collector-接口与扩展点)
+  - [现有 Collector 实现](#现有-collector-实现)
+    - [Node Resource Collector](#node-resource-collector)
+    - [Performance Collector](#performance-collector)
+    - [System Resource Collector](#system-resource-collector)
+  - [自定义 Collector 开发](#自定义-collector-开发)
+  - [Prometheus 集成](#prometheus-集成)
+  - [配置与管理](#配置与管理)
+  - [总结](#总结)
 
 ## 简介
 Koordinator 的指标收集系统为节点/Pod 资源使用、性能特征和系统健康提供全面监控。Metrics advisor 框架从各种系统组件和专用设备收集、处理和导出指标。本文档详细介绍指标收集架构、扩展接口和 Prometheus 集成。该框架通过定期收集资源配置文件和检测容器干扰（CPU 调度延迟、内存分配延迟、PSI）实现资源优化。

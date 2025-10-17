@@ -1,9 +1,5 @@
 # Metrics Endpoints
 
-:::info
-This document is generated with assistance from Qoder AI.
-:::
-
 ## Introduction
 Koordinator exposes comprehensive Prometheus metrics through its various components to enable monitoring, observability, and performance analysis of the system. Each component (koord-manager, koord-scheduler, koordlet, and koord-descheduler) provides a /metrics HTTP endpoint that exports metrics in Prometheus format. These metrics cover various aspects of the system including scheduling performance, resource utilization, pod eviction statistics, and QoS enforcement. The metrics endpoints are secured and configured according to the component's deployment configuration, with specific port numbers and security requirements. This documentation provides a comprehensive overview of all exported metrics, their semantic meaning, and guidance on configuring and using these metrics for monitoring and alerting.
 
