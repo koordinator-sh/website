@@ -1,11 +1,11 @@
 # Job
 
-## Job Scheduling
+## Job 调度
 
-A batch of pods that must be scheduled together is called a `Job`. 
+必须一起调度的一批 Pod 称为 `Job`。
 
 ### PodGroup
-Sometimes, the batch of pods is completely homogeneous and only needs to accumulate to a specified minimum number before scheduling is successful. In this case, we can describe the `minMember` through a separate `PodGroup`, and then associate its `member` pods through pod Labels. Here is a PodGroup with a minimum cumulative number of 2 and its `member` pods.
+有时,这批 Pod 是完全同质的,只需要累积到指定的最小数量即可成功调度。在这种情况下,我们可以通过单独的 `PodGroup` 描述 `minMember`,然后通过 Pod Label 关联其 `member` Pod。以下是一个最小累积数量为 2 的 PodGroup 及其 `member` Pod。
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -40,7 +40,7 @@ spec:
   ...
 ```
 ### GangGroup
-In other cases, the pods that must be scheduled together may not be homogeneous and must complete the minimum number of accumulations separately. In this case, Koordinator supports associating different `PodGroups` to form a `GangGroup` through PodGroup Label. Here is a `GangGroup` with two PodGroups:
+在其他情况下,必须一起调度的 Pod 可能不是同质的,必须分别完成最小数量的累积。在这种情况下,Koordinator 支持通过 PodGroup Label 关联不同的 `PodGroup` 以形成 `GangGroup`。以下是一个包含两个 PodGroup 的 `GangGroup`:
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -65,30 +65,30 @@ spec:
 ```
 
 
-## Job-Level Preemption
+## Job 级别抢占
 
-When a pod cannot be scheduled due to insufficient resources, Kube-Scheduler attempts to evict lower-priority pods to make room for it. This is traditional **pod-level reemption**. However, when a Job cannot be scheduled due to insufficient resources, the scheduler must **make enough space for the entire Job to be scheduled**. This type of preemption is called **Job-level preemption**.
+当 Pod 由于资源不足而无法调度时,Kube-Scheduler 会尝试驱逐低优先级 Pod 以为其腾出空间。这是传统的 **Pod 级别抢占**。然而,当 Job 由于资源不足而无法调度时,调度器必须**为整个 Job 的调度腾出足够的空间**。这种类型的抢占称为 **Job 级别抢占**。
 
-### Preemption Algorithm
+### 抢占算法
 
-The job that initiates preemption is called the `preemptor`, and the preempted pod is called the `victim`. The overall workflow of job-level preemption is as follows:
-1. Unschedulable pod → Enters PostFilter phase
-2. Is it a Job? → Yes → Fetch all member pods
-3. Check Job Preemption Eligibility:
+发起抢占的作业称为 `抢占者(preemptor)`,被抢占的 Pod 称为 `受害者(victim)`。Job 级别抢占的整体工作流程如下:
+1. 不可调度的 Pod → 进入 PostFilter 阶段
+2. 是否是 Job? → 是 → 获取所有成员 Pod
+3. 检查 Job 抢占资格:
    - `pods.spec.preemptionPolicy` ≠ Never
-   - No terminating victims on the currently nominated nodes of all member pods (prevent redundant preemption)
-4. Find candidate nodes where preemption may help
-5. Perform dry-run to simulate removal of potential victims (low priority pods)
-6. Select optimal node + minimal-cost victim set (**job-aware cost model**)
-7. Execute preemption:
-   - Delete victims (by setting DisruptionTarget condition and invoking the deletion API)
-   - Clear `status.nominatedNode` of other lower-priority nominated pods on the target nodes.
-   - Set `status.nominatedNode` for all member pods.
-8. Preemption successful → The pod enters the scheduling queue, waiting for victims to terminate.
+   - 所有成员 Pod 当前提名的节点上没有正在终止的受害者(防止冗余抢占)
+4. 查找抢占可能有帮助的候选节点
+5. 执行预演以模拟删除潜在受害者(低优先级 Pod)
+6. 选择最优节点 + 最小成本受害者集(**作业感知成本模型**)
+7. 执行抢占:
+   - 删除受害者(通过设置 DisruptionTarget 条件并调用删除 API)
+   - 清除目标节点上其他低优先级提名 Pod 的 `status.nominatedNode`。
+   - 为所有成员 Pod 设置 `status.nominatedNode`。
+8. 抢占成功 → Pod 进入调度队列,等待受害者终止。
 
 
-### Preemption Reason for Victim
-When a victim is preempted, Koord-Scheduler adds an entry to `victim.status.conditions` to indicate which job preempted it and triggers graceful termination. 
+### 受害者的抢占原因
+当受害者被抢占时,Koord-Scheduler 会在 `victim.status.conditions` 中添加一个条目,以指示哪个作业抢占了它并触发优雅终止。
 
 ```yaml
 apiVersion: v1
@@ -107,16 +107,16 @@ status:
     type: DisruptionTarget
 ```
 
-The above shows that default/victim-1 was preempted by the high-priority job `hello-job`. Member Pods of `hello-job` can be retrieved via the following command:
+上面显示 default/victim-1 被高优先级作业 `hello-job` 抢占。可以通过以下命令检索 `hello-job` 的成员 Pod:
 ```bash
 $ kubectl get po -n default -l pod-group.scheduling.sigs.k8s.io=hello-job
 hello-job-pod-1   0/1     Pending             0                5m
 hello-job-pod-2   0/1     Pending             0                5m
 ```
-### Nominated Node for Preemptor
+### 抢占者的提名节点
 
 
-After a Job preemption succeeds, in addition to evicting the victim pods, the scheduler must also reserve the reclaimed resources in its internal cache. In Kubernetes, this is achieved using `pod.status.nominatedNode`. In Koordinator, koord-scheduler sets the `.status.nominatedNode` field for **all member pods of the preempting job** to reflect this resource reservation.
+Job 抢占成功后,除了驱逐受害 Pod 外,调度器还必须在其内部缓存中预留回收的资源。在 Kubernetes 中,这是使用 `pod.status.nominatedNode` 实现的。在 Koordinator 中,koord-scheduler 为**抢占作业的所有成员 Pod** 设置 `.status.nominatedNode` 字段以反映此资源预留。
 
 ```yaml
 apiVersion: v1
@@ -142,26 +142,26 @@ status:
   phase: Pending
 ```
 
-The above shows that the two pods of `hello-job` have successfully completed preemption and are nominated for scheduling to example-node.
+上面显示 `hello-job` 的两个 Pod 已成功完成抢占,并被提名调度到 example-node。
 
-## Network-Topology Aware
+## 网络拓扑感知
 
-In large-scale AI training scenarios, especially for large language models (LLMs), efficient inter-pod communication is critical to training performance. Model parallelism techniques such as Tensor Parallelism (TP), Pipeline Parallelism (PP), and Data Parallelism (DP) require frequent and high-bandwidth data exchange across GPUs—often spanning multiple nodes. Under such workloads, network topology becomes a key performance bottleneck, where communication latency and bandwidth are heavily influenced by the physical [network hierarchy](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20250611-networktopology-aware-scheduling.md#network-architecture) (e.g., NVLink, block, spine).
+在大规模 AI 训练场景中,尤其是大语言模型(LLM)训练,高效的 Pod 间通信对训练性能至关重要。模型并行技术,如张量并行(TP)、流水线并行(PP)和数据并行(DP),需要在 GPU 之间进行频繁的高带宽数据交换——通常跨越多个节点。在这些工作负载下,网络拓扑成为关键的性能瓶颈,通信延迟和带宽受物理[网络层次结构](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20250611-networktopology-aware-scheduling.md#network-architecture)(如 NVLink、block、spine)的严重影响。
 
-To optimize training efficiency, **pods within a `GangGroup` is required or preferred to be scheduled to nodes that reside in the same or nearby high-performance network domains**, minimizing inter-node hops and maximizing throughput. For example, in a spine-block architecture, scheduling all member pods under the same `block` or `spine` switch significantly reduces communication latency compared to distributing them across different spines.
+为了优化训练效率,**`GangGroup` 中的 Pod 被要求或优先调度到位于相同或附近高性能网络域的节点上**,最小化节点间跳数并最大化吞吐量。例如,在 spine-block 架构中,将所有成员 Pod 调度到同一 `block` 或 `spine` 交换机下,与将它们分散在不同 spine 相比,可以显著降低通信延迟。
 
-### Topology-Aware Scheduling Requirements
+### 拓扑感知调度需求
 
 
-While Kubernetes’ native scheduler supports basic topology constraints via `PodAffinity`, it operates on a per-Pod basis and lacks gang scheduling semantics, making it ineffective for coordinated placement of tightly coupled workloads. Koord-Scheduler abstracts `PodGroup` and `GangGroup` concept to providing all-or-nothing semantics, enabling collective scheduling of interdependent pods. Moreover, to meet the demands of modern AI training, we extend it with **Network-Topology Aware Scheduling**—a capability that intelligently selects optimal nodes based on network hierarchy.
+虽然 Kubernetes 的原生调度器通过 `PodAffinity` 支持基本的拓扑约束,但它以每个 Pod 为基础运行,缺乏 Gang 调度语义,使其对于紧密耦合工作负载的协调放置无效。Koord-Scheduler 抽象了 `PodGroup` 和 `GangGroup` 概念,提供全有或全无的语义,实现相互依赖 Pod 的集体调度。此外,为了满足现代 AI 训练的需求,我们将其扩展为**网络拓扑感知调度**——一种基于网络层次结构智能选择最优节点的能力。
 
-This feature ensures:
-- When cluster resources are sufficient, pods with network topology scheduling requirements will be scheduled to a topology domain with better performance (e.g., lower latency, higher bandwidth) according to user-specified strategies.
-- When cluster resources are insufficient, the scheduler will seize resources for the GangGroup based on network topology constraints through job-level preemption, and record the resource nominations in the `.status.nominatedNode` field to ensure consistent placement.
+此功能确保:
+- 当集群资源充足时,具有网络拓扑调度需求的 Pod 将根据用户指定的策略被调度到性能更好的拓扑域(例如,更低的延迟、更高的带宽)。
+- 当集群资源不足时,调度器将基于网络拓扑约束通过 Job 级别抢占为 GangGroup 抢占资源,并在 `.status.nominatedNode` 字段中记录资源提名,以确保一致的放置。
 
-### Cluster Network Topology
+### 集群网络拓扑
 
-Nodes are labeled with their network topology positions using tools like NVIDIA’s [topograph](https://github.com/NVIDIA/topograph/blob/main/docs/k8s.md):
+使用 NVIDIA 的 [topograph](https://github.com/NVIDIA/topograph/blob/main/docs/k8s.md) 等工具为节点标记其网络拓扑位置:
 
 ```yaml
 apiVersion: v1
@@ -175,7 +175,7 @@ metadata:
     network.topology.nvidia.com/datacenter: s3
 ```
 
-Administrators define the topology hierarchy via a `ClusterNetworkTopology` CR named `default`:
+管理员通过名为 `default` 的 `ClusterNetworkTopology` CR 定义拓扑层次结构:
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -195,15 +195,15 @@ spec:
       topologyLayer: NodeTopologyLayer
 ```
 
-The topology forms a tree structure, where each layer represents a level of aggregation in the network (e.g., Node → block → spine).
+拓扑形成树状结构,其中每一层代表网络中的聚合级别(例如,Node → block → spine)。
 
-The `status.detailStatus` field of `ClusterNetworkTopology` is automatically maintained by Koordinator, reflecting the actual network topology structure and node distribution in the cluster. It presents a hierarchical view from the top-level (cluster) down to individual nodes. Each entry in `detailStatus` represents an instance of a specific topology layer, with key fields:
-- `topologyInfo`: The current layer's type and name (e.g., `SpineLayer`, `s1`).
-- `parentTopologyInfo`: The parent layer’s information.
-- `childTopologyNames`: List of child domains in the next lower layer.
-- `nodeNum`: Number of nodes within this topology domain.
+`ClusterNetworkTopology` 的 `status.detailStatus` 字段由 Koordinator 自动维护,反映集群中的实际网络拓扑结构和节点分布。它呈现从顶层(集群)到各个节点的分层视图。`detailStatus` 中的每个条目代表特定拓扑层的一个实例,具有关键字段:
+- `topologyInfo`: 当前层的类型和名称(例如,`SpineLayer`,`s1`)。
+- `parentTopologyInfo`: 父层的信息。
+- `childTopologyNames`: 下一较低层中的子域列表。
+- `nodeNum`: 此拓扑域内的节点数量。
 
-The follwing is an example of `clusterNetworkTopology.status.detailStatus`:
+以下是 `clusterNetworkTopology.status.detailStatus` 的示例:
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -287,7 +287,7 @@ status:
       topologyName: b4
 ```
 
-Based on the above `status`, the cluster has a two-tier **spine-block** architecture:
+基于上述 `status`,集群具有两层 **spine-block** 架构:
 
 ```
 ClusterTopologyLayer
@@ -303,9 +303,9 @@ ClusterTopologyLayer
         └── NodeTopologyLayer: 2 nodes
 ```
 
-### Network Topology Spec
+### 网络拓扑策略
 
-When users want to configure the network topology gather strategy for `GangGroup`, its `PodGroup` can be annotated as follows:
+当用户想要为 `GangGroup` 配置网络拓扑聚集策略时,可以按如下方式注解其 `PodGroup`:
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
 kind: PodGroup
@@ -362,9 +362,9 @@ spec:
   minMember: 2
 ```
 
-The above `PodGroup` indicates that the Pods belonging to it firstly try to be in an accelerator interconnection domain, and then try to be in a Block, and then try to be in a Spine network.
+上述 `PodGroup` 表示属于它的 Pod 首先尝试位于加速器互连域中,然后尝试位于 Block 中,最后尝试位于 Spine 网络中。
 
-Sometimes, due to the strict demand for communication bandwidth, users may want to place all member Pods of a `GangGroup` under the same Spine. In this case, you can modify the `PodGroup` as follows:
+有时,由于对通信带宽的严格需求,用户可能希望将 `GangGroup` 的所有成员 Pod 放置在同一 Spine 下。在这种情况下,您可以按如下方式修改 `PodGroup`:
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -405,9 +405,9 @@ metadata:
 spec:
   minMember: 2
 ```
-### Network Topology Pod Index
+### 网络拓扑 Pod 索引
 
-In distributed training, assigning an index to each Pod is essential for establishing communication patterns in data-parallel (DP) job. The index determines the logical order of Pods in collective operations. For example, for a `GangGroup` with DP=2, the member pods can be annotated as:
+在分布式训练中,为每个 Pod 分配索引对于在数据并行(DP)作业中建立通信模式至关重要。索引确定 Pod 在集体操作中的逻辑顺序。例如,对于 DP=2 的 `GangGroup`,成员 Pod 可以注解如下:
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -435,18 +435,18 @@ spec:
   schedulerName: koord-scheduler
 ...
 ```
-### Topology Gather Algorithm
+### 拓扑聚集算法
 
-The network topology gather algorithm is to find the best nodes for the M Pods, given the M member Pods belonging to a parallel-aware `GangGroup`, all the Nodes that can place the Pods, the network topology location of each node. The overall computation process can be described step by step as follows:
+网络拓扑聚集算法是为 M 个 Pod 找到最佳节点,给定属于并行感知 `GangGroup` 的 M 个成员 Pod、所有可以放置 Pod 的节点、每个节点的网络拓扑位置。整体计算过程可以逐步描述如下:
 
-1. The member Pods of the `GangGroup` of the training task are generally homogeneous. We randomly select one from the member Pods as the representative Pod.
+1. 训练任务的 `GangGroup` 的成员 Pod 通常是同质的。我们从成员 Pod 中随机选择一个作为代表 Pod。
 
-2. From the bottom to the top of the network topology hierarchy, recursively calculate the number of member Pods that each topology node can provide as `offerslots`. The `offerslots` that a Node can accommodate can be achieved by iteratively calling `NodeInfo.AddPod`, `fwk.RunPreFilterExtensionsAddPod`, and `fwk.RunFilterWithNominatedNode`.
+2. 从网络拓扑层次结构的底部到顶部,递归计算每个拓扑节点可以提供的成员 Pod 数量作为 `offerslots`。节点可以容纳的 `offerslots` 可以通过迭代调用 `NodeInfo.AddPod`、`fwk.RunPreFilterExtensionsAddPod` 和 `fwk.RunFilterWithNominatedNode` 来实现。
 
-3. Among all the topological nodes that can accommodate all the member Pods of the `GangGroup`, select those with the lowest level as our `candidate topological nodes`. 
+3. 在所有可以容纳 `GangGroup` 所有成员 Pod 的拓扑节点中,选择那些层级最低的作为我们的 `候选拓扑节点`。
 
    ![topology_offerslot_candidatenode](/img/topology_offerslot_candidatenode.jpg)
 
-4. Among the candidate topological nodes selected in 3, according to the `binpack` principle, the candidate topological nodes whose offerslot is closest to the offerslot required by the job are selected as our final topological node solution. As shown in the figure below, we select Node5-Node8 as the final scheduling result of the job.
+4. 在步骤 3 中选择的候选拓扑节点中,根据 `binpack` 原则,选择 offerslot 最接近作业所需 offerslot 的候选拓扑节点作为我们的最终拓扑节点解决方案。如下图所示,我们选择 Node5-Node8 作为作业的最终调度结果。
 
    ![topology_final_placement](/img/topology_final_placement.jpg)
