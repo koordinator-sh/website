@@ -1,34 +1,34 @@
-# Job Level Preemption
+# Job 级别抢占
 
-## Introduction
+## 简介
 
-In large-scale cluster environments, high-priority jobs (e.g., critical AI training tasks) often need to preempt resources from lower-priority workloads when sufficient resources are not available. However, traditional **pod-level preemption** in Kubernetes cannot guarantee that all member pods of a distributed job will seize resources together, leading to invalid preemption.
+在大规模集群环境中,高优先级作业(例如关键的 AI 训练任务)在可用资源不足时,通常需要从低优先级工作负载中抢占资源。然而,Kubernetes 中传统的 **Pod 级别抢占**无法保证分布式作业的所有成员 Pod 一起抢占资源,导致无效抢占。
 
-To solve this, Koordinator provides **job-level preemption**, which ensures that:
-- Preemption is triggered at the job (GangGroup) level.
-- Only when all member pods can be co-scheduled after eviction will preemption occur.
-- Resources are reserved via `nominatedNode` for all members to maintain scheduling consistency.
+为了解决这个问题,Koordinator 提供了 **Job 级别抢占**,它确保:
+- 抢占在作业(GangGroup)级别触发。
+- 只有当所有成员 Pod 在驱逐后都可以共同调度时,才会发生抢占。
+- 通过 `nominatedNode` 为所有成员预留资源,以维护调度一致性。
 
-This capability works seamlessly with [PodGroup/GangGroup](https://koordinator.sh/docs/next/architecture/job/) semantics.
+此功能与 [PodGroup/GangGroup](https://koordinator.sh/docs/next/architecture/job/) 语义无缝协作。
 
-## Prerequisites
+## 前置条件
 
 - Kubernetes >= 1.18
 - Koordinator >= 1.7.0
 
-## Verify Preemption is Enabled
+## 验证抢占是否已启用
 
-Although job-level preemption is **enabled by default** as of koordinator ≥ 1.7.0, it's recommended to confirm the Coscheduling plugin configuration.
+虽然从 Koordinator >= 1.7.0 开始,Job 级别抢占**默认启用**,但建议确认 Coscheduling 插件配置。
 
-### Check Scheduler Configuration
+### 检查调度器配置
 
-Retrieve the current `koord-scheduler-config`:
+检索当前的 `koord-scheduler-config`:
 
 ```bash
 kubectl -n koordinator-system get cm koord-scheduler-config -o yaml
 ```
 
-Ensure the Coscheduling plugin has `enablePreemption: true`:
+确保 Coscheduling 插件具有 `enablePreemption: true`:
 
 ```yaml
 pluginConfig:
@@ -38,39 +38,39 @@ pluginConfig:
       kind: CoschedulingArgs
       enablePreemption: true
 ```
-If changes are made, restart the koord-scheduler pod to apply them.
+如果进行了更改,请重启 koord-scheduler Pod 以应用它们。
 
-## Usage Example
+## 使用示例
 
-### Environment Setup
+### 环境设置
 
-To demonstrate job-level preemption, we will simulate a resource-constrained environment and trigger preemption from a high-priority job. Assume the cluster has 2 worker nodes, each with:
-- CPU: 4 cores
-- Memory: 16 GiB
-- No other running workloads initially
+为了演示 Job 级别抢占,我们将模拟一个资源受限的环境,并从高优先级作业触发抢占。假设集群有 2 个工作节点,每个节点具有:
+- CPU: 4 核心
+- 内存: 16 GiB
+- 初始时没有其他运行的工作负载
 
-Our procedure is:
-1. Fill both nodes with low-priority pods consuming all CPU.
-2. Submit a high-priority gang job that cannot fit.
-3. Observe how Koordinator evicts low-priority pods to make space.
+我们的步骤是:
+1. 用低优先级 Pod 填充两个节点,消耗所有 CPU。
+2. 提交一个无法容纳的高优先级 Gang 作业。
+3. 观察 Koordinator 如何驱逐低优先级 Pod 以腾出空间。
 
 
 
-###  Define PriorityClasses
-1. You must define priority classes to enable preemption logic.
+###  定义 PriorityClass
+1. 您必须定义优先级类以启用抢占逻辑。
 
 ```yaml
-# High-Priority Class (for preemptors)
+# 高优先级类(用于抢占者)
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
   name: high-priority
 value: 1000000
 preemptionPolicy: PreemptLowerPriority
-description: "Used for critical AI training jobs that can preempt others."
+description: "用于可以抢占其他作业的关键 AI 训练作业。"
 ```
 ```yaml
-# Low-Priority Class (for victims)
+# 低优先级类(用于受害者)
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
@@ -78,13 +78,13 @@ metadata:
 value: 1000
 preemptionPolicy: PreemptLowerPriority
 globalDefault: false
-description: "Used for non-critical jobs that can be preempted."
+description: "用于可以被抢占的非关键作业。"
 ```
-2. Apply them
+2. 应用它们
 ```bash
 kubectl apply -f priorityclasses.yaml
 ```
-3. Verify
+3. 验证
 ```bash
 kubectl get priorityclass
 ```
@@ -93,9 +93,9 @@ NAME              VALUE        GLOBAL-DEFAULT   AGE
 high-priority     1000000      false            1m
 low-priority      1000         false            1m
 ```
-### Deploy Low-Priority Pods to Consume Resources
+### 部署低优先级 Pod 以消耗资源
 
-1. Create 2 low-priority pods (1 per node), each requesting 4 CPU cores → fully occupying both nodes.
+1. 创建 2 个低优先级 Pod(每个节点 1 个),每个请求 4 个 CPU 核心 → 完全占用两个节点。
 
 ```yaml
 apiVersion: v1
@@ -150,12 +150,12 @@ spec:
     terminationMessagePolicy: File
   restartPolicy: Always
 ```
-2. Apply them
+2. 应用它们
 
 ```bash
 kubectl apply -f low-priority-pods.yaml
 ```
-3. Check
+3. 检查
 
 ```bash
 kubectl get pods -o wide
@@ -166,11 +166,11 @@ lp-pod-1    1/1     Running   0          2m      10.244.1.10   cn-beijing.1   <n
 lp-pod-2    1/1     Running   0          2m      10.244.1.11   cn-beijing.2   <none>           <none>
 ```
 
-At this point, no CPU remains available on either node.
+此时,两个节点上都没有可用的 CPU。
 
-### Create a High-Priority Gang Job to Trigger Preemption
+### 创建高优先级 Gang 作业以触发抢占
 
-1. Now submit a 2-pod high-priority job that requires 3 CPU per pod — total demand exceeds current capacity.
+1. 现在提交一个 2 Pod 的高优先级作业,每个 Pod 需要 3 个 CPU — 总需求超过当前容量。
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -241,16 +241,16 @@ spec:
     terminationMessagePolicy: File
   restartPolicy: Always
 ```
-2. Apply them
+2. 应用它们
 
 ```bash
 kubectl apply -f high-priority-job.yaml
 ```
-After a few seconds, Koordinator will evict one pod per node to free up resources.
+几秒钟后,Koordinator 将驱逐每个节点上的一个 Pod 以释放资源。
 
-### Verify Preemption Outcome
+### 验证抢占结果
 
-1. Check Victim Pods Were Evicted
+1. 检查受害 Pod 是否被驱逐
 ```bash
 kubectl get pods -o wide
 ```
@@ -261,8 +261,9 @@ hp-worker-2    0/1     Pending       0          90s     <none>        <none>    
 lp-pod-1       0/1     Terminating   0          5m      10.244.1.10   cn-beijing.1   <none>           <none>
 lp-pod-2       1/1     Terminating   0          5m      10.244.1.11   cn-beijing.2   <none>           <none>
 ```
-Pods lp-pod-1 and lp-pod-2 are being terminated to make room and high-priority pods are nominated.
-2.  Inspect one victim:
+Pod lp-pod-1 和 lp-pod-2 正在被终止以腾出空间,高优先级 Pod 已被提名。
+
+2. 检查一个受害者:
 ```bash
 kubectl get pod lp-pod-1 -o yaml
 ```
@@ -271,13 +272,12 @@ status:
   conditions:
     - type: DisruptionTarget
       status: "True"
-      lastTransitionTime: "2025-10-12T11:23:45Z"
+      lastTransitionTime: "2025-09-17T08:41:35Z"
+      message: 'koord-scheduler: preempting to accommodate higher priority pods, preemptor:
+        default/hp-training-job, triggerpod: default/hp-worker-1'
       reason: PreemptionByScheduler
-      message: >-
-        koord-scheduler: preempting to accommodate higher priority pods, preemptor:
-        default/hp-training-job, triggerpod: default/hp-worker-1
 ```
-3. Confirm Binding After Termination
+3. 确认终止后的绑定
 ```bash
 kubectl get pods -o wide
 ```
@@ -286,5 +286,3 @@ NAME           READY   STATUS    RESTARTS   AGE     IP            NODE          
 hp-worker-1    1/1     Running   0          3m      10.244.1.14   cn-beijing.1   <none>           <none>
 hp-worker-2    1/1     Running   0          3m      10.244.2.15   cn-beijing.2   <none>           <none>
 ```
-
-

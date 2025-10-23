@@ -1,4 +1,4 @@
-# GangScheduling
+# Gang 调度
 
 ## 简介
 Koord-dscheduler 提供了 Gang Scheduling 满足 All-or-Nothing 调度需求。用户可以声明最小资源集合数，只有当已经完成调度资源数超过前面声明当前最小资源集合数才能触发节点绑定。
