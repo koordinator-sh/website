@@ -65,6 +65,7 @@ const sidebars = {
             'user-manuals/cpu-burst',
             'user-manuals/cpu-qos',
             'user-manuals/memory-qos',
+            'user-manuals/network-qos-with-terwayqos',
           ],
           'Colocation': [
             "user-manuals/colocation-profile",
@@ -115,7 +116,6 @@ const sidebars = {
         'best-practices/anolis_plugsched',
         'best-practices/fine-grained-cpu-orchestration',
         'best-practices/colocation-of-hadoop-yarn',
-        'best-practices/network-qos-with-terwayqos',
       ],
     },
     {
