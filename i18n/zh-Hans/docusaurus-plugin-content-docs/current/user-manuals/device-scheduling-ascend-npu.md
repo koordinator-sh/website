@@ -1,11 +1,13 @@
-# Device Scheduling - ascend-npu
+# 设备调度 - 华为昇腾 NPU
 
 ## 背景
 
 当前 Koordinator 支持昇腾卡在 K8s 的使用，基于 koord-device-daemon 和 koordlet 组件上报异构 GPU 资源，将异构卡信息汇总到 Device 中供调度器进行拓扑调度。当前同时支持昇腾的虚拟化模板和整卡。
 
 ## 使用方法
+
 ### 前置条件
+
 昇腾卡的使用需要提前安装配置如下组件
 - 昇腾 Driver
 - 昇腾 [Ascend Docker Runtime](https://gitcode.com/Ascend/mind-cluster/releases)
@@ -17,8 +19,10 @@ args:
   - --useAscendDocker=true
 ```
 - Koordinator 相关组件(koordinator >= v1.7.0)
+  - 需要在 chart 的 `scheduler.featureGates` 参数中加入 `DevicePluginAdaption=true` 以启用该功能所需的特性门控
 
 ### 使用
+
 1. 确认昇腾卡已成功被 Device 识别， 示例如下，通过 `kubectl get device <node-name> -o yaml` 查看 Device 资源。
 
 - 注意
@@ -349,9 +353,9 @@ spec:
 ```
 4. 进入容器内部(`kubectl exec -it {pod-name} --bash`)，在容器内部执行 `npu-smi` 命令查看卡的使用情况。如果能够正常显示数据，表示卡已经成功分配到 Pod 中。
 
+### 昇腾卡虚拟规格列表
 
-### 昇腾卡虚拟规格说明
-下图为昇腾卡虚拟规格说明，用户可根据实际需求选择合适的虚拟规格进行申请使用。
+下面列出了常见昇腾卡的虚拟规格，用户可根据实际需求选择合适的虚拟规格进行申请使用。
 ``` 昇腾虚拟化规格说明
 huawei-Ascend-310P:
 vir01:
@@ -509,4 +513,3 @@ vir10_4c_16g_m:
   huawei.com/npu-dvpp: "100"
   koordinator.sh/gpu-memory: 16Gi
 ```
-

@@ -1,11 +1,13 @@
-# Device Scheduling - cambricon-mlu
+# 设备调度 - 寒武纪 MLU
 
 ## 背景
 
 当前 Koordinator 支持寒武纪卡在 K8s 的使用，基于 koord-device-daemon 和 koordlet 组件上报异构 GPU 资源，将异构卡信息汇总到 Device 中供调度器进行拓扑调度。
 
 ## 使用方法
+
 ### 前置条件
+
 昇腾卡的使用需要提前安装配置如下组件
 - 寒武纪 Driver
 - 寒武纪 [Cambricon Device Plugin (开启虚拟化参数配置)](https://github.com/Cambricon/cambricon-k8s-device-plugin)
@@ -19,8 +21,10 @@ args:
   - --min-dsmlu-unit=256 # minimum unit for dsmu, used only in dynamic-smlu mode" default:"0" env:"MIN-DSMLU-UNIT"
 ```
 - Koordinator 相关组件(koordinator >= v1.7.0)
+  - 需要在 chart 的 `scheduler.featureGates` 参数中加入 `DevicePluginAdaption=true` 以启用该功能所需的特性门控
 
 ### 使用
+
 1. 确认寒武纪卡已成功被 Device 识别，示例如下，通过 `kubectl get device <node-name> -o yaml` 查看 Device 资源。
 注意：
    - node.koordinator.sh/gpu-vendor 对应的标签值为 cambricon
@@ -131,5 +135,3 @@ spec:
         cambricon.com/mlu.smlu.vmemory: "4" 
 ```
 4. 进入容器内部(`kubectl exec -it {pod-name} --bash`)，在容器内部执行 `ls /dev/cambricon*` 命令查看卡挂载情况。如果能够正常输出，表示卡已经成功分配到 Pod 中。
-
-
