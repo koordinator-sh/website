@@ -1,11 +1,13 @@
-# Device Scheduling - cambricon-mlu
+# Device Scheduling - Cambricon MLU
 
 ## Background
 
 Currently, Koordinator supports the use of Cambricon cards in K8s. Based on the `koord-device-daemon` and `koordlet` components, heterogeneous GPU resources are reported, and heterogeneous card information is aggregated into the `Device` object for topology scheduling by the scheduler.
 
 ## Usage
+
 ### Prerequisites
+
 The use of Cambricon cards requires prior installation and configuration of the following components:
 - Cambricon Driver
 - [Cambricon Device Plugin (enable virtualization parameter configuration)](https://github.com/Cambricon/cambricon-k8s-device-plugin)
@@ -19,8 +21,10 @@ args:
   - --min-dsmlu-unit=256 # minimum unit for dsmu, used only in dynamic-smlu mode" default:"0" env:"MIN-DSMLU-UNIT"
 ```
 - Koordinator-related components (koordinator >= v1.7.0)
+  - You need to set `DevicePluginAdaption=true` into the chart’s `scheduler.featureGates` value to enable the feature gate required for this functionality.
 
 ### Steps to Use
+
 1. Confirm that the Cambricon card has been successfully recognized by the `Device`. An example is shown below. You can view the `Device` resource using: `kubectl get device <node-name> -o yaml`.
 - **Note**
   - The label `node.koordinator.sh/gpu-vendor` should have the value `cambricon`

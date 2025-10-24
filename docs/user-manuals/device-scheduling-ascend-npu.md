@@ -1,11 +1,13 @@
-# Device Scheduling - ascend-npu
+# Device Scheduling - Huawei Ascend NPU
 
 ## Background
 
 Currently, Koordinator supports the use of Ascend cards in K8s. Based on the `koord-device-daemon` and `koordlet` components, heterogeneous GPU resources are reported, and heterogeneous card information is aggregated into the `Device` object for topology scheduling by the scheduler. It currently supports both Ascend virtualization templates and full cards.
 
 ## Usage
+
 ### Prerequisites
+
 The use of Ascend cards requires prior installation and configuration of the following components:
 - Ascend Driver
 - [Ascend Docker Runtime](https://gitcode.com/Ascend/mind-cluster/releases)
@@ -17,8 +19,10 @@ args:
   - --useAscendDocker=true
 ```
 - Koordinator related components (koordinator >= v1.7.0)
+  - You need to set `DevicePluginAdaption=true` into the chart’s `scheduler.featureGates` value to enable the feature gate required for this functionality.
 
 ### Steps to Use
+
 1. Confirm that the Ascend card has been successfully recognized by the `Device`. An example is shown below. You can view the `Device` resource using: `kubectl get device -o yaml`.
 
 - **Note**
@@ -351,10 +355,11 @@ spec:
 ```
 4. Enter the container (`kubectl exec -it {pod-name} -- bash`), and run `npu-smi` inside to check card usage. If the data is displayed correctly, the card has been successfully allocated to the Pod.
 
-### Ascend Card Virtual Specification
-The table below describes the virtual specifications for Ascend cards. Users can choose the appropriate virtual spec according to their actual needs.
+### Ascend Card Virtual Templates
 
-``` yaml ascend-virtual-spec
+Below lists the virtual templates for common Ascend cards. Users can choose the appropriate virtual template according to their actual needs.
+
+```yaml ascend-virtual-template
 huawei-Ascend-310P:
 vir01:
   huawei.com/npu-core: "1"
