@@ -147,7 +147,7 @@ system-config: |-
 |---------------------------|--------------------------------------------------|
 | koordinator.sh/networkQOS | 	'{"IngressLimit": "10M", "EgressLimit": "20M"}' |
 
-关于网络 QoS 能力的更多信息，请见 [Network Bandwidth Limitation Using Terway QoS](/docs/best-practices/network-qos-with-terwayqos) 和 [Terway](https://github.com/AliyunContainerService/terway) 社区。
+关于网络 QoS 能力的更多信息，请见 [Network Bandwidth Limitation Using Terway QoS](/docs/user-manuals/network-qos-with-terwayqos) 和 [Terway](https://github.com/AliyunContainerService/terway) 社区。
 
 ### Core Scheduling
 
