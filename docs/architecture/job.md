@@ -148,6 +148,9 @@ The above shows that the two pods of `hello-job` have successfully completed pre
 
 In large-scale AI training scenarios, especially for large language models (LLMs), efficient inter-pod communication is critical to training performance. Model parallelism techniques such as Tensor Parallelism (TP), Pipeline Parallelism (PP), and Data Parallelism (DP) require frequent and high-bandwidth data exchange across GPUs—often spanning multiple nodes. Under such workloads, network topology becomes a key performance bottleneck, where communication latency and bandwidth are heavily influenced by the physical [network hierarchy](https://github.com/koordinator-sh/koordinator/blob/main/docs/proposals/scheduling/20250611-networktopology-aware-scheduling.md#network-architecture) (e.g., NVLink, block, spine).
 
+
+![image](/img/networktopo-1.png)
+
 To optimize training efficiency, **pods within a `GangGroup` is required or preferred to be scheduled to nodes that reside in the same or nearby high-performance network domains**, minimizing inter-node hops and maximizing throughput. For example, in a spine-block architecture, scheduling all member pods under the same `block` or `spine` switch significantly reduces communication latency compared to distributing them across different spines.
 
 ### Topology-Aware Scheduling Requirements
@@ -450,3 +453,10 @@ The network topology gather algorithm is to find the best nodes for the M Pods, 
 4. Among the candidate topological nodes selected in 3, according to the `binpack` principle, the candidate topological nodes whose offerslot is closest to the offerslot required by the job are selected as our final topological node solution. As shown in the figure below, we select Node5-Node8 as the final scheduling result of the job.
 
    ![topology_final_placement](/img/topology_final_placement.jpg)
+
+
+## What's Next
+
+- [Gang Scheduling](../user-manuals/gang-scheduling.md): Learn how to enable gang scheduling for your application.
+- [Network Topology Aware Scheduling](../user-manuals/network-topology-aware-scheduling.md): Learn how to enable network topology aware scheduling for gang.
+- [Job Level Preemption](../user-manuals/job-level-preemption.md): Learn how to use Job Level Preemption

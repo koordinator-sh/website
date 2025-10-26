@@ -68,7 +68,6 @@ spec:
         huawei.com/npu-core: "20" # Number of aicore on the Ascend card.
         huawei.com/npu-cpu: "7"  # Number of aicpu on the Ascend card.
         huawei.com/npu-dvpp: "100" # There exists dvpp on the Ascend card.
-        koordinator.sh/gpu-core: "100" # The total compute capacity of the Ascend card in percentage.
         koordinator.sh/gpu-memory: 64Gi # The total memory capacity of the Ascend card.
         koordinator.sh/gpu-memory-ratio: "100" # The total memory capacity of the Ascend card in percentage.
       topology:
@@ -90,7 +89,6 @@ spec:
         huawei.com/npu-core: "20"
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
-        koordinator.sh/gpu-core: "100"
         koordinator.sh/gpu-memory: 64Gi
         koordinator.sh/gpu-memory-ratio: "100"
       topology:
@@ -112,7 +110,6 @@ spec:
         huawei.com/npu-core: "20"
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
-        koordinator.sh/gpu-core: "100"
         koordinator.sh/gpu-memory: 64Gi
         koordinator.sh/gpu-memory-ratio: "100"
       topology:
@@ -134,7 +131,6 @@ spec:
         huawei.com/npu-core: "20"
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
-        koordinator.sh/gpu-core: "100"
         koordinator.sh/gpu-memory: 64Gi
         koordinator.sh/gpu-memory-ratio: "100"
       topology:
@@ -156,7 +152,6 @@ spec:
         huawei.com/npu-core: "20"
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
-        koordinator.sh/gpu-core: "100"
         koordinator.sh/gpu-memory: 64Gi
         koordinator.sh/gpu-memory-ratio: "100"
       topology:
@@ -178,7 +173,6 @@ spec:
         huawei.com/npu-core: "20"
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
-        koordinator.sh/gpu-core: "100"
         koordinator.sh/gpu-memory: 64Gi
         koordinator.sh/gpu-memory-ratio: "100"
       topology:
@@ -200,7 +194,6 @@ spec:
         huawei.com/npu-core: "20"
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
-        koordinator.sh/gpu-core: "100"
         koordinator.sh/gpu-memory: 64Gi
         koordinator.sh/gpu-memory-ratio: "100"
       topology:
@@ -222,7 +215,6 @@ spec:
         huawei.com/npu-core: "20"
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
-        koordinator.sh/gpu-core: "100"
         koordinator.sh/gpu-memory: 64Gi
         koordinator.sh/gpu-memory-ratio: "100"
       topology:
@@ -252,7 +244,6 @@ status:
     allocatable:
       ...
       koordinator.sh/gpu.shared: "800" # Reported by koordinator
-      koordinator.sh/gpu-core: "800" # Reported by koordinator
       koordinator.sh/gpu-memory: 512Gi # Reported by koordinator
       koordinator.sh/gpu-memory-ratio: "800" # Reported by koordinator
       huawei.com/npu-core: "160" # Reported by ascend device plugin
@@ -261,7 +252,6 @@ status:
     capacity:
       ...
       koordinator.sh/gpu.shared: "800" # Reported by koordinator
-      koordinator.sh/gpu-core: "800" # Reported by koordinator
       koordinator.sh/gpu-memory: 512Gi # Reported by koordinator
       koordinator.sh/gpu-memory-ratio: "800" # Reported by koordinator
       huawei.com/npu-core: "160" # Reported by ascend device plugin

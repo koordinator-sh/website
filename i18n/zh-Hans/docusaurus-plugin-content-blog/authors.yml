@@ -36,18 +36,30 @@ zwzhang0107:
 
 saintube:
   name: Rougang Han
-  title: Koordinator member
+  title: Koordinator approver
   url: https://github.com/saintube
   image_url: https://github.com/saintube.png
 
 ZiMengSheng:
   name: Jianyu Wang
-  title: Koordinator member
+  title: Koordinator approver
   url: https://github.com/ZiMengSheng
   image_url: https://github.com/ZiMengSheng.png
 
 songtao98:
   name: Tao Song
-  title: Koordinator member
+  title: Koordinator approver
   url: https://github.com/songtao98
   image_url: https://github.com/songtao98.png
+
+zqzten:
+  name: Ziqiu Zhu
+  title: Koordinator approver
+  url: https://github.com/zqzten
+  image_url: https://github.com/zqzten.png
+
+ZhuZhezz:
+  name: Zhe Zhu
+  title: Koordinator contributor
+  url: https://github.com/ZhuZhezz
+  image_url: https://github.com/ZhuZhezz.png
