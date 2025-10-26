@@ -163,7 +163,7 @@ Besides, Koordinator supports Pod-level bandwidth limits through the following a
 |---------------------------|--------------------------------------------------|
 | koordinator.sh/networkQOS | 	'{"IngressLimit": "10M", "EgressLimit": "20M"}' |
 
-For more information about the Network QoS, please see [Network Bandwidth Limitation Using Terway QoS](/docs/best-practices/network-qos-with-terwayqos) and [Terway Community](https://github.com/AliyunContainerService/terway).
+For more information about the Network QoS, please see [Network Bandwidth Limitation Using Terway QoS](/docs/user-mannuals/network-qos-with-terwayqos) and [Terway Community](https://github.com/AliyunContainerService/terway).
 
 ### Core Scheduling
 
