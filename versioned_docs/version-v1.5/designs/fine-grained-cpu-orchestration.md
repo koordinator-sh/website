@@ -189,7 +189,7 @@ type ResourceStatus struct {
 ```
 
 - `CPUSet` represents the allocated CPUs. When LSE/LSR Pod requested, koord-scheduler will update the field. It is Linux CPU list formatted string. For more details, please refer to [doc](http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS).
-- `CPUSharedPools` represents the desired CPU Shared Pools used by LS Pods. If the Node has the label `node.koordinator.sh/numa-topology-alignment-policy` with `Restricted/SingleNUMANode`, koord-scheduler will find the best-fit NUMA Node for the LS Pod, and update the field that requires koordlet uses the specified CPU Shared Pool. It should be noted that the scheduler does not update the `CPUSet` field in the `CPUSharedPool`, koordlet binds the CPU Shared Pool of the corresponding NUMA Node according to the `Socket` and `Node` fields in the `CPUSharedPool`.
+- `CPUSharedPools` represents the desired CPU Shared Pools used by LS Pods. If the Node has the label `node.koordinator.sh/numa-topology-policy` with `Restricted/SingleNUMANode`, koord-scheduler will find the best-fit NUMA Node for the LS Pod, and update the field that requires koordlet uses the specified CPU Shared Pool. It should be noted that the scheduler does not update the `CPUSet` field in the `CPUSharedPool`, koordlet binds the CPU Shared Pool of the corresponding NUMA Node according to the `Socket` and `Node` fields in the `CPUSharedPool`.
 
 #### Example
 
@@ -245,16 +245,16 @@ If both `node.koordinator.sh/numa-allocate-strategy` and `kubelet.koordinator.sh
 
 #### NUMA topology alignment policy
 
-The label `node.koordinator.sh/numa-topology-alignment-policy` represents that how to aligning resource allocation according to the NUMA topology. The policy semantic follow the K8s community. Equivalent to the field `TopologyPolicies` in `NodeResourceTopology`, and the topology policies `SingleNUMANodePodLevel` and `SingleNUMANodeContainerLevel` are mapping to `SingleNUMANode` policy. 
+The label `node.koordinator.sh/numa-topology-policy` represents that how to aligning resource allocation according to the NUMA topology. The policy semantic follow the K8s community. Equivalent to the field `TopologyPolicies` in `NodeResourceTopology`, and the topology policies `SingleNUMANodePodLevel` and `SingleNUMANodeContainerLevel` are mapping to `SingleNUMANode` policy. 
 
 - `None` is the default policy and does not perform any topology alignment.
 - `BestEffort` indicates that preferred select NUMA Node that is topology alignment, and if not, continue to allocate resources to Pods.
 - `Restricted` indicates that each resource requested by a Pod on the NUMA Node that is topology alignment, and if not, koord-scheduler will skip the node when scheduling.
 - `SingleNUMANode` indicates that all resources requested by a Pod must be on the same NUMA Node, and if not, koord-scheduler will skip the node when scheduling.
 
-If there is no `node.koordinator.sh/numa-topology-alignment-policy` in the node's label and `TopologyPolicies=None` in `NodeResourceTopology`, it will be executed according to the policy configured by the koord-scheduler.
+If there is no `node.koordinator.sh/numa-topology-policy` in the node's label and `TopologyPolicies=None` in `NodeResourceTopology`, it will be executed according to the policy configured by the koord-scheduler.
 
-If both `node.koordinator.sh/numa-topology-alignment-policy` in Node and `TopologyPolicies=None` in `NodeResourceTopology` are defined, `node.koordinator.sh/numa-topology-alignment-policy` is used first.
+If both `node.koordinator.sh/numa-topology-policy` in Node and `TopologyPolicies=None` in `NodeResourceTopology` are defined, `node.koordinator.sh/numa-topology-policy` is used first.
 
 #### Example
 
@@ -266,7 +266,7 @@ kind: Node
 metadata:
   labels:
     node.koordinator.sh/cpu-bind-policy: "FullPCPUsOnly"
-    node.koordinator.sh/numa-topology-alignment-policy: "BestEffort"
+    node.koordinator.sh/numa-topology-policy: "BestEffort"
     node.koordinator.sh/numa-allocate-strategy: "MostAllocated"
   name: node-0
 spec:
