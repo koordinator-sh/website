@@ -184,7 +184,7 @@ type ResourceStatus struct {
 ```
 
 - `CPUSet` 表示分配的 CPU。当 LSE/LSR Pod 请求时，koord-scheduler 将更新该字段。它是 Linux CPU 列表格式的字符串。更多详细信息，[请参阅文档](http://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS) 。
-- `CPUSharedPools` 表示 LS Pod 使用的所需 CPU 共享池。如果节点的标签 `node.koordinator.sh/numa-topology-alignment-policy` 带有 `Restricted/SingleNUMANode`，koord-scheduler 将为 LS Pod 找到最适合的 NUMA 节点，并更新需要 koordlet 使用指定 `CPU Shared Pool` 的字段。需要注意的是，调度器不会更新 `CPU Shared Pool` 中的 CPUSet 字段，koordlet 根据 `CPU Shared Pool` 中的 `Socket` 和 `Node` 字段绑定对应 NUMA 节点的 `CPU Shared Pool`。
+- `CPUSharedPools` 表示 LS Pod 使用的所需 CPU 共享池。如果节点的标签 `node.koordinator.sh/numa-topology-policy` 带有 `Restricted/SingleNUMANode`，koord-scheduler 将为 LS Pod 找到最适合的 NUMA 节点，并更新需要 koordlet 使用指定 `CPU Shared Pool` 的字段。需要注意的是，调度器不会更新 `CPU Shared Pool` 中的 CPUSet 字段，koordlet 根据 `CPU Shared Pool` 中的 `Socket` 和 `Node` 字段绑定对应 NUMA 节点的 `CPU Shared Pool`。
 
 #### 例子
 
@@ -240,16 +240,16 @@ spec:
 
 #### NUMA 拓扑对齐策略
 
-标签 `node.koordinator.sh/numa-topology-alignment-policy` 表示如何根据 NUMA 拓扑对齐资源分配。策略语义遵循 K8s 社区。相当于 `NodeResourceTopology` 中的 `TopologyPolicies` 字段，拓扑策略 `SingleNUMANodePodLevel` 和 `SingleNUMANodeContainerLevel` 映射到 `SingleNUMANode` 策略。
+标签 `node.koordinator.sh/numa-topology-policy` 表示如何根据 NUMA 拓扑对齐资源分配。策略语义遵循 K8s 社区。相当于 `NodeResourceTopology` 中的 `TopologyPolicies` 字段，拓扑策略 `SingleNUMANodePodLevel` 和 `SingleNUMANodeContainerLevel` 映射到 `SingleNUMANode` 策略。
 
 - `None` 是默认策略，不执行任何拓扑对齐。
 - `BestEffort` 表示优先选择拓扑对齐的 NUMA Node，如果没有，则继续为 Pods 分配资源。
 - `Restricted` 表示每个 Pod 在 NUMA 节点上请求的资源是拓扑对齐的，如果不是，koord-scheduler 会在调度时跳过该节点。
 - `SingleNUMANode` 表示一个 Pod 请求的所有资源都必须在同一个 NUMA 节点上，如果不是，koord-scheduler 调度时会跳过该节点。
 
-如果节点的 Label 中没有 `node.koordinator.sh/numa-topology-alignment-policy`，并且 `NodeResourceTopology中的TopologyPolicies=None`，则按照 koord-scheduler 配置的策略执行。
+如果节点的 Label 中没有 `node.koordinator.sh/numa-topology-policy`，并且 `NodeResourceTopology中的TopologyPolicies=None`，则按照 koord-scheduler 配置的策略执行。
 
-如果同时定义了 Node 中的 `node.koordinator.sh/numa-topology-alignment-policy` 和 `NodeResourceTopology` 中的 `TopologyPolicies=None`，则首先使用 `node.koordinator.sh/numa-topology-alignment-policy`。
+如果同时定义了 Node 中的 `node.koordinator.sh/numa-topology-policy` 和 `NodeResourceTopology` 中的 `TopologyPolicies=None`，则首先使用 `node.koordinator.sh/numa-topology-policy`。
 
 #### 例子
 
@@ -261,7 +261,7 @@ kind: Node
 metadata:
   labels:
     node.koordinator.sh/cpu-bind-policy: "FullPCPUsOnly"
-    node.koordinator.sh/numa-topology-alignment-policy: "BestEffort"
+    node.koordinator.sh/numa-topology-policy: "BestEffort"
     node.koordinator.sh/numa-allocate-strategy: "MostAllocated"
   name: node-0
 spec:
