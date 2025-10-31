@@ -75,7 +75,7 @@ kubectl delete po -l koord-app=koord-scheduler -n koordinator-system
 
 ### Label Nodes with Topology Information
 
-First, use tools like NVIDIA's [topograph](https://github.com/NVIDIA/topograph/blob/main/docs/k8s.md) to label nodes with their network topology positions:
+First, use tools like NVIDIA's [topograph](https://github.com/NVIDIA/topograph/blob/v0.1.0/docs/engines/k8s.md) to label nodes with their network topology positions:
 
 ```yaml
 apiVersion: v1

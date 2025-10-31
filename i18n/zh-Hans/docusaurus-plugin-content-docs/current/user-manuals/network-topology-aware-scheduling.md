@@ -75,7 +75,7 @@ kubectl delete po -l koord-app=koord-scheduler -n koordinator-system
 
 ### 为节点添加拓扑信息标签
 
-首先，使用 NVIDIA 的 [topograph](https://github.com/NVIDIA/topograph/blob/main/docs/k8s.md) 等工具为节点标记其网络拓扑位置：
+首先，使用 NVIDIA 的 [topograph](https://github.com/NVIDIA/topograph/blob/v0.1.0/docs/engines/k8s.md) 等工具为节点标记其网络拓扑位置：
 
 ```yaml
 apiVersion: v1
