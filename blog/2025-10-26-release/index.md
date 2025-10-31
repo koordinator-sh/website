@@ -11,7 +11,7 @@ As artificial intelligence continues to evolve, the scale and complexity of AI m
 
 Since its official open-source release in April 2022, Koordinator has iterated through 15 major versions, consistently delivering comprehensive solutions for workload orchestration, resource scheduling, isolation, and performance optimization. The Koordinator community is grateful for the contributions from outstanding engineers at Alibaba, Ant Technology Group, Intel, XiaoHongShu, Xiaomi, iQiyi, 360, YouZan, and other organizations, who have provided invaluable ideas, code, and real-world scenarios.
 
-Today, we are excited to announce the release of Koordinator v1.7.0. This version introduces groundbreaking capabilities tailored for large-scale AI training scenarios, including **Network-Topology Aware Scheduling** and **Job-Level Preemption**. Additionally, v1.7.0 enhances heterogeneous device scheduling with support for Huawei Ascend NPU and Cambricon MLU, providing end-to-end device management solutions. The release also includes comprehensive **API Reference Documentation** and a complete **Developer Guide** to improve the developer experience.
+Today, we are excited to announce the release of Koordinator v1.7.0. This version introduces groundbreaking capabilities tailored for large-scale AI training scenarios, including **Network-Topology Aware Scheduling** and **Job-Level Preemption**. Additionally, v1.7.0 enhances heterogeneous device scheduling with support for **Huawei Ascend NPU** and **Cambricon MLU**, providing end-to-end device management solutions. The release also includes comprehensive **API Reference Documentation** and a complete **Developer Guide** to improve the developer experience.
 
 In the v1.7.0 release, 14 new developers actively contributed to the Koordinator community: @ditingdapeng, @Rouzip, @ClanEver, @zheng-weihao, @cntigers, @LennonChin, @ZhuZhezz, @dabaooline, @bobsongplus, @yccharles, @qingyuanz, @yyrdl, @hwenwur, and @hkttty2009. We sincerely thank all community members for their active participation and ongoing support!
 
@@ -29,7 +29,7 @@ To optimize training efficiency, Koordinator v1.7.0 provides **Network-Topology 
 
 #### Cluster Network Topology Configuration
 
-Administrators first label nodes with their network topology positions using tools like NVIDIA's [topograph](https://github.com/NVIDIA/topograph/blob/main/docs/k8s.md):
+Administrators first label nodes with their network topology positions using tools like NVIDIA's [topograph](https://github.com/NVIDIA/topograph/blob/v0.1.0/docs/engines/k8s.md):
 
 ```yaml
 apiVersion: v1
@@ -215,6 +215,7 @@ spec:
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
         koordinator.sh/gpu-memory: 64Gi
+        koordinator.sh/gpu-memory-ratio: "100"
       topology:
         busID: 0000:3b:00.0
         nodeID: 0

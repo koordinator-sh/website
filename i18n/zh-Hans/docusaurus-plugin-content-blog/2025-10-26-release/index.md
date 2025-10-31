@@ -11,7 +11,7 @@ tags: [release]
 
 自 2022 年 4 月正式开源以来，Koordinator 已迭代发布了 15 个大版本，持续为工作负载编排、资源调度、隔离和性能优化提供全面的解决方案。Koordinator 社区感谢来自阿里巴巴、蚂蚁科技、Intel、小红书、小米、爱奇艺、360、有赞等众多企业的优秀工程师的贡献，他们带来了宝贵的想法、代码和实际应用场景。
 
-今天，我们很高兴地宣布 Koordinator v1.7.0 正式发布。本版本针对大规模 AI 训练场景引入了突破性能力，包括**网络拓扑感知调度**和**作业级抢占**。此外，v1.7.0 通过支持华为昇腾 NPU 和寒武纪 MLU 增强了异构设备调度能力，提供了端到端的设备管理解决方案。该版本还包含了全面的 **API 参考文档**和完整的**开发者指南**，以改善开发者体验。
+今天，我们很高兴地宣布 Koordinator v1.7.0 正式发布。本版本针对大规模 AI 训练场景引入了突破性能力，包括**网络拓扑感知调度**和**作业级抢占**。此外，v1.7.0 通过支持**华为昇腾 NPU** 和**寒武纪 MLU** 增强了异构设备调度能力，提供了端到端的设备管理解决方案。该版本还包含了全面的 **API 参考文档**和完整的**开发者指南**，以改善开发者体验。
 
 在 v1.7.0 版本中，共有 14 位新开发者积极参与到 Koordinator 社区的建设中，他们是 @ditingdapeng、@Rouzip、@ClanEver、@zheng-weihao、@cntigers、@LennonChin、@ZhuZhezz、@dabaooline、@bobsongplus、@yccharles、@qingyuanz、@yyrdl、@hwenwur 和 @hkttty2009。由衷感谢所有社区成员的积极参与和持续支持！
 
@@ -29,7 +29,7 @@ tags: [release]
 
 #### 集群网络拓扑配置
 
-管理员首先使用 NVIDIA 的 [topograph](https://github.com/NVIDIA/topograph/blob/main/docs/k8s.md) 等工具为节点标记其网络拓扑位置：
+管理员首先使用 NVIDIA 的 [topograph](https://github.com/NVIDIA/topograph/blob/v0.1.0/docs/engines/k8s.md) 等工具为节点标记其网络拓扑位置：
 
 ```yaml
 apiVersion: v1
@@ -172,7 +172,7 @@ spec:
 
 ### 3. 异构设备调度：支持华为昇腾 NPU 和寒武纪 MLU
 
-在 v1.6 强大的 GPU 调度基础上，Koordinator v1.7.0 将异构设备调度扩展到支持**华为昇腾 NPU** 和**寒武纪 MLU**，为多厂商提供[统一的设备管理和调度能力](https://koordinator.sh/zh-Hans/docs/architecture/device/#device-scheduling-architecture)。
+在 v1.6 强大的 GPU 调度基础上，Koordinator v1.7.0 将异构设备调度扩展到支持**华为昇腾 NPU** 和**寒武纪 MLU**，为多厂商提供[统一的设备管理和调度能力](https://koordinator.sh/zh-Hans/docs/architecture/device/#%E8%AE%BE%E5%A4%87%E8%B0%83%E5%BA%A6%E6%9E%B6%E6%9E%84)。
 
 ![Device Scheduling Architecture](/img/device-scheduling-architecture.jpg)
 
@@ -215,6 +215,7 @@ spec:
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
         koordinator.sh/gpu-memory: 64Gi
+        koordinator.sh/gpu-memory-ratio: "100"
       topology:
         busID: 0000:3b:00.0
         nodeID: 0

@@ -215,7 +215,6 @@ spec:
         huawei.com/npu-core: "20"
         huawei.com/npu-cpu: "7"
         huawei.com/npu-dvpp: "100"
-        koordinator.sh/gpu-core: "100"
         koordinator.sh/gpu-memory: 64Gi
         koordinator.sh/gpu-memory-ratio: "100"
       topology:
