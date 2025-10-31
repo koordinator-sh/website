@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkkoordinator_sh=self.webpackChunkkoordinator_sh||[]).push([[6945],{6945:(s,k,o)=>{o.r(k)}}]);

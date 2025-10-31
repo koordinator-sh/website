@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkkoordinator_sh=self.webpackChunkkoordinator_sh||[]).push([[9883],{48809:s=>{s.exports=JSON.parse('{"label":"kubernetes","permalink":"/zh-Hans/blog/tags/kubernetes","allTagsPath":"/zh-Hans/blog/tags","count":3}')}}]);
