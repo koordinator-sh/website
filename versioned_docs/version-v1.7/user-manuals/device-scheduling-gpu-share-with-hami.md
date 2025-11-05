@@ -70,7 +70,7 @@ Specify each parameter using the `--set key=value[,key=value]` argument to `helm
 
 ## Use GPU Share With HAMi
 
-1. Create a Pod to apply for a GPU card with 50% computing power and 50% gpu memory, and specify the need for hami-core isolation through the Pod Label `koordinator.sh/gpu-isolation-provider=HAMi-core`
+1. Create a Pod to apply for a GPU card with 50% computing power and 50% gpu memory, and specify the need for hami-core isolation through the Pod Label `koordinator.sh/gpu-isolation-provider=HAMi-core`. **Starting from version 1.7.0, the scheduler will enforce a mandatory check: for any Pod requiring GPU isolation capabilities, its target node must have the hami-core component installed. Please ensure that all nodes in the cluster with hami-core installed are labeled with `koordinator.sh/gpu-isolation-provider=HAMi-core`.**
 
 ```yaml
 apiVersion: v1
