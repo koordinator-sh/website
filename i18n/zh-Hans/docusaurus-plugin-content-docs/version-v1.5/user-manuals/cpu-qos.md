@@ -376,7 +376,7 @@ CPU QoS默认使用Group Identity特性，如果需要使用Core Scheduling特�
 8. 执行以下命令，在单机端的Cgroup分组中查看BE Pod的内核CPU Idle生效情况。
 
    ```bash
-   cat /sys/fs/cgroup/kubepods.slice/cpu.idle
+   cat /sys/fs/cgroup/cpu/kubepods.slice/cpu.idle
    ```
 
    预期输出：
@@ -387,7 +387,7 @@ CPU QoS默认使用Group Identity特性，如果需要使用Core Scheduling特�
    ```
 
    ```bash
-   cat /sys/fs/cgroup/kubepods.slice/kubepods-besteffort.slice/cpu.idle
+   cat /sys/fs/cgroup/cpu/kubepods.slice/kubepods-besteffort.slice/cpu.idle
    ```
 
    预期输出：

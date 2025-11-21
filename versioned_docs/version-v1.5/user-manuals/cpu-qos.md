@@ -374,7 +374,7 @@ Specify `lsClass` and `beClass` to assign the LS and BE classes to different pod
 9. Run the following command to check whether the CPU Idle of the BE cgroup of the node takes effect:
 
    ```bash
-   cat /sys/fs/cgroup/kubepods.slice/cpu.idle
+   cat /sys/fs/cgroup/cpu/kubepods.slice/cpu.idle
    ```
 
    Expected output:
@@ -385,7 +385,7 @@ Specify `lsClass` and `beClass` to assign the LS and BE classes to different pod
    ```
 
    ```bash
-   cat /sys/fs/cgroup/kubepods.slice/kubepods-besteffort.slice/cpu.idle
+   cat /sys/fs/cgroup/cpu/kubepods.slice/kubepods-besteffort.slice/cpu.idle
    ```
 
    Expected output:
