@@ -31,6 +31,17 @@ const config = {
   organizationName: 'koordinator-sh', // Usually your GitHub org/user name.
   projectName: 'koordinator.sh', // Usually your repo name.
   trailingSlash: false,
+  headTags: [
+    {
+      tagName: "meta",
+      attributes: {
+        // Allow Algolia crawler to index the site
+        // See https://www.algolia.com/doc/tools/crawler/getting-started/create-crawler/#verify-your-domain.
+        name: "algolia-site-verification",
+        content: "94B07DDC59FCF9C7",
+      }
+    },
+  ],
 
 
   presets: [
