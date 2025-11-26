@@ -98,9 +98,9 @@ const config = {
           '⭐️ If you like Koordinator, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/koordinator-sh/koordinator">GitHub</a>! ⭐️',
       },
       algolia: {
-        apiKey: '72ec0a3c892141cf32490c676bb66628',
-        indexName: 'koordinator',
-        appId: 'FKASWWQYOP',
+        apiKey: 'f92def806976f93db224227437c3f4d6',
+        indexName: 'koordinaror',
+        appId: 'IRGGIU5RJ5',
         contextualSearch: false,
         searchParameters: {},
       },

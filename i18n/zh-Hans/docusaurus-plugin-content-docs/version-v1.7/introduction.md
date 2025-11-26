@@ -42,7 +42,7 @@ Koordinator 调度器是基于 schedule-framework 开发的，在原生调度能
 
 推荐后续步骤：
 
-- 开始 [安装 Koordinator ](./installation).
-- 学习 Koordinator 的 [架构](architecture/overview).
+- 开始 [安装 Koordinator ](/docs/installation).
+- 学习 Koordinator 的 [架构](/docs/architecture/overview).
 
 
