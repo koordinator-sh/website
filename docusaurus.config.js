@@ -100,6 +100,20 @@ const config = {
     },
   },
 
+  plugins: [
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'community',
+        path: 'community',
+        routeBasePath: 'community',
+        include: ['**/*.md'],
+        sidebarPath: './sidebars-community.js',
+      },
+    ],
+  ],
+
+
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
@@ -129,6 +143,12 @@ const config = {
          
           {to: 'docs', label: 'Documentation', position: 'left'},
           {to: '/blog', label: 'Blog', position: 'left'},
+          {
+            to: '/community/committee',
+            label: 'Community',
+            position: 'left',
+            activeBaseRegex: `/community/`,
+          },
           {
             type: 'localeDropdown',
             position: 'right',
