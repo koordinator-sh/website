@@ -13,5 +13,5 @@ There are following active communication channels:
 - DingTalk(Chinese): Search Group ID `33383887` or scan the following QR Code
 
 <div>
-  <img src="https://github.com/koordinator-sh/koordinator/raw/main/docs/images/dingtalk.png" width="300" title="dingtalk"/>
+  <img src="/img/dingtalk.png" width="300" title="dingtalk"/>
 </div>
