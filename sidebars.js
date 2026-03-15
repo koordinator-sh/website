@@ -54,6 +54,7 @@ const sidebars = {
             'user-manuals/gpu-and-rdma-joint-allocation',
             'user-manuals/device-scheduling-ascend-npu',
             'user-manuals/device-scheduling-cambricon-mlu',
+            'user-manuals/device-scheduling-metax-gpu',
           ],
           'Heterogeneous Scheduling Strategy' : [
             'user-manuals/node-resource-fit-plus-scoring',
