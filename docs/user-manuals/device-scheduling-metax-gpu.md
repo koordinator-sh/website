@@ -112,9 +112,9 @@ status:
    >     - `koordinator.sh/gpu-memory`: Specify the GPU memory amount.
    >     - `metax-tech.com/sgpu`: Specify the number of virtual GPUs.
    > - Configure the QoS policy in `metadata.annotations`:
-   >   - `fixed-share`: Guaranteed resources.
-   >   - `best-effort`: Burstable resources.
-   >   - `burst-share`: Guaranteed baseline + Burstable capability.
+   >   - `fixed-share`: The sGPU is assigned a fixed compute quota and cannot exceed this limit.
+   >   - `best-effort`: The sGPU has no restriction on compute usage.
+   >   - `burst-share`: The sGPU is assigned a fixed compute quota, but may utilize additional GPU compute resources when they are idle.
 
 ```yaml
 apiVersion: v1

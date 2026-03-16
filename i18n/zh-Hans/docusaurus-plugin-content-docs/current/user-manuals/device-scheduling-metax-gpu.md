@@ -110,9 +110,9 @@ status:
 >    -  metax-tech.com/sgpu
 >      - 用几张虚拟卡，填写几即可
 > - metadata.annoations 中需要配置qos策略
->  - fixed-share 表示固定资源
->  - best-effort 表示竞争资源
->  - burst-share 表示弹性共享资源（保证基础资源，额外资源空闲可超额使用）
+>  - `fixed-share` sGPU 有固定的算力配额，且无法超过固定配额使用
+>  - `best-effort` sGPU 不限制算力
+>  - `burst-share` sGPU 有固定的算力配额，若 GPU 卡还有空闲算力，就可以被 sGPU 使用
 
 ```yaml sGPU
 apiVersion: v1
