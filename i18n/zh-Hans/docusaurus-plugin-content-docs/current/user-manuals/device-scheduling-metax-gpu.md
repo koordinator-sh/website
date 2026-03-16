@@ -33,7 +33,7 @@ data:
 > **注:** [sGPU](https://developer.metax-tech.com/api/client/document/preview/1009/k8s/04_sgpu.html#sgpu) 是沐曦基于软件实现的算力切分方案，可以基于物理GPU创建最多16个虚拟GPU实例，主要面向基于容器的云端推理和小模型训练场景。
 ### 使用
 
-1. 确认寒沐曦卡已成功被 Device 识别，示例如下，通过 `kubectl get device <node-name> -o yaml` 查看 Device 资源。
+1. 确认沐曦卡已成功被 Device 识别，示例如下，通过 `kubectl get device <node-name> -o yaml` 查看 Device 资源。
    
 > **注意:** 
 > - node.koordinator.sh/gpu-vendor 对应的标签值为 metax
@@ -112,6 +112,7 @@ status:
 > - metadata.annoations 中需要配置qos策略
 >  - fixed-share 表示固定资源
 >  - best-effort 表示竞争资源
+>  - burst-share 表示弹性共享资源（保证基础资源，额外资源空闲可超额使用）
 
 ```yaml sGPU
 apiVersion: v1
@@ -122,7 +123,7 @@ metadata:
   name: test-metax-sGPU
   namespace: default
   annotations:
-     metax-tech.com/sgpu-qos-policy: "fixed-share" # fixed-share/best-effort
+     metax-tech.com/sgpu-qos-policy: "fixed-share" # fixed-share/best-effort/burst-share
 spec:
   containers:
   - command:
