@@ -114,6 +114,7 @@ status:
    > - Configure the QoS policy in `metadata.annotations`:
    >   - `fixed-share`: Guaranteed resources.
    >   - `best-effort`: Burstable resources.
+   >   - `burst-share`: Guaranteed baseline + Burstable capability.
 
 ```yaml
 apiVersion: v1
@@ -124,7 +125,7 @@ metadata:
   name: test-metax-sgpu
   namespace: default
   annotations:
-     metax-tech.com/sgpu-qos-policy: "fixed-share" # fixed-share/best-effort
+     metax-tech.com/sgpu-qos-policy: "fixed-share" # fixed-share/best-effort/burst-share
 spec:
   containers:
   - command:
