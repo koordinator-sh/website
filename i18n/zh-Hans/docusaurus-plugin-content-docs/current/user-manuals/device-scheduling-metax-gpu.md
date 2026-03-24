@@ -27,7 +27,7 @@ data:
       mode: "sgpu" # sgpu/shared/vgpu, node scope
 ```
 
-- Koordinator 相关组件(koordinator >= v1.7.0)
+- Koordinator 相关组件(koordinator >= v1.8.0)
   - 需要在 chart 的 `scheduler.featureGates` 参数中加入 `DevicePluginAdaption=true` 以启用该功能所需的特性门控
    
 > **注:** [sGPU](https://developer.metax-tech.com/api/client/document/preview/1009/k8s/04_sgpu.html#sgpu) 是沐曦基于软件实现的算力切分方案，可以基于物理GPU创建最多16个虚拟GPU实例，主要面向基于容器的云端推理和小模型训练场景。

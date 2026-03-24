@@ -29,7 +29,7 @@ data:
       mode: "sgpu" # sgpu/shared/vgpu, node scope
 ```
 
-- Koordinator components (>= v1.7.0)
+- Koordinator components (>= v1.8.0)
   - Set `DevicePluginAdaption=true` in the chart's `scheduler.featureGates` to enable this feature.
 
 > **Note:** [sGPU](https://developer.metax-tech.com/api/client/document/preview/1009/k8s/04_sgpu.html#sgpu) is Metax's software-based compute slicing solution that can create up to 16 virtual GPU instances from a single physical GPU, primarily targeting cloud-based inference and small-scale model training scenarios with containers.
