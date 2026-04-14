@@ -32,6 +32,7 @@ The scheduled GPU devices are bound to the container requires support from the r
 
 1. DeviceScheduling is *Enabled* by default. You can use it without any modification on the koord-scheduler config.
 2. The GPUEnvInject FeatureFG need to be enabled in koordlet. Add `-feature-gates=GPUEnvInject=true` to the args parameters.
+3. Starting from Koordinator v1.7, `EnableSyncGPUSharedResource` of koord-manager is set to `false` by default. In GPU sharing scenarios, this value needs to be set to `true`. You can enable it by adding `-feature-gates=EnableSyncGPUSharedResource=true` to the koord-manager args parameters.
 
 
 #### Install hami-daemon with helms
