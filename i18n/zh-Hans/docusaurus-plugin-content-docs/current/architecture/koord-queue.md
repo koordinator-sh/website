@@ -2,7 +2,7 @@
 
 ## 概述
 
-Koord-Queue 是 Koordinator 生态系统的原生 Kubernetes 作业队列管理系统。它提供作业级别的队列管理能力，与 Koordinator 的 ElasticQuota 系统深度集成，实现资源公平性、通过预调度减少调度器压力，并支持 FIFO/Priority 排队策略。专为多租户 AI/ML 和批处理工作负载而设计。
+Koord-Queue 是 Koordinator 生态系统的原生 Kubernetes 作业队列管理系统。它提供作业级别的队列管理能力，与 Koordinator 的 ElasticQuota 系统深度集成，实现资源公平性、通过预调度减少调度器压力，并支持 Priority/Block 排队策略。专为多租户 AI/ML 和批处理工作负载而设计。
 
 ![架构](/img/koord-queue-architecture.jpg)
 
@@ -48,7 +48,7 @@ Extension Servers（作业扩展）监控实际的作业 CR（如 TFJob、PyTorc
 
 `Queue` 是一个命名空间范围的 CRD，定义了具有特定排队策略的逻辑作业队列。**所有 Queue 资源必须创建在 `koord-queue` 命名空间下**，即 Koord-Queue 控制器所部署的命名空间。每个队列可以配置：
 
-- **QueuePolicy**：`FIFO`（先进先出）或 `Priority`（基于优先级排序）。
+- **QueuePolicy**：`Priority`（基于优先级排序）或 `Block`（严格阻塞模式）。
 - **Priority**：用于多队列调度的数值优先级（优先级更高的队列优先调度）。
 - **AdmissionChecks**：`QueueUnit` 在出队前必须通过的准入检查列表。
 
@@ -157,9 +157,37 @@ ElasticQuotaV2 插件与 Koordinator 的独立 `ElasticQuota` CRD (scheduling.si
 
 `QueueUnit` 通过标签（例如 `quota.scheduling.koordinator.sh/name`）关联到 ElasticQuota 组。在调度过程中，插件会在允许 `QueueUnit` 出队之前检查配额组是否有足够的可用资源（考虑 min/max 和借用资源）。
 
+独立 ElasticQuota CR 示例：
+
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
+metadata:
+  name: team-a
+  namespace: default
+  labels:
+    quota.scheduling.koordinator.sh/parent: koordinator-root-quota
+spec:
+  min:
+    cpu: "40"
+    memory: 80Gi
+  max:
+    cpu: "60"
+    memory: 120Gi
+```
+
+主要特性：
+
+- 每个 ElasticQuota 是独立的 CR，通常创建在用户的命名空间中。
+- 插件会为每个 ElasticQuota 自动在 `koord-queue` 命名空间创建对应的 `Queue` 资源。
+- 父子关系通过 `quota.scheduling.koordinator.sh/parent` 标签建立。无此标签时，默认父配额为 `koordinator-root-quota`。
+- 支持弹性借用：min 内的请求始终允许；超过 min 但在 max 内的请求可以借用其他组的空闲资源。
+
 有关 ElasticQuota CRD 的详细使用方法，请参阅[弹性配额管理](../user-manuals/capacity-scheduling.md)。
 
-### 准入检查
+### 准入检查 *(开发中)*
+
+> **注意**：准入检查控制器尚未包含在本版本中，此部分描述的是未来计划中的 API。
 
 Koord-Queue 支持准入检查框架（兼容 Kueue 的 `AdmissionCheck` API）。队列可以定义一个准入检查列表，所有检查必须通过后 `QueueUnit` 才能从 `Reserved` 转换为 `Dequeued`。每个准入检查具有以下状态之一：
 
