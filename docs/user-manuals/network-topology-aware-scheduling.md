@@ -988,6 +988,40 @@ DatacenterLayer         # Datacenter layer
 | `PreferGather` | Topology Layer need good network performance but can tolerate some dispersion | Gather as much as possible, but allow dispersion when resources are insufficient |
 | `MustGather` | Topology Layer with strict network bandwidth requirements | Must gather in the specified layer, otherwise scheduling fails |
 
+### PodCountMultiple Configuration
+
+In some distributed training scenarios, the number of Pods placed within each topology domain must be a multiple of a specific value `X`, where `X` is related to communication parameters (e.g., Tensor Parallelism degree) within the domain. For example, if TP=8, then each Block should contain exactly 0 or 8 Pods—never a partial group.
+
+This can be configured via the `podCountMultiple` field in the gather strategy:
+
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: PodGroup
+metadata:
+  name: tp-training-job
+  namespace: default
+  annotations:
+    gang.scheduling.koordinator.sh/network-topology-spec: |
+      {
+        "gatherStrategy": [
+          {
+            "layer": "SpineLayer",
+            "strategy": "PreferGather"
+          },
+          {
+            "layer": "BlockLayer",
+            "strategy": "PreferGather",
+            "podCountMultiple": 8
+          }
+        ]
+      }
+spec:
+  minMember: 16
+  scheduleTimeoutSeconds: 300
+```
+
+In the above example, `podCountMultiple: 8` at the `BlockLayer` means that the number of Pods assigned to each Block must be a multiple of 8. When calculating `offerslots`, the algorithm constrains each topology node’s offerslots to be rounded down to the nearest multiple of the specified `podCountMultiple` value for that layer. For instance, if a Block has 10 available slots but `podCountMultiple` is 8, the effective offerslots for that Block will be 8.
+
 ### Multi-PodGroup Coordinated Scheduling
 
 For complex training jobs containing master and worker, use `GangGroup` semantics:

@@ -366,6 +366,37 @@ spec:
 
 上述 `PodGroup` 表示属于它的 Pod 首先尝试位于加速器互连域中，然后尝试位于 Block 中，最后尝试位于 Spine 网络中。
 
+#### PodCountMultiple
+
+在一些分布式训练场景中，放置在每个拓扑域内的 Pod 数量必须是特定值 `X` 的整数倍，其中 `X` 与域内的通信参数（例如张量并行度）相关。例如，如果 TP=8，则每个 Block 应精确包含 0 或 8 个 Pod——不允许部分组。可以通过聚集策略中的 `podCountMultiple` 字段进行配置：
+
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: PodGroup
+metadata:
+  name: gang-example
+  namespace: default
+  annotations:
+    gang.scheduling.koordinator.sh/network-topology-spec: |
+      {
+        "gatherStrategy": [
+          {
+            "layer": "SpineLayer",
+            "strategy": "PreferGather"
+          },
+          {
+            "layer": "BlockLayer",
+            "strategy": "PreferGather",
+            "podCountMultiple": 8
+          }
+        ]
+      }
+spec:
+  minMember: 16
+```
+
+在上面的示例中，`BlockLayer` 的 `podCountMultiple: 8` 表示分配到每个 Block 的 Pod 数量必须是 8 的整数倍。在计算 `offerslots` 时，算法会将每个拓扑节点的 offerslots 向下取整为该层指定的 `podCountMultiple` 值的最近整数倍。
+
 有时，由于对通信带宽的严格需求，用户可能希望将 `GangGroup` 的所有成员 Pod 放置在同一 Spine 下。在这种情况下，您可以按如下方式修改 `PodGroup`：
 
 ```yaml

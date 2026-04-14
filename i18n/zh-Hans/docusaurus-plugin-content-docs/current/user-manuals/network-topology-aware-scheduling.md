@@ -983,8 +983,42 @@ DatacenterLayer         # 数据中心层
 
 | 策略 | 用例 | 行为 |
 |----------|----------|----------|
-| `PreferGather` | 拓扑层需要良好的网络性能但可以容忍一些分散 | 尽可能聚集,但当资源不足时允许分散 |
-| `MustGather` | 拓扑层具有严格的网络带宽要求 | 必须在指定层中聚集,否则调度失败 |
+| `PreferGather` | 拓扑层需要良好的网络性能但可以容忍一些分散 | 尽可能聚集，但当资源不足时允许分散 |
+| `MustGather` | 拓扑层具有严格的网络带宽要求 | 必须在指定层中聚集，否则调度失败 |
+
+### PodCountMultiple 配置
+
+在一些分布式训练场景中，放置在每个拓扑域内的 Pod 数量必须是特定值 `X` 的整数倍，其中 `X` 与域内的通信参数（例如张量并行度）相关。例如，如果 TP=8，则每个 Block 应精确包含 0 或 8 个 Pod——不允许部分组。
+
+可以通过聚集策略中的 `podCountMultiple` 字段进行配置：
+
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: PodGroup
+metadata:
+  name: tp-training-job
+  namespace: default
+  annotations:
+    gang.scheduling.koordinator.sh/network-topology-spec: |
+      {
+        "gatherStrategy": [
+          {
+            "layer": "SpineLayer",
+            "strategy": "PreferGather"
+          },
+          {
+            "layer": "BlockLayer",
+            "strategy": "PreferGather",
+            "podCountMultiple": 8
+          }
+        ]
+      }
+spec:
+  minMember: 16
+  scheduleTimeoutSeconds: 300
+```
+
+在上面的示例中，`BlockLayer` 的 `podCountMultiple: 8` 表示分配到每个 Block 的 Pod 数量必须是 8 的整数倍。在计算 `offerslots` 时，算法会将每个拓扑节点的 offerslots 向下取整为该层指定的 `podCountMultiple` 值的最近整数倍。例如，如果一个 Block 有 10 个可用槽位但 `podCountMultiple` 为 8，则该 Block 的有效 offerslots 将为 8。
 
 ### 多 PodGroup 协调调度
 
