@@ -2,7 +2,7 @@
 
 ## Overview
 
-Koord-Queue is a native Kubernetes job queuing system for the Koordinator ecosystem. It provides job-level queue management with deep integration into Koordinator's ElasticQuota system, enabling resource fairness, reduced scheduler pressure via pre-scheduling, and support for FIFO/Priority queuing policies. It is purpose-built for multi-tenant AI/ML and batch workloads.
+Koord-Queue is a native Kubernetes job queuing system for the Koordinator ecosystem. It provides job-level queue management with deep integration into Koordinator's ElasticQuota system, enabling resource fairness, reduced scheduler pressure via pre-scheduling, and support for Priority/Block queuing policies. It is purpose-built for multi-tenant AI/ML and batch workloads.
 
 ![Architecture](/img/koord-queue-architecture.jpg)
 
@@ -48,7 +48,7 @@ Extension Servers (Job Extensions) monitor real job CRs (such as TFJob, PyTorchJ
 
 A `Queue` is a namespace-scoped CRD that defines a logical job queue with a specific queuing policy. **All Queue resources must be created in the `koord-queue` namespace**, which is the namespace where the Koord-Queue controller is deployed. Each queue can be configured with:
 
-- **QueuePolicy**: Either `FIFO` (first-in-first-out) or `Priority` (priority-based ordering).
+- **QueuePolicy**: Either `Priority` (priority-based ordering) or `Block` (strict blocking mode).
 - **Priority**: A numeric priority for multi-queue scheduling (higher priority queues are scheduled first).
 - **AdmissionChecks**: A list of admission checks that `QueueUnits` in this queue must pass before being dequeued.
 
@@ -158,9 +158,37 @@ The ElasticQuotaV2 plugin integrates with Koordinator's individual `ElasticQuota
 
 `QueueUnits` are associated with ElasticQuota groups via labels (e.g., `quota.scheduling.koordinator.sh/name`). During scheduling, the plugin checks whether the quota group has sufficient available resources (considering min/max and borrowed resources) before allowing a `QueueUnit` to be dequeued.
 
+Example of individual ElasticQuota CRs:
+
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
+metadata:
+  name: team-a
+  namespace: default
+  labels:
+    quota.scheduling.koordinator.sh/parent: koordinator-root-quota
+spec:
+  min:
+    cpu: "40"
+    memory: 80Gi
+  max:
+    cpu: "60"
+    memory: 120Gi
+```
+
+Key characteristics:
+
+- Each ElasticQuota is a separate CR, typically created in the user's namespace.
+- The plugin automatically creates a corresponding `Queue` resource in the `koord-queue` namespace for each ElasticQuota.
+- Parent-child relationships are established via the `quota.scheduling.koordinator.sh/parent` label. Without this label, the default parent is `koordinator-root-quota`.
+- Supports elastic borrowing: requests within min are always allowed; requests exceeding min but within max can borrow from other groups' idle resources.
+
 For details on ElasticQuota CRD usage, see [Capacity Scheduling](../user-manuals/capacity-scheduling.md).
 
-### Admission Checks
+### Admission Checks *(Work In Progress)*
+
+> **Note**: The Admission Check controller is not yet included in this release. This section describes the planned API for future use.
 
 Koord-Queue supports an admission check framework (compatible with Kueue's `AdmissionCheck` API). Queues can define a list of admission checks that must all pass before a `QueueUnit` transitions from `Reserved` to `Dequeued`. Each admission check has one of the following states:
 
