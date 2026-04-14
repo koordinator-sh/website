@@ -4,7 +4,7 @@
 
 Koord-Queue is a native Kubernetes job queuing system designed for the Koordinator ecosystem. It manages job admission and ordering across multiple queues, integrating deeply with Koordinator's ElasticQuota for resource fairness and multi-tenant isolation. Key capabilities include:
 
-- **Multi-queue management** with FIFO and Priority queuing policies.
+- **Multi-queue management** with Priority and Block queuing policies.
 - **Deep ElasticQuota integration** to avoid duplicate quota configurations and enable elastic resource sharing.
 - **Pre-scheduling** to reduce scheduler pressure by queuing jobs before they create pods.
 - **Multi-framework support** including TFJob, PyTorchJob, Spark, Argo Workflow, Ray, and native Kubernetes Jobs.
@@ -32,6 +32,7 @@ Verify the installation:
 ```bash
 $ kubectl get deployment -n koord-queue
 NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
+job-extensions             1/1     1            1           30s
 koord-queue-controller     1/1     1            1           30s
 
 $ kubectl get crd | grep scheduling.x-k8s.io
@@ -41,27 +42,26 @@ queueunits.scheduling.x-k8s.io      2024-01-01T00:00:00Z
 
 ### Configurations
 
-Key Helm values for customization:
+Koord-Queue supports three quota plugin modes, each requiring different Helm values. The `queueGroupPlugin` field controls which plugin is activated (passed as environment variable `QueueGroupPlugin` to the controller), and `pluginConfigs.plugins` must list the corresponding plugin name.
+
+#### ElasticQuotaV2 Mode (Default)
+
+Uses individual `ElasticQuota` CRs (`scheduling.sigs.k8s.io/v1alpha1`). This is the recommended mode for Koordinator users.
 
 ```yaml
 controller:
-  # Queue group plugin: elasticquotav2, elasticquota, or resourceQuota
   queueGroupPlugin: elasticquotav2
-  # Enable strict dequeue mode (requires scheduler confirmation before dequeue)
   enableResourceCheckWithScheduler: false
-  # Enable strict priority (higher priority queues always scheduled first)
   enableStrictPriority: false
-  # Default preemptible flag for QueueUnits
   defaultPreemptible: true
 
 extension:
-  # Enable/disable job framework integrations
+  batchjob:
+    enable: true    # Native Kubernetes Job support
   tf:
     enable: false
   pytorch:
     enable: false
-  batchjob:
-    enable: true    # Native Kubernetes Job support
   argo:
     enable: false
   spark:
@@ -69,7 +69,6 @@ extension:
   ray:
     enable: false
 
-# Plugin configuration
 pluginConfigs:
   apiVersion: scheduling.k8s.io/v1
   kind: KoordQueueConfiguration
@@ -78,170 +77,26 @@ pluginConfigs:
     - name: ElasticQuotaV2
 ```
 
+#### ElasticQuota Mode (Tree Mode)
+
+Uses a single `ElasticQuotaTree` CR (`scheduling.sigs.k8s.io/v1beta1`) to define the entire quota hierarchy in one resource.
+
+```yaml
+controller:
+  queueGroupPlugin: elasticquota
+
+pluginConfigs:
+  apiVersion: scheduling.k8s.io/v1
+  kind: KoordQueueConfiguration
+  plugins:
+    - name: Priority
+    - name: ElasticQuota
+  pluginConfigs:
+    ElasticQuota:
+      checkHungryQuota: false
+```
+
 ## Use Koord-Queue
-
-### Quick Start with ResourceQuota
-
-This example demonstrates multi-queue job scheduling with Kubernetes native ResourceQuota.
-
-#### 1. Create queues and resource quotas
-
-All `Queue` resources must be created in the `koord-queue` namespace (the controller's namespace). `ResourceQuota` and jobs are created in their own namespaces.
-
-```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: Queue
-metadata:
-  name: queue1
-  namespace: koord-queue
-spec:
-  queuePolicy: Priority
-```
-
-```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: Queue
-metadata:
-  name: queue2
-  namespace: koord-queue
-spec:
-  queuePolicy: Priority
-```
-
-```bash
-$ kubectl apply -f queue1.yaml
-$ kubectl apply -f queue2.yaml
-```
-
-#### 2. Create namespaces and resource quotas
-
-```yaml
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: queue1
-  namespace: queue1
-spec:
-  hard:
-    cpu: "4"
-    memory: 4Gi
-```
-
-```yaml
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: queue2
-  namespace: queue2
-spec:
-  hard:
-    cpu: "4"
-    memory: 4Gi
-```
-
-```bash
-$ kubectl create namespace queue1
-$ kubectl create namespace queue2
-$ kubectl apply -f resource_quota_q1.yaml
-$ kubectl apply -f resource_quota_q2.yaml
-
-$ kubectl get resourcequota -A -o wide
-NAMESPACE   NAME     AGE   REQUEST                        LIMIT
-queue1      queue1   10s   cpu: 0/4, memory: 0/4Gi
-queue2      queue2   10s   cpu: 0/4, memory: 0/4Gi
-```
-
-#### 3. Submit jobs
-
-Create a TFJob with the suspend annotation (Koord-Queue Job Extensions handle this automatically). For TFJob/PyTorchJob, use the `scheduling.x-k8s.io/suspend` annotation; for Kubernetes Jobs, use `spec.suspend: true`:
-
-```yaml
-apiVersion: "kubeflow.org/v1"
-kind: "TFJob"
-metadata:
-  name: "job1_q1"
-  namespace: "queue1"
-  annotations:
-    scheduling.x-k8s.io/suspend: "true"
-spec:
-  tfReplicaSpecs:
-    PS:
-      replicas: 1
-      restartPolicy: Never
-      template:
-        spec:
-          containers:
-            - name: tensorflow
-              image: busybox:stable
-              command: ["/bin/sh", "-c", "--"]
-              args: ["sleep 30s"]
-              resources:
-                requests:
-                  cpu: 1
-                  memory: 1Gi
-                limits:
-                  cpu: 1
-                  memory: 1Gi
-    Worker:
-      replicas: 2
-      restartPolicy: Never
-      template:
-        spec:
-          containers:
-            - name: tensorflow
-              image: busybox:stable
-              command: ["/bin/sh", "-c", "--"]
-              args: ["sleep 30s"]
-              resources:
-                requests:
-                  cpu: 1
-                  memory: 1Gi
-                limits:
-                  cpu: 1
-                  memory: 1Gi
-```
-
-#### 4. Observe queuing behavior
-
-Initially, only one job per queue runs because of resource limits:
-
-```bash
-$ kubectl get tfjob -n queue1
-NAME      STATE     AGE
-job1_q1   Running   5s
-job2_q1   Queuing   5s
-
-$ kubectl get pods -n queue1
-NAME               READY   STATUS    RESTARTS   AGE
-job1_q1-ps-0       1/1     Running   0          8s
-job1_q1-worker-0   1/1     Running   0          8s
-job1_q1-worker-1   1/1     Running   0          8s
-```
-
-When job1 completes, job2 is dequeued and starts running:
-
-```bash
-$ kubectl get tfjob -n queue1
-NAME      STATE       AGE
-job1_q1   Succeeded   38s
-job2_q1   Running     38s
-```
-
-#### 5. Verify queue status
-
-```bash
-$ kubectl get queue -n koord-queue
-NAME     AGE
-queue1   10m
-queue2   10m
-
-$ kubectl get queueunit -A
-NAMESPACE   NAME          PHASE      PRIORITY
-queue1      job1_q1-qu    Succeed    0
-queue1      job2_q1-qu    Running    0
-queue2      job1_q2-qu    Succeed    0
-queue2      job2_q2-qu    Running    0
-```
 
 ### Quick Start with ElasticQuota
 
@@ -265,11 +120,11 @@ metadata:
     quota.scheduling.koordinator.sh/is-parent: "false"
 spec:
   max:
-    cpu: "40"
-    memory: 80Gi
+    cpu: "4"
+    memory: 8Gi
   min:
-    cpu: "10"
-    memory: 20Gi
+    cpu: "4"
+    memory: 8Gi
 ```
 
 ```bash
@@ -285,7 +140,7 @@ If you want to customize the Queue policy, you can set the `koord-queue/queue-po
 ```yaml
 metadata:
   labels:
-    koord-queue/queue-policy: FIFO
+    koord-queue/queue-policy: Priority
 ```
 
 ##### 3. Submit a Job with quota label
@@ -321,6 +176,46 @@ spec:
 The ElasticQuotaV2 plugin will check whether `team-a` has sufficient available resources (considering min/max and borrowed resources) before allowing the `QueueUnit` to be dequeued. Once dequeued, the job-extensions controller sets `spec.suspend: false` to resume the job.
 
 For other job types (TFJob, PyTorchJob, etc.), use the `scheduling.x-k8s.io/suspend: "true"` annotation instead of `spec.suspend`.
+
+##### 4. Verify queuing when quota is exhausted
+
+The `team-a` quota has `max.cpu: "4"` and `max.memory: "8Gi"`, which is exactly enough for one job. Submit a second job to observe it being held in the queue:
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-job-blocked
+  namespace: default
+  labels:
+    quota.scheduling.koordinator.sh/name: team-a
+spec:
+  suspend: true
+  template:
+    spec:
+      containers:
+      - name: test
+        image: busybox:stable
+        command: ["/bin/sh", "-c", "sleep 30"]
+        resources:
+          requests:
+            cpu: "4"
+            memory: 8Gi
+          limits:
+            cpu: "4"
+            memory: 8Gi
+      restartPolicy: Never
+```
+
+After applying, inspect the `QueueUnit` status:
+
+```bash
+$ kubectl get queueunit my-job-blocked -n default
+NAME               PHASE     PRIORITY
+my-job-blocked     Enqueued  1000
+```
+
+The `QueueUnit` stays in `Enqueued` phase because `team-a` has already reached its `max` quota. Once an existing job completes and resources are released, the blocked job will be dequeued automatically.
 
 #### Using ElasticQuota (Tree Mode)
 
@@ -425,19 +320,9 @@ children:
 
 ### Queue Policies
 
-#### FIFO Queue
+By default, Koord-Queue's Job Extensions automatically derive the `QueueUnit` priority from the job's pod template: it reads `spec.template.spec.priorityClassName` and `spec.template.spec.priority`. If a `PriorityClass` object is found, its `.value` is used as the `QueueUnit` priority; otherwise the raw integer in `spec.template.spec.priority` is used.
 
-Jobs are dequeued in the order they were created:
-
-```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: Queue
-metadata:
-  name: fifo-queue
-  namespace: koord-queue
-spec:
-  queuePolicy: FIFO
-```
+You can also manually patch a `QueueUnit`'s `spec.priority` after it is created to override this default and influence dequeue ordering.
 
 #### Priority Queue
 
@@ -475,7 +360,45 @@ spec:
     memory: 4Gi
 ```
 
-### Admission Checks
+### Specifying a Target Queue *(Alpha)*
+
+> **Note**: This feature is only available in **ElasticQuota (Tree Mode)**. In ElasticQuotaV2 mode, each ElasticQuota automatically maps to its own Queue and this override is not supported.
+
+By default, Koord-Queue maps a `QueueUnit` to a Queue based on the job's namespace: the ElasticQuota tree resolves which quota group the namespace belongs to, then routes the job to the corresponding Queue.
+
+In ElasticQuota Tree Mode, you can explicitly override the target Queue by setting the annotation `koord-queue/queue-name` on the `QueueUnit`. This is useful when a namespace's jobs need to be dispatched to a different Queue than the default one — for example, to use a Queue with a different priority or policy.
+
+```yaml
+apiVersion: scheduling.x-k8s.io/v1alpha1
+kind: QueueUnit
+metadata:
+  name: my-job
+  namespace: team-a
+  annotations:
+    koord-queue/queue-name: high-priority-queue   # explicitly target this Queue
+spec:
+  consumerRef:
+    apiVersion: batch/v1
+    kind: Job
+    name: my-job
+    namespace: team-a
+  queue: high-priority-queue
+  resource:
+    cpu: "4"
+    memory: 8Gi
+```
+
+The target Queue must allow the job's quota group. A Queue allows a quota when:
+- The Queue was auto-created for that quota (its annotation `koord-queue/quota-fullname` matches the quota), **or**
+- The Queue's annotation `koord-queue/available-quota-in-queue` contains the quota name or a wildcard `*`.
+
+If the target Queue does not allow the quota, the `QueueUnit` will fail to map and remain unscheduled.
+
+> You can also set this annotation on the **Job** directly (as a job annotation), since Job Extensions copy all job labels and annotations to the created `QueueUnit` automatically.
+
+### Admission Checks *(Work In Progress)*
+
+> **Note**: The Admission Check controller is not yet included in this release. This section describes the planned API for future use.
 
 Queues can require admission checks that must pass before a `QueueUnit` is released. This is useful for integrating with external resource provisioning systems.
 
@@ -515,7 +438,7 @@ Koord-Queue supports multiple job frameworks through its Extension Server archit
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `queuePolicy` | `string` | Queuing policy: `FIFO` or `Priority`. |
+| `queuePolicy` | `string` | Queuing policy: `Priority` or `Block`. |
 | `priority` | `*int32` | Queue priority for multi-queue ordering. |
 | `priorityClassName` | `string` | Kubernetes PriorityClass name. |
 | `admissionChecks` | `[]AdmissionCheckWithSelector` | List of admission checks required. |
