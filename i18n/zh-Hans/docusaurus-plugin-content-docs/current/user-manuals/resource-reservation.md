@@ -271,6 +271,30 @@ spec:
 
 这对于资源迁移和优雅的 Pod 重新调度等场景非常有用,可以在 Pod 退出之前确保资源连续性。
 
+#### 字段: `preAllocationPolicy`
+
+- 类型: `PreAllocationPolicy`
+- 描述: 当 `preAllocation` 设置为 `true` 时,定义预分配的策略。该字段允许精细控制如何选择可预分配的 Pod 以及是否可以预分配多个 Pod。
+
+`PreAllocationPolicy` 结构体包含以下字段:
+
+- **`mode`** (类型: `PreAllocationMode`, 默认值: `Default`):
+  - `Default`: 使用 Reservation Spec 中的 Owner 匹配器来选择可预分配的 Pod。这是默认行为。
+  - `Cluster`: 使用集群级别的标签/注解选择器来识别可预分配的 Pod。该模式适用于多租户集群,可预分配的 Pod 可能属于不同的属主,需要集中管理。
+
+- **`enableMultiple`** (类型: `bool`, 默认值: `false`):
+  - 当为 `false` 时,只能为单个 Reservation 预分配一个 Pod。
+  - 当为 `true` 时,可以预分配多个 Pod 来满足 Reservation 的资源需求。当没有单个 Pod 能提供所有所需资源时(由于资源碎片化),这非常有用。
+
+**Cluster 模式的标签和注解:**
+
+使用 Cluster 模式时,调度器使用以下标签和注解来识别可预分配的 Pod:
+
+| 标签/注解 | 描述 |
+|-----------------|-------------|
+| `pod.koordinator.sh/is-pre-allocatable` | 用于标识可预分配 Pod 的标签。设置为 `"true"` 表示 Pod 可被预分配。 |
+| `pod.koordinator.sh/pre-allocatable-priority` | 用于设置预分配优先级的注解。数值越高表示优先级越高。值应为数字字符串。 |
+
 #### 字段: `unschedulable`
 
 - 类型: `bool`
@@ -475,3 +499,206 @@ status:
 ```
 
 现在我们能看到`reservation-demo-big`预留了6 cpu和20Gi内存，`app-demo`从预留的资源中分配了4 cpu and 20Gi内存，预留资源的分配不会增加节点资源的请求容量，否则`node-1`的请求资源总容量将会超过可分配的资源容量。而且当有足够的未分配的预留资源时，这些预留资源可以被同时分配给多个属主。
+
+### 案例：使用 Default 模式的 PreAllocation
+
+本案例演示如何使用 Default 模式的 PreAllocation，Reservation 绑定到匹配属主规范的已调度 Pod。
+
+1. 部署一个启用 `preAllocation` 的 Reservation:
+
+```yaml
+apiVersion: scheduling.koordinator.sh/v1alpha1
+kind: Reservation
+metadata:
+  name: reservation-prealloc
+spec:
+  preAllocation: true
+  template:
+    metadata:
+      namespace: default
+    spec:
+      containers:
+        - name: placeholder
+          resources:
+            requests:
+              cpu: 500m
+              memory: 800Mi
+      schedulerName: koord-scheduler
+  owners:
+    - labelSelector:
+        matchLabels:
+          app: my-app
+  ttl: 2h
+```
+
+2. 调度器会找到匹配属主规范的运行中 Pod 并将 Reservation 绑定到它。当 Pod 终止时，Reservation 将转换为预留已释放资源供后续 Pod 使用。
+
+### 案例：使用 Cluster 模式的 PreAllocation
+
+本案例演示如何使用 Cluster 模式的 PreAllocation，该模式使用集群级别的选择器来识别可预分配的 Pod。
+
+1. 首先，为可预分配的 Pod 添加标签:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch-job-1
+  labels:
+    pod.koordinator.sh/is-pre-allocatable: "true"
+  annotations:
+    pod.koordinator.sh/pre-allocatable-priority: "100"
+spec:
+  containers:
+    - name: batch-job
+      image: busybox
+      resources:
+        requests:
+          cpu: 2
+          memory: 4Gi
+```
+
+2. 创建一个 Cluster 模式的 Reservation:
+
+```yaml
+apiVersion: scheduling.koordinator.sh/v1alpha1
+kind: Reservation
+metadata:
+  name: reservation-cluster-mode
+spec:
+  preAllocation: true
+  preAllocationPolicy:
+    mode: Cluster
+  template:
+    metadata:
+      namespace: default
+    spec:
+      containers:
+        - name: placeholder
+          resources:
+            requests:
+              cpu: 2
+              memory: 4Gi
+      schedulerName: koord-scheduler
+  owners:
+    - labelSelector:
+        matchLabels:
+          app: critical-app
+  ttl: 4h
+```
+
+3. 调度器会选择优先级最高(基于 `pre-allocatable-priority` 注解)的可预分配 Pod 并将 Reservation 绑定到它。
+
+### 案例：使用多 Pod 的 PreAllocation
+
+本案例演示如何使用 `enableMultiple` 的 PreAllocation，当没有单个 Pod 能满足 Reservation 需求时，从多个 Pod 累积资源。
+
+1. 将多个 Pod 标记为可预分配:
+
+```yaml
+# Pod 1 - 1 CPU, 2Gi 内存
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch-job-1
+  labels:
+    pod.koordinator.sh/is-pre-allocatable: "true"
+  annotations:
+    pod.koordinator.sh/pre-allocatable-priority: "100"
+spec:
+  containers:
+    - name: batch-job
+      image: busybox
+      resources:
+        requests:
+          cpu: 1
+          memory: 2Gi
+---
+# Pod 2 - 1 CPU, 2Gi 内存
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch-job-2
+  labels:
+    pod.koordinator.sh/is-pre-allocatable: "true"
+  annotations:
+    pod.koordinator.sh/pre-allocatable-priority: "90"
+spec:
+  containers:
+    - name: batch-job
+      image: busybox
+      resources:
+        requests:
+          cpu: 1
+          memory: 2Gi
+```
+
+2. 创建一个需要 2 CPU 和 4Gi 内存并启用 `enableMultiple` 的 Reservation:
+
+```yaml
+apiVersion: scheduling.koordinator.sh/v1alpha1
+kind: Reservation
+metadata:
+  name: reservation-multi-pods
+spec:
+  preAllocation: true
+  preAllocationPolicy:
+    mode: Cluster
+    enableMultiple: true
+  template:
+    metadata:
+      namespace: default
+    spec:
+      containers:
+        - name: placeholder
+          resources:
+            requests:
+              cpu: 2
+              memory: 4Gi
+      schedulerName: koord-scheduler
+  owners:
+    - labelSelector:
+        matchLabels:
+          app: high-priority-app
+  ttl: 4h
+```
+
+3. 调度器会预分配 `batch-job-1` 和 `batch-job-2`(按 `pre-allocatable-priority` 注解排序优先级)来满足 Reservation 的资源需求。当这些 Pod 终止时，Reservation 将转换为预留已释放资源。
+
+### PreAllocation 的调度器配置
+
+调度器可以为 PreAllocation 行为配置额外的选项。在调度器配置中添加以下配置:
+
+```yaml
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+profiles:
+  - schedulerName: koord-scheduler
+    plugins:
+      reservation:
+        enabled:
+          - name: Reservation
+    pluginConfig:
+      - name: Reservation
+        args:
+          apiVersion: kubescheduler.config.k8s.io/v1
+          kind: ReservationArgs
+          preAllocationConfig:
+            # 启用集群范围的预分配模式
+            enableClusterMode: true
+            # 自定义标识可预分配 Pod 的标签键(可选)
+            clusterLabelKey: pod.koordinator.sh/is-pre-allocatable
+            # 自定义 Pod 优先级的注解键(可选)
+            clusterPriorityAnnotationKey: pod.koordinator.sh/pre-allocatable-priority
+            # 尽可能在不使用可预分配 Pod 的情况下放置 Reservation
+            preferNoPreAllocatedPods: true
+```
+
+**配置选项:**
+
+| 选项 | 描述 |
+|--------|-------------|
+| `enableClusterMode` | 启用集群范围的预分配模式 |
+| `clusterLabelKey` | 自定义标识可预分配候选者的标签键 |
+| `clusterPriorityAnnotationKey` | 自定义可预分配 Pod 优先级的注解键 |
+| `preferNoPreAllocatedPods` | 启用后，如果节点有足够资源，优先不使用可预分配 Pod 放置 Reservation |
