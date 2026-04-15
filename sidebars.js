@@ -83,6 +83,10 @@ const sidebars = {
           'Utils' : [
             'user-manuals/resource-reservation',
             'user-manuals/pod-migration-job',
+          ],
+          'Monitoring' : [
+            'user-manuals/scheduling-monitoring',
+            'user-manuals/descheduling-monitoring',
           ]
         }
       ],
