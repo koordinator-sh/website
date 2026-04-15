@@ -273,6 +273,30 @@ spec:
 
 This is useful for scenarios like resource migration and graceful pod rescheduling, where you want to ensure resource continuity before a pod exits.
 
+#### Field: `preAllocationPolicy`
+
+- Type: `PreAllocationPolicy`
+- Description: Defines the policy for pre-allocation when `preAllocation` is set to `true`. This field allows fine-grained control over how pre-allocatable pods are selected and whether multiple pods can be pre-allocated.
+
+The `PreAllocationPolicy` struct contains the following fields:
+
+- **`mode`** (type: `PreAllocationMode`, default: `Default`):
+  - `Default`: Uses the Owner matchers from the Reservation Spec to select pre-allocatable pods. This is the default behavior.
+  - `Cluster`: Uses cluster-wide label/annotation selectors to identify pre-allocatable pods. This mode is useful in multi-tenant clusters where pre-allocatable pods may belong to different owners and should be managed centrally.
+
+- **`enableMultiple`** (type: `bool`, default: `false`):
+  - When `false`, only a single pod can be pre-allocated for the reservation.
+  - When `true`, multiple pods can be pre-allocated to satisfy the reservation's resource requirements. This is useful when no single pod can provide all the required resources due to resource fragmentation.
+
+**Cluster Mode Labels and Annotations:**
+
+When using Cluster mode, the scheduler identifies pre-allocatable pods using the following labels and annotations:
+
+| Label/Annotation | Description |
+|-----------------|-------------|
+| `pod.koordinator.sh/is-pre-allocatable` | Label to identify pre-allocatable pods. Set to `"true"` to mark a pod as pre-allocatable. |
+| `pod.koordinator.sh/pre-allocatable-priority` | Annotation to set the priority for pre-allocation. Higher values indicate higher priority. The value should be a numeric string. |
+
 #### Field: `unschedulable`
 
 - Type: `bool`
@@ -481,3 +505,206 @@ Now we can see the reservation `reservation-demo-big` has reserved 6 cpu and 20G
 The allocation for reserved resources does not increase the requested of node resources, otherwise the total request of
 `node-1` would exceed the node allocatable.
 Moreover, a reservation can be allocated by multiple owners when there are enough reserved resources unallocated.
+
+### Example: PreAllocation with Default Mode
+
+This example demonstrates how to use PreAllocation with the default mode, where the reservation binds to a scheduled pod that matches the owner specification.
+
+1. Deploy a reservation with `preAllocation` enabled:
+
+```yaml
+apiVersion: scheduling.koordinator.sh/v1alpha1
+kind: Reservation
+metadata:
+  name: reservation-prealloc
+spec:
+  preAllocation: true
+  template:
+    metadata:
+      namespace: default
+    spec:
+      containers:
+        - name: placeholder
+          resources:
+            requests:
+              cpu: 500m
+              memory: 800Mi
+      schedulerName: koord-scheduler
+  owners:
+    - labelSelector:
+        matchLabels:
+          app: my-app
+  ttl: 2h
+```
+
+2. The scheduler will find a running pod matching the owner specification and bind the reservation to it. When the pod terminates, the reservation will transition to reserve the freed resources for future pods.
+
+### Example: PreAllocation with Cluster Mode
+
+This example demonstrates how to use PreAllocation with Cluster mode, which uses cluster-wide selectors to identify pre-allocatable pods.
+
+1. First, label the pods that can be pre-allocated:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch-job-1
+  labels:
+    pod.koordinator.sh/is-pre-allocatable: "true"
+  annotations:
+    pod.koordinator.sh/pre-allocatable-priority: "100"
+spec:
+  containers:
+    - name: batch-job
+      image: busybox
+      resources:
+        requests:
+          cpu: 2
+          memory: 4Gi
+```
+
+2. Create a reservation with Cluster mode:
+
+```yaml
+apiVersion: scheduling.koordinator.sh/v1alpha1
+kind: Reservation
+metadata:
+  name: reservation-cluster-mode
+spec:
+  preAllocation: true
+  preAllocationPolicy:
+    mode: Cluster
+  template:
+    metadata:
+      namespace: default
+    spec:
+      containers:
+        - name: placeholder
+          resources:
+            requests:
+              cpu: 2
+              memory: 4Gi
+      schedulerName: koord-scheduler
+  owners:
+    - labelSelector:
+        matchLabels:
+          app: critical-app
+  ttl: 4h
+```
+
+3. The scheduler will select the highest-priority pre-allocatable pod (based on the `pre-allocatable-priority` annotation) and bind the reservation to it.
+
+### Example: PreAllocation with Multiple Pods
+
+This example demonstrates how to use PreAllocation with `enableMultiple` to accumulate resources from multiple pods when no single pod can satisfy the reservation requirements.
+
+1. Label multiple pods as pre-allocatable:
+
+```yaml
+# Pod 1 - 1 CPU, 2Gi memory
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch-job-1
+  labels:
+    pod.koordinator.sh/is-pre-allocatable: "true"
+  annotations:
+    pod.koordinator.sh/pre-allocatable-priority: "100"
+spec:
+  containers:
+    - name: batch-job
+      image: busybox
+      resources:
+        requests:
+          cpu: 1
+          memory: 2Gi
+---
+# Pod 2 - 1 CPU, 2Gi memory
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch-job-2
+  labels:
+    pod.koordinator.sh/is-pre-allocatable: "true"
+  annotations:
+    pod.koordinator.sh/pre-allocatable-priority: "90"
+spec:
+  containers:
+    - name: batch-job
+      image: busybox
+      resources:
+        requests:
+          cpu: 1
+          memory: 2Gi
+```
+
+2. Create a reservation requiring 2 CPU and 4Gi memory with `enableMultiple`:
+
+```yaml
+apiVersion: scheduling.koordinator.sh/v1alpha1
+kind: Reservation
+metadata:
+  name: reservation-multi-pods
+spec:
+  preAllocation: true
+  preAllocationPolicy:
+    mode: Cluster
+    enableMultiple: true
+  template:
+    metadata:
+      namespace: default
+    spec:
+      containers:
+        - name: placeholder
+          resources:
+            requests:
+              cpu: 2
+              memory: 4Gi
+      schedulerName: koord-scheduler
+  owners:
+    - labelSelector:
+        matchLabels:
+          app: high-priority-app
+  ttl: 4h
+```
+
+3. The scheduler will pre-allocate both `batch-job-1` and `batch-job-2` (prioritizing by the `pre-allocatable-priority` annotation) to satisfy the reservation's resource requirements. When these pods terminate, the reservation will transition to reserve the freed resources.
+
+### Scheduler Configuration for PreAllocation
+
+The scheduler can be configured with additional options for PreAllocation behavior. Add the following configuration to the scheduler config:
+
+```yaml
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+profiles:
+  - schedulerName: koord-scheduler
+    plugins:
+      reservation:
+        enabled:
+          - name: Reservation
+    pluginConfig:
+      - name: Reservation
+        args:
+          apiVersion: kubescheduler.config.k8s.io/v1
+          kind: ReservationArgs
+          preAllocationConfig:
+            # Enable cluster-wide pre-allocation mode
+            enableClusterMode: true
+            # Custom label key for identifying pre-allocatable pods (optional)
+            clusterLabelKey: pod.koordinator.sh/is-pre-allocatable
+            # Custom annotation key for prioritizing pods (optional)
+            clusterPriorityAnnotationKey: pod.koordinator.sh/pre-allocatable-priority
+            # Prefer placing reservations without using pre-allocatable pods when possible
+            preferNoPreAllocatedPods: true
+```
+
+**Configuration Options:**
+
+| Option | Description |
+|--------|-------------|
+| `enableClusterMode` | Enable cluster-wide pre-allocation mode |
+| `clusterLabelKey` | Customizable label key for identifying pre-allocatable candidates |
+| `clusterPriorityAnnotationKey` | Customizable annotation key for prioritizing pre-allocatable pods |
+| `preferNoPreAllocatedPods` | When enabled, prefer placing reservations without using pre-allocatable pods if the node has sufficient resources |
