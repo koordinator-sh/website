@@ -33,6 +33,7 @@ const sidebars = {
         'architecture/priority',
         'architecture/qos',
         'architecture/job',
+        'architecture/koord-queue',
         'architecture/device',
       ],
     },
@@ -43,6 +44,7 @@ const sidebars = {
       items: [
         {
           'Task Scheduling': [
+            'user-manuals/koord-queue',
             'user-manuals/gang-scheduling',
             'user-manuals/job-level-preemption',
             'user-manuals/network-topology-aware-scheduling',
