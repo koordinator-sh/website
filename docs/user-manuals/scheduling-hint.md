@@ -209,7 +209,7 @@ The queue system can set the preferred nodes based on its scheduling decisions, 
 
 1. **NominatedNodeName vs Scheduling Hint**: The comparison with `.status.nominatedNodeName` only applies to the `preferredNodeNames` field. Unlike `nominatedNodeName`, `preferredNodeNames` uses a list of nodes, and the hinted pods do not account for the nodes before assuming.
 
-2. **Preemption**: The preference to filter is not the same as the preference for preempt. The scheduling hint currently focuses on the filtering phase.
+2. **Preemption**: Preference during filtering is different from preference during preemption. The scheduling hint currently focuses on the filtering phase.
 
 3. **Network Topology**: When network-topology-aware scheduling is enabled and generates a PreFilterResult, the preference hint may be ignored to respect the topology constraints.
 
