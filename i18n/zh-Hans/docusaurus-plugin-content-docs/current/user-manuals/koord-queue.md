@@ -41,7 +41,7 @@ queueunits.scheduling.x-k8s.io      2024-01-01T00:00:00Z
 
 ### 配置项
 
-Koord-Queue 支持三种配额插件模式，每种模式需要不同的 Helm 配置。`queueGroupPlugin` 字段控制激活哪个插件（以环境变量 `QueueGroupPlugin` 的形式传入控制器），`pluginConfigs.plugins` 中必须列出对应的插件名称。
+Koord-Queue 默认使用 ElasticQuotaV2 模式。`queueGroupPlugin` 字段控制激活哪个插件（以环境变量 `QueueGroupPlugin` 的形式传入控制器）。
 
 #### ElasticQuotaV2 模式（默认）
 
@@ -76,37 +76,13 @@ pluginConfigs:
     - name: ElasticQuotaV2
 ```
 
-#### ElasticQuota 模式（树模式）
-
-使用单个 `ElasticQuotaTree` CR（`scheduling.sigs.k8s.io/v1beta1`）在一个资源中定义整个配额层级。
-
-```yaml
-controller:
-  queueGroupPlugin: elasticquota
-
-pluginConfigs:
-  apiVersion: scheduling.k8s.io/v1
-  kind: KoordQueueConfiguration
-  plugins:
-    - name: Priority
-    - name: ElasticQuota
-  pluginConfigs:
-    ElasticQuota:
-      checkHungryQuota: false
-```
-
 ## 使用 Koord-Queue
 
 ### 使用 ElasticQuota 快速开始
 
-此示例使用 Koordinator 的 ElasticQuota 进行弹性资源管理。Koord-Queue 支持两种 ElasticQuota 插件模式：
+此示例使用 Koordinator 的 ElasticQuota 进行弹性资源管理。
 
-- **ElasticQuotaV2**（默认）：使用独立的 `ElasticQuota` CR (`scheduling.sigs.k8s.io/v1alpha1`)。设置 `queueGroupPlugin: elasticquotav2`。
-- **ElasticQuota**：使用单个 `ElasticQuotaTree` CR (`scheduling.sigs.k8s.io/v1beta1`) 定义整个配额层级。设置 `queueGroupPlugin: elasticquota`。
-
-#### 使用 ElasticQuotaV2（默认模式）
-
-##### 1. 创建 ElasticQuota
+#### 创建 ElasticQuota
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -130,7 +106,7 @@ spec:
 $ kubectl apply -f elastic-quota.yaml
 ```
 
-##### 2. Queue 自动创建
+##### Queue 自动创建
 
 使用 ElasticQuotaV2 时，插件会为每个 ElasticQuota 资源**自动创建 `Queue` CR**，位于 `koord-queue` 命名空间中。自动创建的 Queue 与 ElasticQuota 同名（例如 `team-a`），默认 `priority: 1000`、`queuePolicy: Priority`。**无需**为每个 ElasticQuota 手动创建 Queue。
 
@@ -142,9 +118,9 @@ metadata:
     koord-queue/queue-policy: Priority
 ```
 
-##### 3. 提交带配额标签的作业
+##### 提交作业并验证排队行为
 
-Koord-Queue 的 Job Extensions 会自动为提交的作业创建 `QueueUnit` 资源。要提交一个由 Koord-Queue 管理的 Kubernetes Job，需设置 `spec.suspend: true` 并添加配额标签。job-extensions 控制器会创建对应的 `QueueUnit` 并关联到 `team-a` 配额组：
+Koord-Queue 的 Job Extensions 会自动为提交的作业创建 `QueueUnit` 资源。要提交一个由 Koord-Queue 管理的 Kubernetes Job，需设置 `spec.suspend: true` 并添加配额标签。将以下双文档 YAML 保存为 `jobs.yaml` 并一次性提交：
 
 ```yaml
 apiVersion: batch/v1
@@ -170,17 +146,7 @@ spec:
             cpu: "4"
             memory: 8Gi
       restartPolicy: Never
-```
-
-ElasticQuotaV2 插件会在允许 `QueueUnit` 出队之前，检查 `team-a` 是否有足够的可用资源（考虑 min/max 和借用资源）。出队后，job-extensions 控制器会将 `spec.suspend` 设置为 `false` 以恢复作业运行。
-
-对于其他作业类型（TFJob、PyTorchJob 等），请使用 `scheduling.x-k8s.io/suspend: "true"` 注解代替 `spec.suspend`。
-
-##### 4. 验证配额耗尽时的排队行为
-
-`team-a` 配额的 `max.cpu` 为 `"4"`、`max.memory` 为 `"8Gi"`，正好供一个作业使用。提交第二个作业来观察其被阻塞在队列中的状态：
-
-```yaml
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -206,116 +172,24 @@ spec:
       restartPolicy: Never
 ```
 
-提交后查看 `QueueUnit` 状态：
+```bash
+$ kubectl apply -f jobs.yaml
+```
+
+`team-a` 配额的 `max.cpu` 为 `"4"`、`max.memory` 为 `"8Gi"`，正好供一个作业使用。ElasticQuotaV2 插件**基于 Pod 实际运行时的资源消耗**来统计配额用量。当 `my-job` 的 Pod 进入 Running 状态并占满配额后，`my-job-blocked` 将被阻塞在队列中：
 
 ```bash
+# 先等待 my-job 的 Pod 进入 Running 状态
+$ kubectl wait --for=condition=Ready pod -l job-name=my-job -n default --timeout=120s
+
 $ kubectl get queueunit my-job-blocked -n default
 NAME               PHASE     PRIORITY
 my-job-blocked     Enqueued  1000
 ```
 
-`QueueUnit` 保持 `Enqueued` 状态，因为 `team-a` 已达到 `max` 配额上限。当已有作业完成并释放资源后，该被阻塞的作业将自动出队执行。
+`QueueUnit` 保持 `Enqueued` 状态，因为 `team-a` 已达到 `max` 配额上限。当 `my-job` 完成并释放资源后，`my-job-blocked` 将自动出队执行。
 
-#### 使用 ElasticQuota（树模式）
-
-使用 ElasticQuota 插件（树模式）时，通过单个 `ElasticQuotaTree` CRD 定义整个配额层级。在 Helm values 中设置 `queueGroupPlugin: elasticquota`。
-
-##### 1. 创建 ElasticQuotaTree
-
-```yaml
-apiVersion: scheduling.sigs.k8s.io/v1beta1
-kind: ElasticQuotaTree
-metadata:
-  name: default
-  namespace: kube-system
-spec:
-  root:
-    name: root
-    min:
-      cpu: "100"
-      memory: 200Gi
-    max:
-      cpu: "100"
-      memory: 200Gi
-    children:
-      - name: team-a
-        namespaces: ["team-a"]
-        min:
-          cpu: "40"
-          memory: 80Gi
-        max:
-          cpu: "60"
-          memory: 120Gi
-      - name: team-b
-        namespaces: ["team-b"]
-        min:
-          cpu: "60"
-          memory: 120Gi
-        max:
-          cpu: "80"
-          memory: 160Gi
-```
-
-```bash
-$ kubectl apply -f elastic-quota-tree.yaml
-```
-
-ElasticQuota 插件会监听 `kube-system` 命名空间中的 `ElasticQuotaTree`，并构建内存中的配额树。默认情况下，它会为每个配额组自动创建 `Queue` 资源（由 `ElasticQuotaTreeBuildQueueForQuota` 特性门控控制）。
-
-##### 2. 提交作业
-
-在 `team-a` 命名空间中创建的 `QueueUnit` 会自动关联到 `team-a` 配额。也可以通过标签显式关联 `QueueUnit` 到配额：
-
-```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: QueueUnit
-metadata:
-  name: my-job-qu
-  namespace: default
-  labels:
-    quota.scheduling.koordinator.sh/name: team-a
-spec:
-  consumerRef:
-    apiVersion: batch/v1
-    kind: Job
-    name: my-job
-    namespace: default
-  queue: team-a
-  priority: 100
-  resource:
-    cpu: "4"
-    memory: 8Gi
-```
-
-ElasticQuota 插件会在允许 `QueueUnit` 出队之前，检查配额组是否有足够的可用资源（考虑 min/max 和超卖率）。
-
-##### 高级：可抢占作业
-
-可以将 `QueueUnit` 标记为可抢占，这意味着它在 max 配额范围内运行，且可以被更高优先级的不可抢占作业抢占：
-
-```yaml
-metadata:
-  labels:
-    quota.scheduling.koordinator.sh/preemptible: "true"
-```
-
-##### 高级：借用限制
-
-可以通过配额节点中的 `alibabacloud.com/lendlimit` 属性控制多少 min 配额可以借给其他组：
-
-```yaml
-children:
-  - name: team-a
-    namespaces: ["team-a"]
-    attributes:
-      alibabacloud.com/lendlimit: '{"cpu":"10","memory":"20Gi"}'
-    min:
-      cpu: "40"
-      memory: 80Gi
-    max:
-      cpu: "60"
-      memory: 120Gi
-```
+对于其他作业类型（TFJob、PyTorchJob 等），请使用 `scheduling.x-k8s.io/suspend: "true"` 注解代替 `spec.suspend`。
 
 ### 队列策略
 
@@ -358,42 +232,6 @@ spec:
     cpu: "2"
     memory: 4Gi
 ```
-
-### 指定目标队列 *(公测版)*
-
-> **注意**：此功能仅在 **ElasticQuota（树模式）** 下可用。ElasticQuotaV2 模式中，每个 ElasticQuota 会自动映射到对应的 Queue，不支持此覆盖操作。
-
-默认情况下，Koord-Queue 会根据作业所在的命名空间将 `QueueUnit` 映射到对应的 Queue：ElasticQuota 树解析该命名空间属于哪个配额组，再路由到对应的 Queue。
-
-在 ElasticQuota 树模式中，你可以通过在 `QueueUnit` 上设置 annotation `koord-queue/queue-name` 来显式覆盖目标 Queue。这对于需要将某命名空间的作业调度到非默认 Queue 的场景非常有用——例如使用一个具有不同优先级或策略的 Queue。
-
-```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: QueueUnit
-metadata:
-  name: my-job
-  namespace: team-a
-  annotations:
-    koord-queue/queue-name: high-priority-queue
-spec:
-  consumerRef:
-    apiVersion: batch/v1
-    kind: Job
-    name: my-job
-    namespace: team-a
-  queue: high-priority-queue
-  resource:
-    cpu: "4"
-    memory: 8Gi
-```
-
-目标 Queue 必须允许该作业的配额组进入。一个 Queue 允许某个 quota 的条件为：
-- 该 Queue 是为该 quota 自动创建的（即其 annotation `koord-queue/quota-fullname` 与该 quota 匹配），**或**
-- 该 Queue 的 annotation `koord-queue/available-quota-in-queue` 包含该 quota 名称或通配符 `*`。
-
-如果目标 Queue 不允许该 quota，`QueueUnit` 将无法映射并保持未调度状态。
-
-> 也可以直接在 **Job** 上设置该 annotation，因为 Job Extensions 会自动将 Job 的所有 label 和 annotation 复制到创建的 `QueueUnit` 上。
 
 ### 准入检查 *(开发中)*
 

@@ -42,7 +42,7 @@ queueunits.scheduling.x-k8s.io      2024-01-01T00:00:00Z
 
 ### Configurations
 
-Koord-Queue supports three quota plugin modes, each requiring different Helm values. The `queueGroupPlugin` field controls which plugin is activated (passed as environment variable `QueueGroupPlugin` to the controller), and `pluginConfigs.plugins` must list the corresponding plugin name.
+Koord-Queue uses ElasticQuotaV2 mode by default. The `queueGroupPlugin` field controls which plugin is activated (passed as environment variable `QueueGroupPlugin` to the controller).
 
 #### ElasticQuotaV2 Mode (Default)
 
@@ -77,37 +77,13 @@ pluginConfigs:
     - name: ElasticQuotaV2
 ```
 
-#### ElasticQuota Mode (Tree Mode)
-
-Uses a single `ElasticQuotaTree` CR (`scheduling.sigs.k8s.io/v1beta1`) to define the entire quota hierarchy in one resource.
-
-```yaml
-controller:
-  queueGroupPlugin: elasticquota
-
-pluginConfigs:
-  apiVersion: scheduling.k8s.io/v1
-  kind: KoordQueueConfiguration
-  plugins:
-    - name: Priority
-    - name: ElasticQuota
-  pluginConfigs:
-    ElasticQuota:
-      checkHungryQuota: false
-```
-
 ## Use Koord-Queue
 
 ### Quick Start with ElasticQuota
 
-This example uses Koordinator's ElasticQuota for elastic resource management. Koord-Queue supports two ElasticQuota plugin modes:
+This example uses Koordinator's ElasticQuota for elastic resource management.
 
-- **ElasticQuotaV2** (default): Uses individual `ElasticQuota` CRs (`scheduling.sigs.k8s.io/v1alpha1`). Set `queueGroupPlugin: elasticquotav2`.
-- **ElasticQuota**: Uses a single `ElasticQuotaTree` CR (`scheduling.sigs.k8s.io/v1beta1`) to define the entire quota hierarchy. Set `queueGroupPlugin: elasticquota`.
-
-#### Using ElasticQuotaV2 (Default Mode)
-
-##### 1. Create an ElasticQuota
+#### Create an ElasticQuota
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -131,7 +107,7 @@ spec:
 $ kubectl apply -f elastic-quota.yaml
 ```
 
-##### 2. Queue Auto-creation
+##### Queue Auto-creation
 
 When using ElasticQuotaV2, the plugin **automatically creates a `Queue` CR** in the `koord-queue` namespace for each ElasticQuota resource. The auto-created Queue has the same name as the ElasticQuota (e.g., `team-a`), with a default `priority: 1000` and `queuePolicy: Priority`. You do **not** need to manually create a Queue for each ElasticQuota.
 
@@ -143,9 +119,9 @@ metadata:
     koord-queue/queue-policy: Priority
 ```
 
-##### 3. Submit a Job with quota label
+##### Submit Jobs and verify queuing
 
-Koord-Queue's Job Extensions automatically create `QueueUnit` resources for submitted jobs. To submit a Kubernetes Job managed by Koord-Queue, set `spec.suspend: true` and add the quota label. The job-extensions controller will create the corresponding `QueueUnit` and associate it with the `team-a` quota group:
+Koord-Queue's Job Extensions automatically create `QueueUnit` resources for submitted jobs. To submit a Kubernetes Job managed by Koord-Queue, set `spec.suspend: true` and add the quota label. Save the following two-document YAML as `jobs.yaml` and apply it at once:
 
 ```yaml
 apiVersion: batch/v1
@@ -171,17 +147,7 @@ spec:
             cpu: "4"
             memory: 8Gi
       restartPolicy: Never
-```
-
-The ElasticQuotaV2 plugin will check whether `team-a` has sufficient available resources (considering min/max and borrowed resources) before allowing the `QueueUnit` to be dequeued. Once dequeued, the job-extensions controller sets `spec.suspend: false` to resume the job.
-
-For other job types (TFJob, PyTorchJob, etc.), use the `scheduling.x-k8s.io/suspend: "true"` annotation instead of `spec.suspend`.
-
-##### 4. Verify queuing when quota is exhausted
-
-The `team-a` quota has `max.cpu: "4"` and `max.memory: "8Gi"`, which is exactly enough for one job. Submit a second job to observe it being held in the queue:
-
-```yaml
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -207,116 +173,24 @@ spec:
       restartPolicy: Never
 ```
 
-After applying, inspect the `QueueUnit` status:
+```bash
+$ kubectl apply -f jobs.yaml
+```
+
+The `team-a` quota has `max.cpu: "4"` and `max.memory: "8Gi"`, which is exactly enough for one job. The ElasticQuotaV2 plugin tracks quota usage based on **running Pod resource consumption**. Once `my-job`'s Pod is Running and consuming the full quota, `my-job-blocked` will be held in the queue:
 
 ```bash
+# Wait for my-job's pod to reach Running state first
+$ kubectl wait --for=condition=Ready pod -l job-name=my-job -n default --timeout=120s
+
 $ kubectl get queueunit my-job-blocked -n default
 NAME               PHASE     PRIORITY
 my-job-blocked     Enqueued  1000
 ```
 
-The `QueueUnit` stays in `Enqueued` phase because `team-a` has already reached its `max` quota. Once an existing job completes and resources are released, the blocked job will be dequeued automatically.
+The `QueueUnit` stays in `Enqueued` phase because `team-a` has already reached its `max` quota. Once `my-job` completes and resources are released, `my-job-blocked` will be dequeued automatically.
 
-#### Using ElasticQuota (Tree Mode)
-
-With the ElasticQuota plugin (Tree Mode), you define the entire quota hierarchy in a single `ElasticQuotaTree` CRD. Set `queueGroupPlugin: elasticquota` in your Helm values.
-
-##### 1. Create an ElasticQuotaTree
-
-```yaml
-apiVersion: scheduling.sigs.k8s.io/v1beta1
-kind: ElasticQuotaTree
-metadata:
-  name: default
-  namespace: kube-system
-spec:
-  root:
-    name: root
-    min:
-      cpu: "100"
-      memory: 200Gi
-    max:
-      cpu: "100"
-      memory: 200Gi
-    children:
-      - name: team-a
-        namespaces: ["team-a"]
-        min:
-          cpu: "40"
-          memory: 80Gi
-        max:
-          cpu: "60"
-          memory: 120Gi
-      - name: team-b
-        namespaces: ["team-b"]
-        min:
-          cpu: "60"
-          memory: 120Gi
-        max:
-          cpu: "80"
-          memory: 160Gi
-```
-
-```bash
-$ kubectl apply -f elastic-quota-tree.yaml
-```
-
-The ElasticQuota plugin will watch the `ElasticQuotaTree` in `kube-system` namespace and build an in-memory quota tree. By default, it will also automatically create `Queue` resources for each quota group (controlled by `ElasticQuotaTreeBuildQueueForQuota` feature gate).
-
-##### 2. Submit a Job
-
-`QueueUnits` created in the `team-a` namespace are automatically associated with the `team-a` quota. Alternatively, you can explicitly associate a `QueueUnit` to a quota via label:
-
-```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: QueueUnit
-metadata:
-  name: my-job-qu
-  namespace: default
-  labels:
-    quota.scheduling.koordinator.sh/name: team-a
-spec:
-  consumerRef:
-    apiVersion: batch/v1
-    kind: Job
-    name: my-job
-    namespace: default
-  queue: team-a
-  priority: 100
-  resource:
-    cpu: "4"
-    memory: 8Gi
-```
-
-The ElasticQuota plugin will check whether the quota group has sufficient available resources (considering min/max and oversell rate) before allowing the `QueueUnit` to be dequeued.
-
-##### Advanced: Preemptible Jobs
-
-You can mark a `QueueUnit` as preemptible, which means it runs within the max quota and can be preempted by higher-priority non-preemptible jobs:
-
-```yaml
-metadata:
-  labels:
-    quota.scheduling.koordinator.sh/preemptible: "true"
-```
-
-##### Advanced: Lendlimit
-
-You can control how much min quota can be lent to other groups via the `alibabacloud.com/lendlimit` attribute in the quota node:
-
-```yaml
-children:
-  - name: team-a
-    namespaces: ["team-a"]
-    attributes:
-      alibabacloud.com/lendlimit: '{"cpu":"10","memory":"20Gi"}'
-    min:
-      cpu: "40"
-      memory: 80Gi
-    max:
-      cpu: "60"
-      memory: 120Gi
-```
+For other job types (TFJob, PyTorchJob, etc.), use the `scheduling.x-k8s.io/suspend: "true"` annotation instead of `spec.suspend`.
 
 ### Queue Policies
 
@@ -359,42 +233,6 @@ spec:
     cpu: "2"
     memory: 4Gi
 ```
-
-### Specifying a Target Queue *(Alpha)*
-
-> **Note**: This feature is only available in **ElasticQuota (Tree Mode)**. In ElasticQuotaV2 mode, each ElasticQuota automatically maps to its own Queue and this override is not supported.
-
-By default, Koord-Queue maps a `QueueUnit` to a Queue based on the job's namespace: the ElasticQuota tree resolves which quota group the namespace belongs to, then routes the job to the corresponding Queue.
-
-In ElasticQuota Tree Mode, you can explicitly override the target Queue by setting the annotation `koord-queue/queue-name` on the `QueueUnit`. This is useful when a namespace's jobs need to be dispatched to a different Queue than the default one — for example, to use a Queue with a different priority or policy.
-
-```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: QueueUnit
-metadata:
-  name: my-job
-  namespace: team-a
-  annotations:
-    koord-queue/queue-name: high-priority-queue   # explicitly target this Queue
-spec:
-  consumerRef:
-    apiVersion: batch/v1
-    kind: Job
-    name: my-job
-    namespace: team-a
-  queue: high-priority-queue
-  resource:
-    cpu: "4"
-    memory: 8Gi
-```
-
-The target Queue must allow the job's quota group. A Queue allows a quota when:
-- The Queue was auto-created for that quota (its annotation `koord-queue/quota-fullname` matches the quota), **or**
-- The Queue's annotation `koord-queue/available-quota-in-queue` contains the quota name or a wildcard `*`.
-
-If the target Queue does not allow the quota, the `QueueUnit` will fail to map and remain unscheduled.
-
-> You can also set this annotation on the **Job** directly (as a job annotation), since Job Extensions copy all job labels and annotations to the created `QueueUnit` automatically.
 
 ### Admission Checks *(Work In Progress)*
 
