@@ -40,7 +40,7 @@ Verify the installation:
 $ kubectl get deployment -n koord-queue
 NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
 koord-queue-controllers    1/1     1            1           30s
-koord-queue-controller     1/1     1            1           30s
+koord-queue                1/1     1            1           30s
 
 $ kubectl get crd | grep scheduling.x-k8s.io
 queues.scheduling.x-k8s.io          2024-01-01T00:00:00Z
@@ -49,7 +49,7 @@ queueunits.scheduling.x-k8s.io      2024-01-01T00:00:00Z
 
 ### Configurations
 
-Koord-Queue uses ElasticQuotaV2 mode by default. The `queueGroupPlugin` field controls which plugin is activated (passed as environment variable `QueueGroupPlugin` to the controller).
+Koord-Queue uses ElasticQuotaV2 mode by default.
 
 #### Default Configuration
 
@@ -61,17 +61,12 @@ global:
 controller:
   image:
     repository: koordinator-sh/koord-queue
-    tag: latest
-  queueGroupPlugin: elasticquotav2
-  enableResourceCheckWithScheduler: false
-  enableBlockingMode: false
-  enableStrictPriority: false
-  defaultPreemptible: true
+    tag: v1.8.0
 
 extension:
   koord-queue-controllers:
     repository: koordinator-sh/koord-queue-controllers
-    tag: latest
+    tag: v1.8.0
   batchjob:
     enable: true    # Native Kubernetes Job support
   tf:
@@ -206,8 +201,8 @@ The `team-a` quota has `max.cpu: "4"` and `max.memory: "8Gi"`, which is exactly 
 $ kubectl wait --for=condition=Ready pod -l job-name=my-job -n default --timeout=120s
 
 $ kubectl get queueunit my-job-blocked -n default
-NAME               PHASE     PRIORITY
-my-job-blocked     Enqueued  1000
+NAME             PHASE   PRIORITY   ADMISSIONS   JOBTYPE
+my-job-blocked                                   Job
 ```
 
 The `QueueUnit` stays in `Enqueued` phase because `team-a` has already reached its `max` quota. Once `my-job` completes and resources are released, `my-job-blocked` will be dequeued automatically.
@@ -223,17 +218,6 @@ You can also manually patch a `QueueUnit`'s `spec.priority` after it is created 
 #### Priority Queue
 
 Jobs with higher priority values are dequeued first. Among jobs with the same priority, earlier-created jobs are dequeued first:
-
-```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: Queue
-metadata:
-  name: priority-queue
-  namespace: koord-queue
-spec:
-  queuePolicy: Priority
-  priority: 100
-```
 
 To set the priority of a `QueueUnit`:
 
@@ -298,14 +282,6 @@ Koord-Queue supports multiple job frameworks through its Extension Server archit
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.8.0 | 2026-04-24 | Koord-Queue v1.8.0 officially released, supports ElasticQuotaV2 mode, integrated with Koordinator ecosystem |
-| v1.22.2 | 2025-07-24 | Support job scaling and restart (requires scheduler); waiting-for-pods-ready feature |
-| v1.21.2 | 2024-07-16 | Fix ChartTemplate Resource rendering issue |
-| v1.21.1 | 2024-06-18 | Queue supports AdmissionCheck; Job Extensions passes PodSet in QueueUnits |
-| v0.4.0 | 2024-02-01 | Support SparkApplication queuing |
-| v0.3.0 | 2023-09-13 | Add job queue sequence information in Queue |
-| v0.2.2 | 2023-09-04 | Add support for Kubernetes native Job type |
-| v0.2.0 | 2023-08-29 | Support MPI Job via Arena; Support Argo Workflow; Optimize dequeue failure logging |
-| v0.1.0 | 2022-10-15 | Koord-Queue application launched |
 
 ### CRD Reference
 
