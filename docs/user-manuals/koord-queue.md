@@ -4,7 +4,7 @@
 
 Koord-Queue is a native Kubernetes job queuing system designed for the Koordinator ecosystem. It manages job admission and ordering across multiple queues, integrating deeply with Koordinator's ElasticQuota for resource fairness and multi-tenant isolation. Key capabilities include:
 
-- **Multi-queue management** with Priority and Block queuing policies.
+- **Multi-queue management** with Priority, Block, and Intelligent queuing policies.
 - **Deep ElasticQuota integration** to avoid duplicate quota configurations and enable elastic resource sharing.
 - **Pre-scheduling** to reduce scheduler pressure by queuing jobs before they create pods.
 - **Multi-framework support** including TFJob, PyTorchJob, Spark, Argo Workflow, Ray, and native Kubernetes Jobs.
@@ -22,7 +22,14 @@ Koord-Queue is a native Kubernetes job queuing system designed for the Koordinat
 Install Koord-Queue using Helm:
 
 ```bash
-helm install koord-queue ./charts/v1.2.0 \
+# Option 1: Install from Helm repository
+helm repo add koordinator-sh https://koordinator-sh.github.io/charts/
+helm install koord-queue koordinator-sh/koord-queue --version 1.8.0 \
+  --namespace koord-queue \
+  --create-namespace
+
+# Option 2: Install from local charts
+helm install koord-queue ./charts/koord-queue/v1.8.0 \
   --namespace koord-queue \
   --create-namespace
 ```
@@ -32,7 +39,7 @@ Verify the installation:
 ```bash
 $ kubectl get deployment -n koord-queue
 NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
-job-extensions             1/1     1            1           30s
+koord-queue-controllers    1/1     1            1           30s
 koord-queue-controller     1/1     1            1           30s
 
 $ kubectl get crd | grep scheduling.x-k8s.io
@@ -44,18 +51,27 @@ queueunits.scheduling.x-k8s.io      2024-01-01T00:00:00Z
 
 Koord-Queue uses ElasticQuotaV2 mode by default. The `queueGroupPlugin` field controls which plugin is activated (passed as environment variable `QueueGroupPlugin` to the controller).
 
-#### ElasticQuotaV2 Mode (Default)
-
-Uses individual `ElasticQuota` CRs (`scheduling.sigs.k8s.io/v1alpha1`). This is the recommended mode for Koordinator users.
+#### Default Configuration
 
 ```yaml
+# Image registry (default: Aliyun Beijing)
+global:
+  imagePrefix: registry.cn-beijing.aliyuncs.com
+
 controller:
+  image:
+    repository: koordinator-sh/koord-queue
+    tag: latest
   queueGroupPlugin: elasticquotav2
   enableResourceCheckWithScheduler: false
+  enableBlockingMode: false
   enableStrictPriority: false
   defaultPreemptible: true
 
 extension:
+  koord-queue-controllers:
+    repository: koordinator-sh/koord-queue-controllers
+    tag: latest
   batchjob:
     enable: true    # Native Kubernetes Job support
   tf:
@@ -68,6 +84,8 @@ extension:
     enable: false
   ray:
     enable: false
+  mpi:
+    enable: false
 
 pluginConfigs:
   apiVersion: scheduling.k8s.io/v1
@@ -76,6 +94,10 @@ pluginConfigs:
     - name: Priority
     - name: ElasticQuotaV2
 ```
+
+#### ElasticQuotaV2 Mode (Default)
+
+Uses individual `ElasticQuota` CRs (`scheduling.sigs.k8s.io/v1alpha1`). This is the recommended mode for Koordinator users.
 
 ## Use Koord-Queue
 
@@ -116,7 +138,7 @@ If you want to customize the Queue policy, you can set the `koord-queue/queue-po
 ```yaml
 metadata:
   labels:
-    koord-queue/queue-policy: Priority
+    koord-queue/queue-policy: Priority  # Options: Priority, Block, Intelligent
 ```
 
 ##### Submit Jobs and verify queuing
@@ -269,6 +291,21 @@ Koord-Queue supports multiple job frameworks through its Extension Server archit
 | Argo Workflow | `extension.argo.enable` | Argo workflow jobs |
 | Spark | `extension.spark.enable` | Spark application jobs |
 | Ray | `extension.ray.enable` | Ray cluster/job |
+| MPI | `extension.mpi.enable` | MPI jobs |
+
+## Release Notes
+
+| Version | Date | Changes |
+|---------|------|---------|
+| v1.8.0 | 2026-04-24 | Koord-Queue v1.8.0 officially released, supports ElasticQuotaV2 mode, integrated with Koordinator ecosystem |
+| v1.22.2 | 2025-07-24 | Support job scaling and restart (requires scheduler); waiting-for-pods-ready feature |
+| v1.21.2 | 2024-07-16 | Fix ChartTemplate Resource rendering issue |
+| v1.21.1 | 2024-06-18 | Queue supports AdmissionCheck; Job Extensions passes PodSet in QueueUnits |
+| v0.4.0 | 2024-02-01 | Support SparkApplication queuing |
+| v0.3.0 | 2023-09-13 | Add job queue sequence information in Queue |
+| v0.2.2 | 2023-09-04 | Add support for Kubernetes native Job type |
+| v0.2.0 | 2023-08-29 | Support MPI Job via Arena; Support Argo Workflow; Optimize dequeue failure logging |
+| v0.1.0 | 2022-10-15 | Koord-Queue application launched |
 
 ### CRD Reference
 
@@ -276,7 +313,7 @@ Koord-Queue supports multiple job frameworks through its Extension Server archit
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `queuePolicy` | `string` | Queuing policy: `Priority` or `Block`. |
+| `queuePolicy` | `string` | Queuing policy: `Priority`, `Block`, or `Intelligent`. |
 | `priority` | `*int32` | Queue priority for multi-queue ordering. |
 | `priorityClassName` | `string` | Kubernetes PriorityClass name. |
 | `admissionChecks` | `[]AdmissionCheckWithSelector` | List of admission checks required. |
