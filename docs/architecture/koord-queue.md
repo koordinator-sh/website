@@ -8,25 +8,20 @@ Koord-Queue is a native Kubernetes job queuing system for the Koordinator ecosys
 
 ## Architecture
 
-Koord-Queue follows a micro-service design with extensibility as a priority. The overall system consists of three main parts:
+The overall system consists of three main parts:
 
-### Queue Controller
+### Koord Queue
 
-The Queue Controller is deployed as a `Deployment`. It listens to the Kubernetes APIServer and manages the lifecycle of `QueueUnit` resources. Its primary responsibilities include:
+The Koord Queue is deployed as a `Deployment`. It listens to the Kubernetes APIServer and manages the lifecycle of `QueueUnit` resources. Its primary responsibilities include:
 
 - Monitoring `QueueUnit` status transitions (e.g., from `Reserved` to `Dequeued` when all admission checks pass).
 - Handling admission check results and updating `QueueUnit` status accordingly.
 - Managing queue item ordering and position tracking.
 
-### Queue Scheduler
-
 The Queue Scheduler watches multiple queues and decides which job (represented by a `QueueUnit`) should be released. The scheduling process uses a plugin-based framework with the following built-in plugins:
 
 - **Priority Plugin**: Sorts `QueueUnits` within a queue by priority (higher first) and creation time (earlier first).
-- **ElasticQuota Plugin**: Uses `ElasticQuotaTree` CRD (scheduling.sigs.k8s.io/v1beta1) to define the entire quota hierarchy in a single tree structure. It watches `ElasticQuotaTree` resources in the `kube-system` namespace and builds an in-memory quota tree for filter/reserve decisions. Selected via `queueGroupPlugin: elasticquota`.
-- **ElasticQuotaV2 Plugin**: Integrates with Koordinator's individual `ElasticQuota` CRD (scheduling.sigs.k8s.io/v1alpha1) for resource fairness, elastic allocation, and hierarchical quota tree support. Selected via `queueGroupPlugin: elasticquotav2` (default).
-- **ResourceQuota Plugin**: Integrates with Kubernetes native `ResourceQuota` for namespace-level resource limits.
-- **DefaultGroup Plugin**: Assigns a default quota group for `QueueUnits` without explicit quota labels.
+- **ElasticQuota Plugin**: Integrates with Koordinator's individual `ElasticQuota` CRD (scheduling.sigs.k8s.io/v1alpha1) for resource fairness, elastic allocation, and hierarchical quota tree support. 
 
 The scheduling cycle for each queue follows:
 
@@ -34,11 +29,11 @@ The scheduling cycle for each queue follows:
 2. **Reserve** - Reserve resources for the `QueueUnit` via reserve plugins.
 3. **Dequeue** - Transition the `QueueUnit` to the dequeued state and notify the job extension.
 
-### Extension Servers
+### Koord Queue Controllers
 
-Extension Servers (Job Extensions) monitor real job CRs (such as TFJob, PyTorchJob, MPIJob, Spark, Argo Workflow, and native Kubernetes Jobs) and bridge them with the queuing system. When a new job is created:
+Koord Queue Controllers monitor real job CRs (such as TFJob, PyTorchJob, MPIJob, Spark, Argo Workflow, and native Kubernetes Jobs) and bridge them with the queuing system. When a new job is created:
 
-1. The Extension Server creates a corresponding `QueueUnit` in the APIServer.
+1. The Koord Queue Controllers creates a corresponding `QueueUnit` in the APIServer.
 2. The job is suspended: Kubernetes Jobs use `spec.suspend: true`, while other job types (TFJob, PyTorchJob, etc.) use the `scheduling.x-k8s.io/suspend: "true"` annotation.
 3. When the `QueueUnit` is dequeued, the Extension Server removes the suspend flag (sets `spec.suspend: false` or removes the annotation), allowing the job to run.
 
@@ -155,7 +150,7 @@ Koord-Queue is deployed via Helm charts and consists of the following components
 | Component | Type | Description |
 |-----------|------|-------------|
 | `koord-queue` | Deployment | The main controller and scheduler. The `admissioncheck-controller` runs as a sidecar container within this Deployment. |
-| `koord-queue-containers` | Deployment | A separate Deployment handling job framework integrations (TFJob, PyTorchJob, etc.). |
+| `koord-queue-controllers` | Deployment | A separate Deployment handling job framework integrations (TFJob, PyTorchJob, etc.). |
 
 ## What's Next
 

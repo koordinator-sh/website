@@ -23,10 +23,7 @@ Queue Controller 以 `Deployment` 形式部署。它监听 Kubernetes APIServer 
 Queue Scheduler 监控多个队列并决定哪个作业（由 `QueueUnit` 表示）应该被释放。调度过程使用基于插件的框架，内置以下插件：
 
 - **Priority 插件**：在队列内按优先级（高优先）和创建时间（早创建优先）对 `QueueUnit` 排序。
-- **ElasticQuota 插件**：使用 `ElasticQuotaTree` CRD (scheduling.sigs.k8s.io/v1beta1) 以单个树结构定义整个配额层级。它监听 `kube-system` 命名空间中的 `ElasticQuotaTree` 资源，构建内存配额树用于过滤/预留决策。通过 `queueGroupPlugin: elasticquota` 选择。
-- **ElasticQuotaV2 插件**：与 Koordinator 的独立 `ElasticQuota` CRD (scheduling.sigs.k8s.io/v1alpha1) 集成，实现资源公平性、弹性分配和层级配额树支持。通过 `queueGroupPlugin: elasticquotav2` 选择（默认）。
-- **ResourceQuota 插件**：与 Kubernetes 原生 `ResourceQuota` 集成，实现命名空间级别的资源限制。
-- **DefaultGroup 插件**：为没有显式配额标签的 `QueueUnit` 分配默认配额组。
+- **ElasticQuota 插件**：与 Koordinator 的独立 `ElasticQuota` CRD (scheduling.sigs.k8s.io/v1alpha1) 集成，实现资源公平性、弹性分配和层级配额树支持。
 
 每个队列的调度周期如下：
 
