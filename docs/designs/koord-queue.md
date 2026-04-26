@@ -143,6 +143,21 @@ Koord-Queue supports an admission check framework (compatible with Kueue's `Admi
 | `Retry` | The check needs to be retried. |
 | `Rejected` | The check has been rejected. |
 
+
+## Supported Job Types
+
+Koord-Queue supports multiple job frameworks through its Extension Server architecture. Each supported type requires enabling the corresponding extension in the Helm values:
+
+| Job Type | Helm Value | Description |
+|----------|-----------|-------------|
+| Kubernetes Job | \extension.batchjob.enable\ | Native Kubernetes batch/v1 Job |
+| TFJob | \extension.tf.enable\ | TensorFlow training jobs |
+| PyTorchJob | \extension.pytorch.enable\ | PyTorch training jobs |
+| Argo Workflow | \extension.argo.enable\ | Argo workflow jobs |
+| Spark | \extension.spark.enable\ | Spark application jobs |
+| Ray | \extension.ray.enable\ | Ray cluster/job |
+| MPI | \extension.mpi.enable\ | MPI jobs |
+
 ## Deployment Architecture
 
 Koord-Queue is deployed via Helm charts and consists of the following components:
