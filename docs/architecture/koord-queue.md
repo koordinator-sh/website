@@ -21,7 +21,7 @@ The Koord Queue is deployed as a `Deployment`. It listens to the Kubernetes APIS
 The Queue Scheduler watches multiple queues and decides which job (represented by a `QueueUnit`) should be released. The scheduling process uses a plugin-based framework with the following built-in plugins:
 
 - **Priority Plugin**: Sorts `QueueUnits` within a queue by priority (higher first) and creation time (earlier first).
-- **ElasticQuota Plugin**: Integrates with Koordinator's individual `ElasticQuota` CRD (scheduling.sigs.k8s.io/v1alpha1) for resource fairness, elastic allocation, and hierarchical quota tree support. 
+- **ElasticQuota Plugin**: Integrates with Koordinator's individual `ElasticQuota` CRD (scheduling.sigs.k8s.io/v1alpha1) for resource fairness, elastic allocation. 
 
 The scheduling cycle for each queue follows:
 
