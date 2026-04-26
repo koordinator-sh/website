@@ -260,20 +260,6 @@ spec:
 
 When a `QueueUnit` is reserved, the admission check controller processes each configured check. The `QueueUnit` transitions to `Dequeued` only when all checks report `Ready` status.
 
-### Supported Job Types
-
-Koord-Queue supports multiple job frameworks through its Extension Server architecture. Each supported type requires enabling the corresponding extension in the Helm values:
-
-| Job Type | Helm Value | Description |
-|----------|-----------|-------------|
-| Kubernetes Job | `extension.batchjob.enable` | Native Kubernetes batch/v1 Job |
-| TFJob | `extension.tf.enable` | TensorFlow training jobs |
-| PyTorchJob | `extension.pytorch.enable` | PyTorch training jobs |
-| Argo Workflow | `extension.argo.enable` | Argo workflow jobs |
-| Spark | `extension.spark.enable` | Spark application jobs |
-| Ray | `extension.ray.enable` | Ray cluster/job |
-| MPI | `extension.mpi.enable` | MPI jobs |
-
 ## Release Notes
 
 | Version | Date | Changes |
