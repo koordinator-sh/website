@@ -28,10 +28,7 @@ helm install koord-queue koordinator-sh/koord-queue --version 1.8.0 \
   --namespace koord-queue \
   --create-namespace
 
-# Option 2: Install from local charts
-helm install koord-queue ./charts/koord-queue/v1.8.0 \
-  --namespace koord-queue \
-  --create-namespace
+
 ```
 
 Verify the installation:
