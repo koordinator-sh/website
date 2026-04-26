@@ -1,4 +1,4 @@
-# Capacity Scheduling - Elastic Quota Management
+# Hierarchical Elastic Quota
 
 Capacity Scheduling is an ability of koord-scheduler to manage different user's resource usage in a shared-cluster.
 

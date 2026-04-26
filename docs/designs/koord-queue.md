@@ -169,5 +169,5 @@ Koord-Queue is deployed via Helm charts and consists of the following components
 
 ## What's Next
 
-- [Koord-Queue User Guide](../user-manuals/koord-queue.md): Learn how to install and use Koord-Queue for job queuing.
-- [Capacity Scheduling](../user-manuals/capacity-scheduling.md): Learn about Koordinator's ElasticQuota management.
+- [Koord-Queue User Guide](/docs/user-manuals/queue-management.md): Learn how to install and use Koord-Queue for job queuing.
+- [Capacity Scheduling](/docs/user-manuals/capacity-scheduling.md): Learn about Koordinator's ElasticQuota management.
