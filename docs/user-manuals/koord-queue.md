@@ -294,7 +294,158 @@ Koord-Queue supports multiple job frameworks through its Extension Server archit
 | `priorityClassName` | `string` | Kubernetes PriorityClass name. |
 | `admissionChecks` | `[]AdmissionCheckWithSelector` | List of admission checks required. |
 
-#### QueueUnit Spec
+#
+### Queue Policies
+
+Koord-Queue supports three queue policies to control how jobs are dequeued and scheduled.
+
+#### Priority Policy
+
+**Ordering**: Queue units are ordered by priority value (descending), then by creation timestamp (ascending). Higher priority jobs are always dequeued first. Jobs with the same priority are processed in FIFO order.
+
+**Key Features**:
+- Jobs with higher `spec.priority` values are dequeued first
+- When multiple jobs have the same priority, earlier-created jobs are scheduled first
+- Failed jobs will be re-added to the queue and can be retried
+- **Supports preemption**: lower-priority jobs can be preempted to make room for higher-priority jobs
+
+**Scheduling Behavior**:
+Priority policy is **not strict priority scheduling**. When high-priority jobs are blocked (e.g., quota exhausted), the scheduler skips them and continues scanning. Lower-priority jobs that are schedulable can dequeue before blocked high-priority jobs. This improves throughput and prevents scheduler stall.
+
+**Key Difference from Block Policy**:
+- **Priority**: Optimistic scheduling - continues scheduling when quota is near limit, blocked jobs are skipped
+- **Block**: Conservative scheduling - strictly blocks jobs when quota reaches limit
+
+**Use Cases**:
+- Multi-tenant environments with different priority levels
+- Production jobs that should preempt development jobs
+
+**Configuration Example**:
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
+metadata:
+  name: priority-queue
+  labels:
+    koord-queue/queue-policy: Priority
+spec:
+  max:
+    cpu: "10"
+    memory: 20Gi
+```
+
+#### Block Policy
+
+**Ordering**: Same as Priority policy - queue units are ordered by priority (descending) then timestamp (ascending).
+
+**Key Features**:
+- **Strict resource blocking**: When quota reaches the limit, subsequent jobs using that quota are blocked
+- Unlike Priority policy (which skips blocked high-priority jobs and allows lower-priority schedulable jobs to dequeue first), Block policy strictly enforces priority order
+- Prevents resource over-allocation
+- Blocked queue units are skipped during scheduling until resources become available
+
+**Key Differences**:
+- Priority policy: Not strict priority scheduling - allows lower-priority jobs to dequeue before blocked high-priority jobs
+- Block policy: Strict priority scheduling - blocked high-priority jobs must wait, preventing lower-priority jobs from bypassing them
+
+**Use Cases**:
+- Resource-constrained environments
+- Production workloads requiring guaranteed resource availability
+- Multi-tenant isolation where resource limits must be strictly enforced
+
+**Configuration Example**:
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
+metadata:
+  name: block-queue
+  labels:
+    koord-queue/queue-policy: Block
+spec:
+  max:
+    cpu: "10"
+    memory: 20Gi
+```
+
+#### Intelligent Policy
+
+**Ordering**: Uses a **dual-queue mechanism** with configurable priority threshold (default: 4):
+
+- **High-priority queue**: Jobs with priority >= threshold
+  - Ordered by priority (descending) then timestamp (ascending)
+  - **Retry behavior**: On failure, retries the same job (FIFO mode)
+
+- **Low-priority queue**: Jobs with priority < threshold
+  - Ordered by priority (descending) then timestamp (ascending)
+  - **Retry behavior**: On failure, moves to the next job (Round-Robin mode)
+
+**Key Features**:
+- Prioritizes high-priority jobs: high-priority queue is always checked first
+- **Retry guarantee for high-priority jobs**: Failed high-priority jobs are immediately retried
+- **Round-robin for low-priority jobs**: Failed low-priority jobs yield to the next job
+- Threshold configurable via annotation: `koord-queue/priority-threshold`
+
+**Use Cases**:
+- Mixed workloads with both critical and batch jobs
+- Environments requiring both priority enforcement and fair scheduling
+
+**Configuration Example**:
+```yaml
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
+metadata:
+  name: intelligent-queue
+  labels:
+    koord-queue/queue-policy: Intelligent
+  annotations:
+    koord-queue/priority-threshold: "5"
+spec:
+  max:
+    cpu: "10"
+    memory: 20Gi
+```
+
+#### Policy Comparison
+
+| Feature | Priority | Block | Intelligent |
+|---------|----------|-------|-------------|
+| Ordering | Priority + Timestamp | Priority + Timestamp | Dual-queue: High (FIFO) + Low (Round-Robin) |
+| Retry Behavior | Retry failed job | Retry failed job | High: retry same job; Low: move to next job |
+| Resource Blocking | Optimistic | Strict/Conservative | Balanced |
+| Preemption Support | Yes | No | Yes (for high-priority jobs) |
+| Use Cases | Priority scheduling | Strict resource isolation | Mixed critical + batch workloads |
+
+#### Configuring Queue Policy
+
+Queue policy can be set in two ways:
+
+1. **Via ElasticQuota label** (recommended):
+```yaml
+metadata:
+  labels:
+    koord-queue/queue-policy: Priority  # Options: Priority, Block, Intelligent
+```
+
+2. **Via Queue CR** (advanced configuration):
+```yaml
+apiVersion: scheduling.x-k8s.io/v1alpha1
+kind: Queue
+metadata:
+  name: my-queue
+  namespace: koord-queue
+spec:
+  queuePolicy: Intelligent
+  priority: 1000
+  annotations:
+    koord-queue/priority-threshold: "5"
+```
+
+**Advanced Tuning Annotations**:
+- `koord-queue/priority-threshold`: Set threshold for Intelligent policy (default: 4)
+- `koord-queue/max-depth`: Limit max number of jobs considered during scheduling
+- `koord-queue/wait-for-pods-running`: Wait for pods to enter Running state before dequeuing next job
+
+### QueueUnit Spec
 
 | Field | Type | Description |
 |-------|------|-------------|

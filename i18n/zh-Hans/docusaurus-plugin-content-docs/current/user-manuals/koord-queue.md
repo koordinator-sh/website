@@ -193,151 +193,149 @@ my-job-blocked     Enqueued  1000
 
 ### 队列策略
 
-默认情况下，Koord-Queue 的 Job Extensions 会自动从作业的 Pod 模板中派生 `QueueUnit` 的优先级：读取 `spec.template.spec.priorityClassName` 和 `spec.template.spec.priority`。若找到对应的 `PriorityClass` 对象，则使用其 `.value` 作为 `QueueUnit` 的优先级；否则直接使用 `spec.template.spec.priority` 中的整数值。
+Koord-Queue 支持三种队列策略来控制作业的出队和调度。每种策略定义了不同的排序和重试行为。
 
-你也可以在 `QueueUnit` 创建后手动修改其 `spec.priority`，以覆盖默认值并影响出队顺序。
+#### Priority 策略（优先级策略）
 
-#### Priority 队列
+**排序规则**：队列单元按优先级值（降序）排序，然后按创建时间戳（升序）排序。优先级高的作业总是优先出队。相同优先级的作业按 FIFO 顺序处理。
 
-优先级值更高的作业优先出队。相同优先级的作业中，创建时间更早的优先出队：
+**行为特点**：
+- 优先级值更高的作业优先出队
+- 相同优先级时，较早创建的作业先调度
+- 失败的作业会被重新加入队列并重试
+- **支持抢占**：低优先级作业可以被抢占，为高优先级作业腾出空间
 
+**适用场景**：
+- 多租户环境，不同优先级级别
+- 生产作业应该抢占开发作业
+- 具有明确优先级区分的工作负载
+
+**配置示例**：
 ```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: Queue
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
 metadata:
   name: priority-queue
-  namespace: koord-queue
+  labels:
+    koord-queue/queue-policy: Priority
 spec:
-  queuePolicy: Priority
-  priority: 100
+  max:
+    cpu: "10"
+    memory: 20Gi
 ```
 
-设置 `QueueUnit` 的优先级：
+**调度行为**：
+Priority 策略**不是严格的优先级调度**。当高优先级作业被阻塞（如配额耗尽）时，调度器会跳过它们继续扫描。可调度的低优先级作业可以在被阻塞的高优先级作业之前出队。这提高了吞吐量并防止调度器停滞。
 
+**与 Block 策略的关键区别**：
+- **Priority**：乐观调度 - 配额接近限制时仍继续调度，阻塞的作业会被跳过
+- **Block**：保守调度 - 配额达到限制时严格阻塞作业，防止过度分配
+```
+
+#### Block 策略（阻塞策略）
+
+**排序规则**：与 Priority 策略相同 - 按优先级（降序）然后时间戳（升序）排序。
+
+**行为特点**：
+- **严格资源阻塞**：当配额达到限制时，使用该配额的后续作业会被阻塞
+- 与 Priority 策略（会跳过阻塞的高优先级作业，让后面的可调度作业先出队）不同，Block 策略严格执行优先级顺序
+- 防止资源过度分配
+- 被阻塞的队列单元在调度时会被跳过，直到资源可用
+- 适合需要严格资源隔离的环境
+
+**关键区别**：
+- Priority 策略：不是严格的优先级调度 - 允许低优先级作业在被阻塞的高优先级作业之前出队
+- Block 策略：严格的优先级调度 - 被阻塞的高优先级作业必须等待，防止低优先级作业绕过它们  max:
+    cpu: "10"
+    memory: 20Gi
+```
+
+**关键区别**：
+- Priority 策略：即使配额接近限制，仍继续调度作业（乐观调度）
+- Block 策略：配额达到限制时严格阻塞作业（保守调度）
+
+#### Intelligent 策略（智能策略）
+
+**排序规则**：使用 **双队列机制**，配置优先级阈值（默认：4）：
+
+- **高优先级队列**：优先级 >= 阈值的作业
+  - 按优先级（降序）然后时间戳（升序）排序
+  - **重试行为**：失败时，重试同一作业（FIFO 模式）
+  
+- **低优先级队列**：优先级 < 阈值的作业
+  - 按优先级（降序）然后时间戳（升序）排序
+  - **重试行为**：失败时，移动到下一作业（Round-Robin 模式）
+
+**行为特点**：
+- 优先处理高优先级作业：高优先级队列总是先被检查
+- **高优先级作业获得重试保证**：失败的高优先级作业立即重试
+- **低优先级作业使用轮询**：失败的低优先级作业让出给下一个作业
+- 更平衡的优先级执行和吞吐量方法
+- 可通过 annotation 配置阈值：`koord-queue/priority-threshold`
+
+**适用场景**：
+- 混合负载，既有关键作业又有批量作业
+- 需要既执行优先级又保证公平调度的环境
+- 高优先级作业必须完成，但低优先级作业不应饥饿的场景
+
+**配置示例**：
 ```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: QueueUnit
+apiVersion: scheduling.sigs.k8s.io/v1alpha1
+kind: ElasticQuota
 metadata:
-  name: high-priority-job
-  namespace: default
+  name: intelligent-queue
+  labels:
+    koord-queue/queue-policy: Intelligent
+  annotations:
+    koord-queue/priority-threshold: "5"
 spec:
-  queue: priority-queue
-  priority: 200
-  consumerRef:
-    apiVersion: batch/v1
-    kind: Job
-    name: important-job
-    namespace: default
-  resource:
-    cpu: "2"
-    memory: 4Gi
+  max:
+    cpu: "10"
+    memory: 20Gi
 ```
 
-### 准入检查 *(开发中)*
+#### 策略对比
 
-> **注意**：准入检查控制器尚未包含在本版本中，此部分描述的是未来计划中的 API。
+| 特性 | Priority | Block | Intelligent |
+|------|----------|-------|-------------|
+| 排序规则 | 优先级 + 时间戳 | 优先级 + 时间戳 | 双队列：高优先级（FIFO）+ 低优先级（Round-Robin） |
+| 重试行为 | 重试失败作业 | 重试失败作业 | 高：重试同一作业；低：移动到下一作业 |
+| 资源阻塞 | 乐观 | 严格/保守 | 平衡 |
+| 抢占支持 | 是 | 否 | 是（针对高优先级作业） |
+| 适用场景 | 优先级调度 | 严格资源隔离 | 混合关键 + 批量工作负载 |
 
-队列可以配置准入检查，`QueueUnit` 在被释放之前必须通过所有检查。这对于与外部资源预置系统集成非常有用。
+#### 配置队列策略
 
+可以通过两种方式设置队列策略：
+
+1. **通过 ElasticQuota 标签**（推荐）：
+```yaml
+metadata:
+  labels:
+    koord-queue/queue-policy: Priority  # 选项：Priority、Block、Intelligent
+```
+
+2. **通过 Queue CR**（高级配置）：
 ```yaml
 apiVersion: scheduling.x-k8s.io/v1alpha1
 kind: Queue
 metadata:
-  name: checked-queue
+  name: my-queue
   namespace: koord-queue
 spec:
-  queuePolicy: Priority
-  admissionChecks:
-    - name: prov-req-check
-      labelSelector:
-        matchLabels:
-          requires-provisioning: "true"
+  queuePolicy: Intelligent
+  priority: 1000
+  annotations:
+    koord-queue/priority-threshold: "5"
 ```
 
-当 `QueueUnit` 被预留时，准入检查控制器处理每个配置的检查。只有当所有检查报告 `Ready` 状态时，`QueueUnit` 才会转换为 `Dequeued`。
+**高级调优 Annotations**：
+- `koord-queue/priority-threshold`：设置 Intelligent 策略的阈值（默认：4）
+- `koord-queue/max-depth`：限制调度时考虑的最大作业数量
+- `koord-queue/wait-for-pods-running`：等待 Pod 进入 Running 状态后再出队下一作业- 被阻塞的队列单元在调度时会被跳过，直到资源可用
+- 适合需要严格资源隔离的环境
 
-### 支持的作业类型
-
-Koord-Queue 通过 Extension Server 架构支持多种作业框架。每种支持的类型需要在 Helm values 中启用对应的扩展：
-
-| 作业类型 | Helm 配置值 | 描述 |
-|---------|------------|------|
-| Kubernetes Job | `extension.batchjob.enable` | 原生 Kubernetes batch/v1 Job |
-| TFJob | `extension.tf.enable` | TensorFlow 训练作业 |
-| PyTorchJob | `extension.pytorch.enable` | PyTorch 训练作业 |
-| Argo Workflow | `extension.argo.enable` | Argo 工作流作业 |
-| Spark | `extension.spark.enable` | Spark 应用作业 |
-| Ray | `extension.ray.enable` | Ray 集群/作业 |
-
-### CRD 参考
-
-#### Queue Spec
-
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| `queuePolicy` | `string` | 排队策略：`Priority` 或 `Block`。 |
-| `priority` | `*int32` | 多队列排序的队列优先级。 |
-| `priorityClassName` | `string` | Kubernetes PriorityClass 名称。 |
-| `admissionChecks` | `[]AdmissionCheckWithSelector` | 所需准入检查列表。 |
-
-#### QueueUnit Spec
-
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| `consumerRef` | `ObjectReference` | 对原始作业 CR 的引用。 |
-| `priority` | `*int32` | 在队列中的优先级。 |
-| `queue` | `string` | 目标队列名称。 |
-| `resource` | `ResourceList` | 总资源需求。 |
-| `podSet` | `[]PodSet` | Pod 组定义（最多 8 个）。 |
-| `priorityClassName` | `string` | Kubernetes PriorityClass 名称。 |
-| `request` | `ResourceList` | 从作业解析的实际资源请求。 |
-
-#### QueueUnit Status
-
-| 字段 | 类型 | 描述 |
-|------|------|------|
-| `phase` | `QueueUnitPhase` | 当前生命周期阶段。 |
-| `attempts` | `int64` | 调度尝试次数。 |
-| `message` | `string` | 可读状态信息。 |
-| `lastUpdateTime` | `Time` | 最后状态更新时间。 |
-| `admissionChecks` | `[]AdmissionCheckState` | 每个准入检查的状态。 |
-| `podState` | `PodState` | Running/Pending Pod 计数。 |
-| `admissions` | `[]Admission` | 每个 PodSet 准入的资源分配和状态。 |
-
-### 监控
-
-Koord-Queue 暴露 Prometheus 指标用于监控：
-
-```bash
-# 端口转发到控制器
-$ kubectl port-forward -n koord-queue svc/koord-queue 10259:10259
-
-# 获取指标
-$ curl http://localhost:10259/metrics
-```
-
-如果启用了可视化服务器（`enableVisibilityServer: true`），可以通过 REST API 查询队列状态：
-
-```bash
-$ curl http://koord-queue-visibility:8090/api/queues
-```
-
-### 调试
-
-查看控制器日志以了解调度决策：
-
-```bash
-$ kubectl logs -n koord-queue deployment/koord-queue-controller -f --tail=100
-```
-
-检查 `QueueUnit` 状态以了解调度详情：
-
-```bash
-$ kubectl describe queueunit <name> -n <namespace>
-```
-
-查看 Kubernetes 事件中的调度相关消息：
-
-```bash
-$ kubectl get events -n <namespace> --field-selector reason=Scheduling
-```
+**适用场景**：
+- 资源受限的环境
+- `koord-queue/max-depth`：限制调度时考虑的最大作业数量
+- `koord-queue/wait-for-pods-running`：等待 Pod 进入 Running 状态后再出队下一作业
