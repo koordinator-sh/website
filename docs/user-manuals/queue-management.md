@@ -206,7 +206,18 @@ The `QueueUnit` stays in `Enqueued` phase because `team-a` has already reached i
 
 For other job types (TFJob, PyTorchJob, etc.), use the `scheduling.x-k8s.io/suspend: "true"` annotation instead of `spec.suspend`.
 
-### Queue Policies
+## Use Queue
+
+### Queue Spec
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `queuePolicy` | `string` | Queuing policy: `Priority`, `Block`, or `Intelligent`. |
+| `priority` | `*int32` | Queue priority for multi-queue ordering. |
+| `priorityClassName` | `string` | Kubernetes PriorityClass name. |
+| `admissionChecks` | `[]AdmissionCheckWithSelector` | List of admission checks required. |
+
+### Queue Priority
 
 By default, Koord-Queue's Job Extensions automatically derive the `QueueUnit` priority from the job's pod template: it reads `spec.template.spec.priorityClassName` and `spec.template.spec.priority`. If a `PriorityClass` object is found, its `.value` is used as the `QueueUnit` priority; otherwise the raw integer in `spec.template.spec.priority` is used.
 
@@ -237,47 +248,6 @@ spec:
     memory: 4Gi
 ```
 
-### Admission Checks *(Work In Progress)*
-
-> **Note**: The Admission Check controller is not yet included in this release. This section describes the planned API for future use.
-
-Queues can require admission checks that must pass before a `QueueUnit` is released. This is useful for integrating with external resource provisioning systems.
-
-```yaml
-apiVersion: scheduling.x-k8s.io/v1alpha1
-kind: Queue
-metadata:
-  name: checked-queue
-  namespace: koord-queue
-spec:
-  queuePolicy: Priority
-  admissionChecks:
-    - name: prov-req-check
-      labelSelector:
-        matchLabels:
-          requires-provisioning: "true"
-```
-
-When a `QueueUnit` is reserved, the admission check controller processes each configured check. The `QueueUnit` transitions to `Dequeued` only when all checks report `Ready` status.
-
-## Release Notes
-
-| Version | Date | Changes |
-|---------|------|---------|
-| v1.8.0 | 2026-04-24 | Koord-Queue v1.8.0 officially released, supports ElasticQuotaV2 mode, integrated with Koordinator ecosystem |
-
-### CRD Reference
-
-#### Queue Spec
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `queuePolicy` | `string` | Queuing policy: `Priority`, `Block`, or `Intelligent`. |
-| `priority` | `*int32` | Queue priority for multi-queue ordering. |
-| `priorityClassName` | `string` | Kubernetes PriorityClass name. |
-| `admissionChecks` | `[]AdmissionCheckWithSelector` | List of admission checks required. |
-
-#
 ### Queue Policies
 
 Koord-Queue supports three queue policies to control how jobs are dequeued and scheduled.
@@ -428,7 +398,9 @@ spec:
 - `koord-queue/max-depth`: Limit max number of jobs considered during scheduling
 - `koord-queue/wait-for-pods-running`: Wait for pods to enter Running state before dequeuing next job
 
-### QueueUnit Spec
+## Use QueueUnit
+
+###  QueueUnit Spec
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -440,7 +412,7 @@ spec:
 | `priorityClassName` | `string` | Kubernetes PriorityClass name. |
 | `request` | `ResourceList` | Actual resource requests parsed from the job. |
 
-#### QueueUnit Status
+### QueueUnit Status
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -451,6 +423,33 @@ spec:
 | `admissionChecks` | `[]AdmissionCheckState` | Status of each admission check. |
 | `podState` | `PodState` | Running/Pending pod counts. |
 | `admissions` | `[]Admission` | Resource allocation and state per PodSet admission. |
+
+## Use AdmissionCheck
+
+### Admission Checks *(Work In Progress)*
+
+> **Note**: The Admission Check controller is not yet included in this release. This section describes the planned API for future use.
+
+Queues can require admission checks that must pass before a `QueueUnit` is released. This is useful for integrating with external resource provisioning systems.
+
+```yaml
+apiVersion: scheduling.x-k8s.io/v1alpha1
+kind: Queue
+metadata:
+  name: checked-queue
+  namespace: koord-queue
+spec:
+  queuePolicy: Priority
+  admissionChecks:
+    - name: prov-req-check
+      labelSelector:
+        matchLabels:
+          requires-provisioning: "true"
+```
+
+When a `QueueUnit` is reserved, the admission check controller processes each configured check. The `QueueUnit` transitions to `Dequeued` only when all checks report `Ready` status.
+
+## Observability
 
 ### Monitoring
 

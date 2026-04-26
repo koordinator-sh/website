@@ -33,7 +33,6 @@ const sidebars = {
         'architecture/priority',
         'architecture/qos',
         'architecture/job',
-        'architecture/koord-queue',
         'architecture/device',
       ],
     },
@@ -43,12 +42,14 @@ const sidebars = {
       collapsed: true,
       items: [
         {
+          'Capacity Scheduling': [
+            'user-manuals/capacity-scheduling',
+            'user-manuals/queue-management',
+          ],
           'Task Scheduling': [
-            'user-manuals/koord-queue',
             'user-manuals/gang-scheduling',
             'user-manuals/job-level-preemption',
             'user-manuals/network-topology-aware-scheduling',
-            'user-manuals/capacity-scheduling',
           ],
           'Heterogeneous Resources Scheduling': [
             'user-manuals/fine-grained-device-scheduling',
@@ -87,7 +88,7 @@ const sidebars = {
             'user-manuals/scheduling-hint',
             'user-manuals/pod-migration-job',
           ],
-          'Monitoring' : [
+          'Observability' : [
             'user-manuals/scheduling-monitoring',
             'user-manuals/descheduling-monitoring',
           ]
@@ -99,21 +100,34 @@ const sidebars = {
       label: 'Design Details',
       collapsed: true,
       items: [
-        'designs/koordlet-overview',
-        'designs/runtime-proxy',
-        'designs/nri-mode-resource-management',
-        'designs/node-prediction',
-        'designs/enhanced-scheduler-extension',
-        'designs/load-aware-scheduling',
-        'designs/fine-grained-cpu-orchestration',
-        'designs/resource-reservation',
-        'designs/pod-migration-job',
-        'designs/descheduler-framework',
-        'designs/fine-grained-device-scheduling',
-        'designs/gang-scheduling',
-        'designs/multi-hierarchy-elastic-quota-management',
-        'designs/koordinator-yarn',
-        'designs/node-resource-fit-plus-scoring',
+        {
+          'Koord-queue' : [
+            'designs/koord-queue',
+          ],
+          'Scheduling': [
+            'designs/enhanced-scheduler-extension',
+            'designs/multi-hierarchy-elastic-quota-management',
+            'designs/gang-scheduling',
+            'designs/fine-grained-device-scheduling',
+            'designs/node-resource-fit-plus-scoring',
+            'designs/load-aware-scheduling',
+            'designs/fine-grained-cpu-orchestration',
+            'designs/resource-reservation',
+          ],
+          'Koordlet' : [
+            'designs/koordlet-overview',
+            'designs/runtime-proxy',
+            'designs/nri-mode-resource-management',
+          ],
+          'Colocation': [
+            'designs/node-prediction',
+            'designs/koordinator-yarn',
+          ],
+          'Descheduling': [
+            'designs/descheduler-framework',
+            'designs/pod-migration-job',
+          ],
+        }
       ],
     },
     {

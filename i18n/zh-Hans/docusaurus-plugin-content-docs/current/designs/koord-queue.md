@@ -170,5 +170,5 @@ Koord-Queue 通过 Helm charts 部署，包含以下组件：
 
 ## 下一步
 
-- [Koord-Queue 用户指南](../user-manuals/koord-queue.md)：了解如何安装和使用 Koord-Queue 进行作业队列管理。
+- [Koord-Queue 用户指南](../user-manuals/queue-management.md)：了解如何安装和使用 Koord-Queue 进行作业队列管理。
 - [弹性配额管理](../user-manuals/capacity-scheduling.md)：了解 Koordinator 的 ElasticQuota 管理。
