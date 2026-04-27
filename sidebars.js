@@ -66,9 +66,6 @@ const sidebars = {
             'user-manuals/load-aware-scheduling',
             'user-manuals/load-aware-descheduling',
           ],
-          'Descheduling': [
-            'user-manuals/custom-priority-descheduling',
-          ],
           'Fine-grained Scheduling': [
             'user-manuals/fine-grained-cpu-orchestration',
             'user-manuals/cpu-burst',
@@ -86,10 +83,13 @@ const sidebars = {
             "user-manuals/performance-collector",
             "user-manuals/installation-runtime-proxy",
           ],
+          'Descheduling': [
+            'user-manuals/custom-priority-descheduling',
+            "user-manuals/pod-migration-job"
+          ],
           'Utils' : [
             'user-manuals/resource-reservation',
             'user-manuals/scheduling-hint',
-            'user-manuals/pod-migration-job',
           ],
           'Observability' : [
             'user-manuals/scheduling-monitoring',
