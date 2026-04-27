@@ -57,12 +57,12 @@ In v1.8.0, Koordinator's `Reservation` CRD is extended with **Pre-Allocation**, 
 
 Key enhancements:
 
-- **Cluster-wide pre-allocation mode** via `enableClusterMode`: instead of binding a Reservation to specific matched nodes, pre-allocated capacity is tracked at the cluster level, so the reserved pods can land on any node in the cluster that has enough free capacity at bind time.
-- **Multiple pre-allocated pods** within a single Reservation, so a single reservation can cover an entire GangGroup or replica set.
-- **Pre-allocation priority** through the `pod.koordinator.sh/pre-allocatable-priority` annotation, giving fine-grained control over which candidate pods are eligible.
+- **`Cluster` pre-allocation mode** via `preAllocationPolicy.mode: Cluster`: instead of matching pre-allocatable pods through the Reservation's Owner matchers (the `Default` mode), the scheduler identifies candidate pods by cluster-wide label/annotation selectors. Pods marked with the label `pod.koordinator.sh/is-pre-allocatable: "true"` become pre-allocatable, which is especially useful in multi-tenant clusters where pre-allocatable pods may belong to different owners and should be managed centrally.
+- **Multiple pre-allocated pods** via `preAllocationPolicy.enableMultiple: true`: when disabled, only a single pod can be pre-allocated against the Reservation; when enabled, multiple pods can jointly satisfy the reservation's resource requirements — useful when no single pod can consume all the reserved resources due to resource fragmentation.
+- **Pre-allocation priority** through the `pod.koordinator.sh/pre-allocatable-priority` annotation (numeric string, higher = higher priority), giving fine-grained control over which candidate pods are picked first.
 - **Integration with NodeNUMAResource and DeviceShare**, so pre-allocation reserves CPUs, NUMA nodes, and GPU devices in a consistent way with regular scheduling.
 
-Example snippet enabling cluster-wide pre-allocation:
+Example snippet enabling `Cluster` mode and multi-pod pre-allocation:
 
 ```yaml
 apiVersion: scheduling.koordinator.sh/v1alpha1
@@ -72,7 +72,8 @@ metadata:
 spec:
   preAllocation: true
   preAllocationPolicy:
-    enableClusterMode: true
+    mode: Cluster
+    enableMultiple: true
 ```
 
 For more information, please see [Resource Reservation](/docs/user-manuals/resource-reservation).
@@ -152,7 +153,29 @@ spec:
 
 For more information, please see [Device Scheduling – Metax GPU](/docs/user-manuals/device-scheduling-metax-gpu) and [Fine-Grained Device Scheduling](/docs/user-manuals/fine-grained-device-scheduling).
 
-### 5. Observability: Grafana Dashboards for Scheduler and Descheduler
+### 5. Descheduling with Custom Priority
+
+v1.8.0 introduces a new `CustomPriority` balance plugin in `koord-descheduler` that deschedules Pods according to a user-defined node priority order. Nodes are split into multiple priority tiers based on business semantics — for example pay-as-you-go vs. pay-by-year-or-month, shared vs. dedicated pools, or spot vs. on-demand instances. When a lower-priority tier has enough capacity to accommodate Pods running on a higher-priority tier, the descheduler proactively evicts those Pods so they can be rescheduled onto the cheaper (or more reclaimable) pool.
+
+Typical use cases:
+
+- **Cost optimization**: migrate workloads from pay-as-you-go nodes onto pay-by-year-or-month nodes.
+- **Resource consolidation**: gradually shift load from one type of node to another so that the source nodes can be safely scaled down, maintained, or returned.
+- **Tiered pools**: enforce a strict ordering between multiple node pools and let workloads “sink” toward the lower tiers over time.
+
+Each descheduling cycle the plugin executes the following steps:
+
+1. Group all nodes in the cluster according to the order defined in `evictionOrder`. A node is assigned to the first matching priority tier only.
+2. Starting from the highest-priority tier (the one listed first), use it as the *source pool* and treat all subsequent lower-priority tiers together as the *target pool candidates*.
+3. For every Pod on a source node, apply the namespace / `podSelector` / Evictor filters and sort the candidate Pods to be evicted by ascending CPU and Memory request.
+4. Run the eviction strategy according to `mode`: `BestEffort` (default — evict any individual Pod as soon as a single target node can accommodate it) or `DrainNode` (only evict Pods on a source node when **all** candidate Pods on that node can be placed onto target-pool nodes, optionally cordoning it via `autoCordon`).
+5. Actual Pod eviction is performed asynchronously by the `Evictor`, which honors all rate-limit and safety mechanisms.
+
+![Custom Priority Descheduling](/img/custom-priority-descheduling.png)
+
+For more information, please see [Descheduling with Custom Priority](/docs/user-manuals/custom-priority-descheduling).
+
+### 6. Observability: Grafana Dashboards for Scheduler and Descheduler
 
 v1.8.0 ships a set of curated **Grafana dashboards** for `koord-scheduler` and `koord-descheduler`, covering scheduling throughput, queue latency, plugin latency, preemption activity, and descheduler evictions. Combined with the PodMonitor parameters introduced in the Helm chart, users can now light up production-grade observability with a single Helm flag:
 
@@ -174,7 +197,7 @@ Example dashboards:
 
 For more information, please see [Scheduling Monitoring](/docs/user-manuals/scheduling-monitoring) and [Descheduling Monitoring](/docs/user-manuals/descheduling-monitoring).
 
-### 6. Platform and Compatibility
+### 7. Platform and Compatibility
 
 v1.8.0 brings a number of platform-wide improvements:
 
@@ -183,7 +206,7 @@ v1.8.0 brings a number of platform-wide improvements:
 - **Protobuf for native resources**: `kubeclients` now uses protobuf for core resources, reducing API Server CPU footprint.
 - **NRI upgrade to 0.11.0** and refined NRI server in koordlet.
 - **Koordlet improvements**: static reserved mode for mid resource, allocatable-based eviction, BE CPU-suppress fix when BE pods exist, container-level cfs_quota unbinding fix, cpuset share-pool metric, GPU init-failure handling when a GPU is lost.
-- **Descheduler improvements**: skip eviction gates support, custom priority plugin, anomaly condition fixes, nodePool inheritance of top-level defaults, raw-allocatable based thresholds in `LowNodeLoad`.
+- **Descheduler improvements**: skip eviction gates support, anomaly condition fixes, nodePool inheritance of top-level defaults, raw-allocatable based thresholds in `LowNodeLoad` (see section 5 above for the new `CustomPriority` plugin).
 
 ## Contributors
 
