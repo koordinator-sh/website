@@ -33,12 +33,13 @@ Beyond technical oversight, **Active** maintainers are responsible for the proje
 | :--- | :--- | :--- |
 | [zwzhang0107](https://github.com/zwzhang0107) | Alibaba Cloud | API Machinery, SLO Controller, Koordlet, Webhook, Prediction |
 | [saintube](https://github.com/saintube) | Alibaba Cloud | CI, Koordlet, Prediction, Job |
-| [ZiMengSheng](https://github.com/ZiMengSheng) | Alibaba Cloud | API Machinery, Scheduler, Device, Job |
+| [ZiMengSheng](https://github.com/ZiMengSheng) | Alibaba Cloud | API Machinery, Scheduler, Device, Job,  Koord-Queue |
 | [zqzten](https://github.com/zqzten) | Ant Group | Device, Job |
 | [buptcozy](https://github.com/buptcozy) | Alibaba Cloud | Scheduler |
 | [songtao98](https://github.com/songtao98) | Alibaba Cloud  | Descheduler |
 | [honpey](https://github.com/honpey) | Alibaba Cloud | Runtime Proxy |
 | [ZYecho](https://github.com/ZYecho) | - | Runtime Proxy |
+| [KunWuLuan](https://github.com/KunWuLuan)| Alibaba Cloud | Koord-Queue |
 
 
 
