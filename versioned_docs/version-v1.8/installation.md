@@ -213,7 +213,7 @@ $ helm install koordinator https://... --set imageRepositoryHost=registry.cn-bei
 Key:
 
 - `✓` Koordinator and the Kubernetes version are exactly compatible.
-- `+` Koordinator has features or API objects that may not be present in the Kubernetes version.
+- `+` Koordinator has features or API objects that may not be present in the Kubernetes version. Clusters with this mark (currently Kubernetes 1.22 and 1.20) are only partially supported: starting from v1.8, some Koordinator components have switched to newer Kubernetes APIs that are not available on those older clusters, so those specific components no longer work on 1.22/1.20. Core co-location, QoS, and scheduling capabilities continue to function. Please evaluate feature availability per component before using Koordinator on 1.22/1.20 in production.
 - `-` The Kubernetes version has features or API objects that Koordinator can't use.
 
 ### Installation parameters for AWS EKS

@@ -211,7 +211,7 @@ $ helm install koordinator https://... --set imageRepositoryHost=registry.cn-bei
 说明：
 
 - `✓` Koordinator 与该 Kubernetes 版本完全兼容。
-- `+` Koordinator 具有该 Kubernetes 版本中可能不存在的功能或 API 对象。
+- `+` Koordinator 具有该 Kubernetes 版本中可能不存在的功能或 API 对象。带有此标记的集群（当前为 Kubernetes 1.22 和 1.20）仅部分兼容：从 v1.8 开始，部分 Koordinator 组件已切换到更新的 Kubernetes API，这些 API 在旧版本集群中不存在，因此相关组件将无法在 1.22/1.20 上使用；核心的混部、QoS 与调度能力仍可正常工作。在 1.22/1.20 上生产使用前，请逐组件评估功能可用性。
 - `-` 该 Kubernetes 版本具有 Koordinator 无法使用的功能或 API 对象。
 
 ### AWS EKS 的安装参数
