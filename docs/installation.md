@@ -195,6 +195,27 @@ $ helm install koordinator https://... --set imageRepositoryHost=registry.cn-bei
 
 ## Best Practices
 
+### Kubernetes Compatibility
+
+|                                  | Kubernetes 1.35 | Kubernetes 1.28 | Kubernetes 1.24 | Kubernetes 1.22 | Kubernetes 1.20 |
+|----------------------------------|:---:|:---:|:---:|:---:|:---:|
+| Koordinator HEAD (main)          | ✓ | ✓ | ✓ | + | + |
+| Koordinator v1.8                 | ✓ | ✓ | ✓ | + | + |
+| Koordinator v1.7                 | - | ✓ | ✓ | ✓ | ✓ |
+| Koordinator v1.6                 | - | ✓ | ✓ | ✓ | ✓ |
+| Koordinator v1.5                 | - | ✓ | ✓ | ✓ | ✓ |
+| Koordinator v1.4                 | - | - | ✓ | ✓ | ✓ |
+| Koordinator v1.3                 | - | - | ✓ | ✓ | ✓ |
+| Koordinator v1.2                 | - | - | - | ✓ | ✓ |
+| Koordinator v1.1                 | - | - | - | ✓ | ✓ |
+| Koordinator v1.0                 | - | - | - | ✓ | ✓ |
+
+Key:
+
+- `✓` Koordinator and the Kubernetes version are exactly compatible.
+- `+` Koordinator has features or API objects that may not be present in the Kubernetes version.
+- `-` The Kubernetes version has features or API objects that Koordinator can't use.
+
 ### Installation parameters for AWS EKS
 
 When using a custom CNI (such as Weave or Calico) on EKS, the webhook cannot be reached by default. This happens because the control plane cannot be configured to run on a custom CNI on EKS, so the CNIs differ between control plane and worker nodes.
