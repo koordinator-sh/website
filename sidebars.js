@@ -66,6 +66,9 @@ const sidebars = {
             'user-manuals/load-aware-scheduling',
             'user-manuals/load-aware-descheduling',
           ],
+          'Descheduling': [
+            'user-manuals/custom-priority-descheduling',
+          ],
           'Fine-grained Scheduling': [
             'user-manuals/fine-grained-cpu-orchestration',
             'user-manuals/cpu-burst',
