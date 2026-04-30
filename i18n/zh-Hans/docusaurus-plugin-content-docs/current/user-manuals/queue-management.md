@@ -204,7 +204,96 @@ my-job-blocked                                   Job
 
 `QueueUnit` 保持 `Enqueued` 状态，因为 `team-a` 已达到 `max` 配额上限。当 `my-job` 完成并释放资源后，`my-job-blocked` 将自动出队执行。
 
-对于其他作业类型（TFJob、PyTorchJob 等），请使用 `scheduling.x-k8s.io/suspend: "true"` 注解代替 `spec.suspend`。
+### 不同作业类型的暂停方式
+
+不同类型的作业使用不同的字段进行暂停：
+
+| 作业类型 | API 版本 | 暂停字段 | 示例 | 状态 |
+|----------|---------|---------|------|------|
+| Kubernetes Job | `batch/v1` | `.spec.suspend` | `spec.suspend: true` | 已支持 |
+| TFJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` | `spec.runPolicy.suspend: true` | 已支持 |
+| PyTorchJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` | `spec.runPolicy.suspend: true` | 已支持 |
+| Argo Workflow | `argoproj.io/v1alpha1` | 添加 `koord-queue-suspend` 模板 | 见下方示例 | 已支持 |
+| SparkApplication | `sparkoperator.k8s.io/v1beta2` | `.spec.suspend` |  | 开发中 |
+| XGBoostJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` |  | 尚未支持 |
+| PaddleJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` |  | 尚未支持 |
+
+**Argo Workflow 示例：**
+
+对于 Argo Workflow，Koord-Queue 使用名为 `koord-queue-suspend` 的特殊暂停模板。工作流必须满足以下条件才能被队列管理：
+
+1. 包含名为 `koord-queue-suspend` 的模板，且有 `suspend` 字段
+2. 工作流有处于 Running 状态的 suspend 节点，或者 `spec.suspend` 设置为 true
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: my-workflow
+  annotations:
+   koord-queue/min-resources: |
+     cpu: 5
+     memory: 5Gi
+spec:
+  suspend: true
+  templates:
+    # 添加此暂停模板用于队列管理
+    - name: koord-queue-suspend
+      suspend: {}
+    # 你的实际工作流模板
+    - name: main
+      container:
+        image: python:3.9
+        command: [python, -c, "print('Hello from workflow')"]
+  entrypoint: main
+```
+
+**工作原理：**
+
+当提交工作流时，Koord-Queue 通过以下方式检查是否应该管理它：
+- 扫描所有模板，查找带有 `suspend` 字段的 `koord-queue-suspend` 模板
+- 检查是否有任何工作流节点类型为 `Suspend` 且状态为 `Running`
+- 或者检查 `spec.suspend` 是否设置为 `true`
+
+当 `QueueUnit` 出队时，Extension Server 将移除暂停条件，允许工作流继续执行。
+
+**TFJob 示例：**
+
+对于 TFJob，设置 `spec.runPolicy.suspend: true` 启用队列管理：
+
+```yaml
+apiVersion: kubeflow.org/v1
+kind: TFJob
+metadata:
+  labels:
+    quota.scheduling.koordinator.sh/name: team-a-queue
+spec:
+  runPolicy:
+    suspend: true
+```
+
+**PyTorchJob 示例：**
+
+对于 PyTorchJob，设置 `spec.runPolicy.suspend: true` 启用队列管理：
+
+```yaml
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  labels:
+    quota.scheduling.koordinator.sh/name: team-a-queue
+spec:
+  runPolicy:
+    suspend: true
+```
+
+**Kubeflow Jobs 的工作原理：**
+
+当提交 TFJob 或 PyTorchJob 时：
+1. Job extension 检测到带有 `spec.runPolicy.suspend: true` 的新作业
+2. 自动创建对应的 `QueueUnit`
+3. 作业在队列中等待直到资源可用
+4. 出队时，Extension Server 设置 `spec.runPolicy.suspend: false`，允许作业创建 Pod 并开始训练
 
 ## 使用 Queue
 
