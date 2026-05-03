@@ -45,6 +45,7 @@ const sidebars = {
           'Capacity Scheduling': [
             'user-manuals/capacity-scheduling',
             'user-manuals/queue-management',
+            'user-manuals/run-pytorchjob-in-koordinator',
           ],
           'Task Scheduling': [
             'user-manuals/gang-scheduling',

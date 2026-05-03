@@ -204,7 +204,96 @@ my-job-blocked                                   Job
 
 The `QueueUnit` stays in `Enqueued` phase because `team-a` has already reached its `max` quota. Once `my-job` completes and resources are released, `my-job-blocked` will be dequeued automatically.
 
-For other job types (TFJob, PyTorchJob, etc.), use the `scheduling.x-k8s.io/suspend: "true"` annotation instead of `spec.suspend`.
+### Job Suspension by Type
+
+Different job types use different fields for suspension:
+
+| Job Type | API Version | Suspension Field | Example | Status |
+|----------|-------------|------------------|---------|--------|
+| Kubernetes Job | `batch/v1` | `.spec.suspend` | `spec.suspend: true` | Supported |
+| TFJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` | `spec.runPolicy.suspend: true` | Supported |
+| PyTorchJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` | `spec.runPolicy.suspend: true` | Supported |
+| Argo Workflow | `argoproj.io/v1alpha1` | Add `koord-queue-suspend` template | See example below | Supported |
+| SparkApplication | `sparkoperator.k8s.io/v1beta2` | `.spec.suspend` |  | WIP |
+| XGBoostJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` |  | Not Supported Yet |
+| PaddleJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` |  | Not Supported Yet |
+
+**Argo Workflow Example:**
+
+For Argo Workflow, Koord-Queue uses a special suspend template named `koord-queue-suspend`. The workflow must meet the following conditions to be managed by the queue:
+
+1. Contains a template named `koord-queue-suspend` with a `suspend` field
+2. The workflow has a suspend node in running state, OR `spec.suspend` is set to true
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: my-workflow
+  annotations:
+   koord-queue/min-resources: |
+     cpu: 5
+     memory: 5Gi
+spec:
+  suspend: true
+  templates:
+    # Add this suspend template for queue management
+    - name: koord-queue-suspend
+      suspend: {}
+    # Your actual workflow templates
+    - name: main
+      container:
+        image: python:3.9
+        command: [python, -c, "print('Hello from workflow')"]
+  entrypoint: main
+```
+
+**How it works:**
+
+When a Workflow is submitted, Koord-Queue checks if it should be managed by:
+- Scanning all templates for a `koord-queue-suspend` template with a `suspend` field
+- Checking if any workflow node is of type `Suspend` and in `Running` phase
+- Or checking if `spec.suspend` is set to `true`
+
+When the `QueueUnit` is dequeued, the Extension Server will remove the suspend condition, allowing the workflow to proceed.
+
+**TFJob Example:**
+
+For TFJob, set `spec.runPolicy.suspend: true` to enable queue management:
+
+```yaml
+apiVersion: kubeflow.org/v1
+kind: TFJob
+metadata:
+  labels:
+    quota.scheduling.koordinator.sh/name: team-a-queue
+spec:
+  runPolicy:
+    suspend: true
+```
+
+**PyTorchJob Example:**
+
+For PyTorchJob, set `spec.runPolicy.suspend: true` to enable queue management:
+
+```yaml
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  labels:
+    quota.scheduling.koordinator.sh/name: team-a-queue
+spec:
+  runPolicy:
+    suspend: true
+```
+
+**How it works for Kubeflow Jobs:**
+
+When a TFJob or PyTorchJob is submitted:
+1. The job extension detects the new job with `spec.runPolicy.suspend: true`
+2. A corresponding `QueueUnit` is automatically created
+3. The job waits in the queue until resources are available
+4. When dequeued, the Extension Server sets `spec.runPolicy.suspend: false`, allowing the job to create pods and start training
 
 ## Use Queue
 
