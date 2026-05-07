@@ -2,7 +2,7 @@ hormes:
   name: Fangsong Zeng
   title: Koordinator maintainer
   url: https://github.com/hormes
-  image_url:  https://github.com/hormes.png
+  image_url: https://github.com/hormes.png
 
 joseph:
   name: Joseph
@@ -63,3 +63,9 @@ ZhuZhezz:
   title: Koordinator contributor
   url: https://github.com/ZhuZhezz
   image_url: https://github.com/ZhuZhezz.png
+
+KunWuLuan:
+  name: KunWuLuan
+  title: Koordinator contributor
+  url: https://github.com/KunWuLuan
+  image_url: https://github.com/KunWuLuan.png
