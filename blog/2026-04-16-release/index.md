@@ -1,7 +1,7 @@
 ---
 slug: release-v1.8.0
 title: "Koordinator v1.8: Introducing Koord-Queue, Reservation Pre-Allocation, and Expanded Heterogeneous Device Support"
-authors: [ZiMengSheng, saintube, zqzten, ZhuZhezz, songtao98]
+authors: [ZiMengSheng, KunWuLuan, saintube, zqzten, ZhuZhezz, songtao98]
 tags: [release]
 ---
 

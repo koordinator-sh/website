@@ -1,7 +1,7 @@
 ---
 slug: release-v1.8.0
 title: "Koordinator v1.8：引入 Koord-Queue、预留预占能力，并扩展异构设备支持"
-authors: [ZiMengSheng, saintube, zqzten, ZhuZhezz, songtao98]
+authors: [ZiMengSheng, KunWuLuan, saintube, zqzten, ZhuZhezz, songtao98]
 tags: [release]
 ---
 
