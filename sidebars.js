@@ -48,6 +48,7 @@ const sidebars = {
             'user-manuals/run-pytorchjob-in-koordinator',
           ],
           'Task Scheduling': [
+            'user-manuals/scheduler-deployment-modes',
             'user-manuals/gang-scheduling',
             'user-manuals/job-level-preemption',
             'user-manuals/network-topology-aware-scheduling',
