@@ -313,7 +313,7 @@ data:
         "minFreeKbytesFactor": 100,
         "watermarkScaleFactor": 150,
         "memcgReapBackGround": 0
-      }
+      },
       "nodeStrategies": [
         {
           "name": "anolis",
