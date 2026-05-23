@@ -57,7 +57,7 @@ const config = {
             locale,
             docPath,
           }) {
-            return `https://github.com/koordinator-sh/koordinator.sh/edit/main/docs/${docPath}`;
+            return `https://github.com/koordinator-sh/website/edit/main/docs/${docPath}`;
           },
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
@@ -78,7 +78,7 @@ const config = {
           showReadingTime: true,
           // Please change this to your repo.
           editUrl:
-            'https://github.com/koordinator-sh/koordinator.sh/edit/main/',
+            'https://github.com/koordinator-sh/website/edit/main/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
