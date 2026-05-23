@@ -175,5 +175,3 @@ const sidebars = {
 };
 
 module.exports = sidebars;
-
-console.log(JSON.stringify(sidebars, null, 2))
