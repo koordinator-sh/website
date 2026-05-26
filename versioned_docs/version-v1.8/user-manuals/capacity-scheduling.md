@@ -18,7 +18,7 @@ resources from the idle quota groups, the resources can be allocated to the busy
 ### Prerequisite
 
 - Kubernetes >= 1.18
-- Koordinator >= 0.71
+- Koordinator >= v0.7
 
 ### Installation
 

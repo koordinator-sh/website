@@ -18,7 +18,7 @@ through the scheduler to obtain globally optimal allocation results.
 ### Prerequisite
 
 - Kubernetes >= 1.18
-- Koordinator >= 0.71
+- Koordinator >= v0.7
 
 ### Installation
 
