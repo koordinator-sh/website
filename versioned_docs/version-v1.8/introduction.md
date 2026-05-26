@@ -27,8 +27,6 @@ Koordinator enhances the kubernetes user experiences in the workload management 
 
 Kubernetes provides three types of QoS: Guaranteed/Burstable/BestEffort, of which Guaranteed/Burstable is widely used and BestEffort is rarely used. Koordinator is compatible with Kubernetes QoS and has numerous enhancements on each type. In order to avoid interfering with the native QoS semantics, Koordinator introduces an independent field ```koordinator.sh/qosClass``` to describe the co-location QoS. This QoS describes the service quality of the Pod running on the node in the co-location scenario. It is the most critical semantics of the mixed system.
 
-Koordinator is compatible with Kubernetes QoS and has numerous enhancements on each type.
-
 ### Koordinator scheduler vs kube-scheduler
 
 Koordinator scheduler is **not** designed to replace kube-scheduler, but to make co-located workloads run **better** on kubernetes.

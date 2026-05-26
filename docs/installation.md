@@ -289,7 +289,7 @@ kubeadmConfigPatches:
 
 Then create the cluster:
 
-```yaml
+```bash
 kind create cluster --config=kind-config.yaml
 ```
 
