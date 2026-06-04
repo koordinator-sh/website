@@ -8,7 +8,7 @@
 
 ### 前置条件
 
-昇腾卡的使用需要提前安装配置如下组件
+寒武纪卡的使用需要提前安装配置如下组件
 - 寒武纪 Driver
 - 寒武纪 [Cambricon Device Plugin (开启虚拟化参数配置)](https://github.com/Cambricon/cambricon-k8s-device-plugin)
 ```yaml dynamic-smlu 启动参数
