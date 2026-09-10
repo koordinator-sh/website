@@ -1,4 +1,4 @@
-# Resource Allocation Strategies
+# NUMA and Device Topology Allocation Strategies
 
 Koordinator has two topology-aware scheduler plugins that decide **where a Pod's resources physically land on a node**:
 
