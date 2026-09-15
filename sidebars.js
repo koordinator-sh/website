@@ -34,6 +34,7 @@ const sidebars = {
         'architecture/qos',
         'architecture/job',
         'architecture/device',
+        'architecture/numa-device-topology-allocation',
       ],
     },
     {
