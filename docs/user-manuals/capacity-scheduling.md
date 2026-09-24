@@ -58,7 +58,7 @@ spec:
 $ kubectl apply -f quota-example.yaml
   elasticquota.scheduling.sigs.k8s.io/quota-example created
 
-$ kubectl get eqs -n default
+$ kubectl get ElasticQuotaf -n default
   NAME     AGE
   test-d   2s
 ```
@@ -100,7 +100,7 @@ $ kubectl apply -f pod-example.yaml
 
 3.Verify `quota-example` has changed.
 ```bash
-$ kubectl get eqs -n default quota-example -o yaml
+$ kubectl get ElasticQuota -n default quota-example -o yaml
 ```
 ```yaml
 kind: ElasticQuota
@@ -164,7 +164,7 @@ spec:
 $ kubectl apply -f quota-example.yaml
   elasticquota.scheduling.sigs.k8s.io/quota-example created
 
-$ kubectl get eqs -n quota-example
+$ kubectl get ElasticQuota -n quota-example
   NAME     AGE
   test-d   2s
 ```
@@ -204,7 +204,7 @@ $ kubectl apply -f pod-example.yaml
 
 3.Verify `quota-example` has changed.
 ```bash
-$ kubectl get eqs -n quota-example quota-example -o yaml
+$ kubectl get ElasticQuota -n quota-example quota-example -o yaml
 ```
 ```yaml
 kind: ElasticQuota
