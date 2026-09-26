@@ -11,7 +11,7 @@ the real scenario, which is different from community.
 ### Prerequisite
 
 - Kubernetes >= 1.18
-- Koordinator >= 0.70
+- Koordinator >= v0.7
 
 ### Installation
 
