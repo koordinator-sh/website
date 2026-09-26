@@ -548,7 +548,7 @@ metadata:
   namespace: {{ .Values.installation.namespace }}
 data:
   koord-scheduler-config: |
-    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    apiVersion: kubescheduler.config.k8s.io/v1
     kind: KubeSchedulerConfiguration
     leaderElection:
       leaderElect: true
@@ -559,7 +559,7 @@ data:
       - pluginConfig:
         - name: ElasticQuota
           args:
-            apiVersion: kubescheduler.config.k8s.io/v1beta2
+            apiVersion: kubescheduler.config.k8s.io/v1
             kind: ElasticQuotaArgs
             quotaGroupNamespace: {{ .Values.installation.namespace }}
             enableCheckParentQuota: true

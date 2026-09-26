@@ -343,7 +343,7 @@ metadata:
   namespace: {{ .Values.installation.namespace }}
 data:
   koord-scheduler-config: |
-    apiVersion: kubescheduler.config.k8s.io/v1beta2
+    apiVersion: kubescheduler.config.k8s.io/v1
     kind: KubeSchedulerConfiguration
     leaderElection:
       leaderElect: true
@@ -354,7 +354,7 @@ data:
       - pluginConfig:
         - name: Coscheduling
         args:
-            apiVersion: kubescheduler.config.k8s.io/v1beta2
+            apiVersion: kubescheduler.config.k8s.io/v1
             kind: CoschedulingArgs
             defaultTimeout: 600s
  	        controllerWorkers: 1
