@@ -2,7 +2,7 @@
 
 ## Overview
 
-Koord-Queue is a native Kubernetes job queuing system for the Koordinator ecosystem. It provides job-level queue management with deep integration into Koordinator's ElasticQuota system, enabling resource fairness, reduced scheduler pressure via pre-scheduling, and support for Priority/Block queuing policies. It is purpose-built for multi-tenant AI/ML and batch workloads.
+Koord-Queue is a native Kubernetes job queuing system for the Koordinator ecosystem. It provides job-level queue management with deep integration into Koordinator's ElasticQuota system, enabling resource fairness, reduced scheduler pressure via pre-scheduling, and support for the Priority, Block and Intelligent queuing policies. It is purpose-built for multi-tenant AI/ML and batch workloads.
 
 ![Architecture](/img/koord-queue-architecture.png)
 
@@ -20,8 +20,11 @@ The Koord Queue is deployed as a `Deployment`. It listens to the Kubernetes APIS
 
 The Queue Scheduler watches multiple queues and decides which job (represented by a `QueueUnit`) should be released. The scheduling process uses a plugin-based framework with the following built-in plugins:
 
-- **Priority Plugin**: Sorts `QueueUnits` within a queue by priority (higher first) and creation time (earlier first).
-- **ElasticQuota Plugin**: Integrates with Koordinator's individual `ElasticQuota` CRD (scheduling.sigs.k8s.io/v1alpha1) for resource fairness, elastic allocation. 
+- **Priority Plugin**: Implements both ordering extension points. It sorts the queues by `Queue.spec.priority` (higher first), and the `QueueUnits` within a queue by priority (higher first) and by the timestamp of the first scheduling attempt (earlier first).
+- **ElasticQuotaV2 Plugin**: The default grouping plugin. It integrates with Koordinator's individual `ElasticQuota` CRD (`scheduling.sigs.k8s.io/v1alpha1`) for resource fairness and elastic allocation, resolves the quota of a `QueueUnit` from its labels, and maintains one `Queue` per quota.
+- **ResourceQuota Plugin**: An alternative grouping plugin that bases the admission decision on the `ResourceQuota` of a namespace instead of an `ElasticQuota`. It is used for deployments without Koordinator.
+
+Exactly one grouping plugin is enabled, together with the `Priority` plugin, through the `plugins` list of the `KoordQueueConfiguration`.
 
 The scheduling cycle for each queue follows:
 
@@ -43,7 +46,7 @@ Koord Queue Controllers monitor real job CRs (such as TFJob, PyTorchJob, MPIJob,
 
 A `Queue` is a namespace-scoped CRD that defines a logical job queue with a specific queuing policy. **All Queue resources must be created in the `koord-queue` namespace**, which is the namespace where the Koord-Queue controller is deployed. Each queue can be configured with:
 
-- **QueuePolicy**: Either `Priority` (priority-based ordering) or `Block` (strict blocking mode).
+- **QueuePolicy**: `Priority` (priority-based ordering), `Block` (strict blocking mode with per-quota blocked bookkeeping) or `Intelligent` (dual sub-queues around a priority threshold). The constants `FIFO` and `Round` exist in the API and in the plugin code but are not registered with the queue factory, so they cannot be selected.
 - **Priority**: A numeric priority for multi-queue scheduling (higher priority queues are scheduled first).
 - **AdmissionChecks**: A list of admission checks that `QueueUnits` in this queue must pass before being dequeued.
 
@@ -130,11 +133,9 @@ Key characteristics:
 
 For details on ElasticQuota CRD usage, see [Capacity Scheduling](../user-manuals/capacity-scheduling.md).
 
-### Admission Checks *(Work In Progress)*
+### Admission Checks
 
-> **Note**: The Admission Check controller is not yet included in this release. This section describes the planned API for future use.
-
-Koord-Queue supports an admission check framework (compatible with Kueue's `AdmissionCheck` API). Queues can define a list of admission checks that must all pass before a `QueueUnit` transitions from `Reserved` to `Dequeued`. Each admission check has one of the following states:
+Koord-Queue implements the queue side of an admission check framework that is compatible with Kueue's `AdmissionCheck` API. A queue can define a list of admission checks that must all pass before a `QueueUnit` transitions from `Reserved` to `Dequeued`. Each check has one of the following states:
 
 | State | Description |
 |-------|-------------|
@@ -143,20 +144,38 @@ Koord-Queue supports an admission check framework (compatible with Kueue's `Admi
 | `Retry` | The check needs to be retried. |
 | `Rejected` | The check has been rejected. |
 
+Part of Koord-Queue: the `QueueUnit` API, the state machine that copies the checks required by a queue into `status.admissionChecks`, the transitions triggered by `Retry`, `Rejected` and timeouts, the CRDs `admissionchecks.kueue.x-k8s.io` and `provisioningrequestconfigs.kueue.x-k8s.io`, and the RBAC needed to read and write them. Not part of Koord-Queue: the controller that decides the outcome of a check, for example a provisioning request controller. It is deployed separately and is the writer of `status.admissionChecks`. A check that reports `Retry` or `Rejected`, or that times out, moves the `QueueUnit` to `TimeoutBackoff`, releases its reservation and re-queues it.
+
+
+## Feature Gates
+
+Feature gates are supplied with the `--feature-gates` flag of the `koord-queue` binary. The `koord-queue-controllers` binary does not expose this flag, so gates that are evaluated inside a job extension remain at their default value.
+
+| Feature gate | Default | Stage | Purpose |
+|--------------|---------|-------|---------|
+| `ElasticQuota` | Enabled | Beta | Honour the explicit quota label when resolving the quota of a `QueueUnit`. |
+| `ElasticQuotaTreeDecoupledQueue` | Enabled | Beta | Route a `QueueUnit` to the queue that was created for its quota when no explicit queue is requested. |
+| `ElasticQuotaTreeBuildQueueForQuota` | Enabled | Beta | Build one queue per quota. |
+| `ElasticQuotaTreeCheckAvailableQuota` | Disabled | Alpha | Additionally require that the named quota is available in the namespace of the job. |
+| `QueueUnitConditions` | Enabled | Beta | Mirror `status.phase` into `status.conditions`. |
+| `QueueUnitActive` | Disabled | Alpha | Honour `spec.active` when admitting a `QueueUnit`. |
+| `QueueUnitRequeueState` | Disabled | Alpha | Record the structured backoff in `status.requeueState`. |
+| `MaximumExecutionTime` | Disabled | Alpha | Deactivate a `QueueUnit` whose job exceeded `spec.maximumExecutionTimeSeconds`. Evaluated in the job extension. |
 
 ## Supported Job Types
 
-Koord-Queue supports multiple job frameworks through its Extension Server architecture. Each supported type requires enabling the corresponding extension in the Helm values:
+Koord-Queue supports multiple job frameworks through its job extension architecture. Each extension is registered under a name, is started only when that name appears in the `--enabled-extensions` argument of `koord-queue-controllers`, and is toggled by a Helm value:
 
-| Job Type | Helm Value | Description |
-|----------|-----------|-------------|
-| Kubernetes Job | \extension.batchjob.enable\ | Native Kubernetes batch/v1 Job |
-| TFJob | \extension.tf.enable\ | TensorFlow training jobs |
-| PyTorchJob | \extension.pytorch.enable\ | PyTorch training jobs |
-| Argo Workflow | \extension.argo.enable\ | Argo workflow jobs |
-| Spark | \extension.spark.enable\ | Spark application jobs |
-| Ray | \extension.ray.enable\ | Ray cluster/job |
-| MPI | \extension.mpi.enable\ | MPI jobs |
+| Job Type | Extension Name | Helm Value | Description |
+|----------|----------------|-----------|-------------|
+| Kubernetes Job | `job` | `extension.batchjob.enable` | Native `batch/v1` Job. The number of pods is derived from `spec.parallelism` and `spec.completions` |
+| TFJob | `tfjob` | `extension.tf.enable` | TensorFlow training jobs, `kubeflow.org/v1` |
+| PyTorchJob | `pytorchjob` | `extension.pytorch.enable` | PyTorch training jobs, `kubeflow.org/v1` |
+| Argo Workflow | `workflow` | `extension.argo.enable` | Argo Workflows, held by a `koord-queue-suspend` template |
+| SparkApplication | `sparkapp` | `extension.spark.enable` | Spark applications, `sparkoperator.k8s.io/v1beta2`, held by the `scheduling.x-k8s.io/suspend` annotation |
+| RayJob | `rayjob`, `rayjobv1alpha1` | `extension.ray.enable` | Ray jobs, `ray.io/v1` and `ray.io/v1alpha1`. The chart enables the `rayjob` name only |
+| RayCluster | `raycluster` | RBAC only, not enabled | Ray clusters. Registered in the code and covered by the chart RBAC, but not added to `--enabled-extensions` |
+| MPIJob | none | `extension.mpi.enable` | The value exists but no MPI extension is registered and no template reads the value. The chart does grant RBAC for `mpijobs` |
 
 ## Deployment Architecture
 
@@ -164,10 +183,15 @@ Koord-Queue is deployed via Helm charts and consists of the following components
 
 | Component | Type | Description |
 |-----------|------|-------------|
-| `koord-queue` | Deployment | The main controller and scheduler. The `admissioncheck-controller` runs as a sidecar container within this Deployment. |
+| `koord-queue` | Deployment | The queue controller and scheduler, a single container named `controller`. It serves the Prometheus metrics on port `10259`, the optional visibility API on port `8082` and the optional debugging API on port `19876`. The `QueueUnit` controller that drives the admission check state machine, the conditions and the backoff runs inside this process; there is no sidecar container. |
 | `koord-queue-controllers` | Deployment | A separate Deployment handling job framework integrations (TFJob, PyTorchJob, etc.). |
 
 ## What's Next
 
-- [Koord-Queue User Guide](/docs/user-manuals/queue-management.md): Learn how to install and use Koord-Queue for job queuing.
-- [Capacity Scheduling](/docs/user-manuals/capacity-scheduling.md): Learn about Koordinator's ElasticQuota management.
+- [Koord-Queue User Guide](../user-manuals/queue-management.md): Learn how to install and use Koord-Queue for job queuing.
+- [ElasticQuota and Queue Mapping](../user-manuals/queue-quota-mapping.md): How a job is associated with a quota and with a queue.
+- [Queue Policies and Tuning](../user-manuals/queue-policies-and-tuning.md): Policy behaviour and the tuning annotations.
+- [Queue-Level Preemption](../user-manuals/queue-preemption.md): Reclaiming quota from lower-priority jobs.
+- [Workload Lifecycle Control](../user-manuals/queue-workload-lifecycle.md): Activation, execution budget, conditions and backoff.
+- [Koord-Queue Observability](../user-manuals/queue-observability.md): Metrics, dashboards, visibility API and events.
+- [Capacity Scheduling](../user-manuals/capacity-scheduling.md): Learn about Koordinator's ElasticQuota management.

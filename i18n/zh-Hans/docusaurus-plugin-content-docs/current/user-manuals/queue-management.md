@@ -208,15 +208,28 @@ my-job-blocked                                   Job
 
 不同类型的作业使用不同的字段进行暂停：
 
-| 作业类型 | API 版本 | 暂停字段 | 示例 | 状态 |
-|----------|---------|---------|------|------|
-| Kubernetes Job | `batch/v1` | `.spec.suspend` | `spec.suspend: true` | 已支持 |
-| TFJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` | `spec.runPolicy.suspend: true` | 已支持 |
-| PyTorchJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` | `spec.runPolicy.suspend: true` | 已支持 |
-| Argo Workflow | `argoproj.io/v1alpha1` | 添加 `koord-queue-suspend` 模板 | 见下方示例 | 已支持 |
-| SparkApplication | `sparkoperator.k8s.io/v1beta2` | `.spec.suspend` |  | 开发中 |
-| XGBoostJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` |  | 尚未支持 |
-| PaddleJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` |  | 尚未支持 |
+每种作业框架由运行在 `koord-queue-controllers` 中的一个作业扩展负责。只有当扩展名被传入该 Deployment 的
+`--enabled-extensions` 参数时，对应扩展才会生效；Chart 会依据 `extension.*.enable` 取值生成该参数。
+
+| 作业类型 | API 版本 | 扩展名 | Helm 取值 | 作业的挂起方式 | 被接管的条件 |
+|----------|---------|--------|-----------|----------------|--------------|
+| Kubernetes Job | `batch/v1` | `job` | `extension.batchjob.enable` | `spec.suspend` | `spec.suspend: true` 且 `status.startTime` 为空 |
+| TFJob | `kubeflow.org/v1` | `tfjob` | `extension.tf.enable` | `spec.runPolicy.suspend` 与注解 `scheduling.x-k8s.io/suspend` | 上述任一挂起形式，且 `status.startTime` 为空；存在 `Queuing` 条件时同样接管 |
+| PyTorchJob | `kubeflow.org/v1` | `pytorchjob` | `extension.pytorch.enable` | `spec.runPolicy.suspend` 与注解 `scheduling.x-k8s.io/suspend` | 上述任一挂起形式，且 `status.startTime` 为空；存在 `Queuing` 条件时同样接管 |
+| RayJob | `ray.io/v1` 与 `ray.io/v1alpha1` | `rayjob`、`rayjobv1alpha1` | `extension.ray.enable` | `spec.suspend` | `spec.suspend: true` 且 `status.startTime` 为空 |
+| RayCluster | `ray.io/v1` | `raycluster` | 仅有 RBAC，未启用 | `spec.suspend` | `spec.suspend: true`；由 `RayJob` 拥有、或带有标签 `ray.io/originated-from-crd: RayCluster` 的集群永不被接管 |
+| SparkApplication | `sparkoperator.k8s.io/v1beta2` | `sparkapp` | `extension.spark.enable` | 注解 `scheduling.x-k8s.io/suspend` | 该注解取值为 `"true"` 且 `status.appState.state` 为空 |
+| Argo Workflow | `argoproj.io/v1alpha1` | `workflow` | `extension.argo.enable` | 名为 `koord-queue-suspend` 的模板，或 `spec.suspend` | `spec.templates` 或 `status.storedTemplates` 中存在带 `suspend` 字段的 `koord-queue-suspend` 模板 |
+
+另有两点需要说明：
+
+- `values.yaml` 中存在 `extension.mpi.enable`，但没有任何模板引用它，代码中也未注册 MPI 扩展，因此发布的
+  Chart 不会对 MPIJob 排队；XGBoostJob 与 PaddleJob 同样不受支持。
+- `raycluster` 扩展已在代码中注册，Chart 也授予了访问 `RayCluster` 所需的 RBAC，但不会将 `raycluster` 加入
+  `--enabled-extensions`，因此对 `RayCluster` 排队需要自行定制 `koord-queue-controllers` 的部署。
+
+`koord-queue-controllers` 的参数 `--manage-all-jobs` 会使扩展接管已启用类型的全部作业，包括未以挂起状态提交的
+作业。该参数未由 Chart 暴露。
 
 **Argo Workflow 示例：**
 
@@ -305,6 +318,10 @@ spec:
 | `priority` | `*int32` | 用于多队列排序的队列优先级。 |
 | `priorityClassName` | `string` | Kubernetes PriorityClass 名称。 |
 | `admissionChecks` | `[]AdmissionCheckWithSelector` | 所需的准入检查列表。 |
+
+`queuePolicy` 可取 `Priority`、`Block` 与 `Intelligent`。代码中还存在常量 `FIFO` 与 `Round`，但它们未在队列
+工厂中注册，请求这两种策略的队列会构造失败。各策略的行为、调优注解以及策略变更时的运行时行为，详见
+[排队策略与调优](./queue-policies-and-tuning.md)。
 
 ### Queue 优先级
 
@@ -500,6 +517,10 @@ spec:
 | `podSet` | `[]PodSet` | Pod 组定义（最多 8 个）。 |
 | `priorityClassName` | `string` | Kubernetes PriorityClass 名称。 |
 | `request` | `ResourceList` | 从作业解析的实际资源请求。 |
+| `active` | `*bool` | 该单元是否可被准入，未设置时按 `true` 处理。需要 `QueueUnitActive` 特性开关，以及高于 v1.8.0 Chart 的 `QueueUnit` CRD。 |
+| `maximumExecutionTimeSeconds` | `*int32` | 作业的执行时长预算，自其 Pod 运行时开始计时。需要 `MaximumExecutionTime` 特性开关与更高的 CRD。 |
+
+上述两个字段的详细说明与可用性约束见[工作负载生命周期控制](./queue-workload-lifecycle.md)。
 
 ### QueueUnit Status
 
@@ -511,15 +532,23 @@ spec:
 | `lastUpdateTime` | `Time` | 上次状态更新时间戳。 |
 | `admissionChecks` | `[]AdmissionCheckState` | 每个准入检查的状态。 |
 | `podState` | `PodState` | Running/Pending Pod 计数。 |
-| `admissions` | `[]Admission` | 每个 PodSet 准入的资源分配和状态。 |
+| `admissions` | `[]Admission` | 每个 PodSet 准入的资源分配与状态：`replicas`、`running`、`resources`，以及该单元被选为抢占受害者时的 `reclaimState`。 |
+| `lastAllocateTime` | `Time` | 最近一次配额分配的时间戳，是回收保护期的起点。 |
+| `conditions` | `[]metav1.Condition` | `phase` 的标准 Condition 表示。需要高于 v1.8.0 Chart 的 `QueueUnit` CRD。 |
+| `requeueState` | `RequeueState` | 退避记账：`count` 与 `requeueAt`。需要 `QueueUnitRequeueState` 特性开关与更高的 CRD。 |
+| `reclaimablePods` | `[]ReclaimablePod` | 各 PodSet 中不再需要预留配额的 Pod 数量。需要更高的 CRD。 |
+| `accumulatedPastExecutionTimeSeconds` | `*int32` | 此前若干次“准入—驱逐”周期中已消耗的执行时长。需要更高的 CRD。 |
 
 ## 使用 AdmissionCheck
 
-### 准入检查 *（开发中）*
-
-> **注意**：准入检查控制器尚未包含在本版本中。本节描述了未来使用的计划 API。
+### 准入检查
 
 Queue 可以要求在 `QueueUnit` 释放之前必须通过准入检查。这对于与外部资源供应系统集成非常有用。
+
+Koord-Queue 提供该机制的队列侧能力：`Queue` API 的 `admissionChecks` 字段、`QueueUnit` 的
+`status.admissionChecks` 状态机、CRD `admissionchecks.kueue.x-k8s.io` 与
+`provisioningrequestconfigs.kueue.x-k8s.io`，以及读写它们所需的 RBAC。而决定检查结果的组件（例如
+ProvisioningRequest 控制器）不属于 Koord-Queue，需要单独部署，它是 `status.admissionChecks` 的写入方。
 
 ```yaml
 apiVersion: scheduling.x-k8s.io/v1alpha1
@@ -536,44 +565,59 @@ spec:
           requires-provisioning: "true"
 ```
 
-当 `QueueUnit` 被预留时，准入检查控制器会处理每个配置的检查。`QueueUnit` 仅在所有检查报告 `Ready` 状态时才转换为 `Dequeued`。
+当 `QueueUnit` 被预留时，其所属队列要求的检查会被复制到 `status.admissionChecks`，单元停留在 `Reserved`
+阶段等待；只有当全部检查报告 `Ready` 时，它才会转换为 `Dequeued`。若某项检查报告 `Retry` 或 `Rejected`，
+或检查超时，单元会进入 `TimeoutBackoff` 阶段，其预留被释放并重新入队。驱动该状态机的协程数量由参数
+`--admissionCheckControllerWorker` 设置，默认为 `2`。
 
 ## 可观测性
 
-### 监控
-
-Koord-Queue 暴露 Prometheus 指标用于监控：
+Koord-Queue 在 `koord-queue` Deployment 的 `10259` 端口暴露 Prometheus 指标，提供用于查询队列内容的
+Visibility 聚合 API，并可选提供调试 HTTP API。Chart 不会为指标端口创建 `Service`，因此采集需直接指向 Pod：
 
 ```bash
-# 端口转发到控制器
-$ kubectl port-forward -n koord-queue svc/koord-queue 10259:10259
+# 转发控制器的指标端口
+$ kubectl -n koord-queue port-forward deployment/koord-queue 10259:10259
 
 # 获取指标
-$ curl http://localhost:10259/metrics
+$ curl -s http://127.0.0.1:10259/metrics | head
 ```
 
-如果启用了可视化服务器（`enableVisibilityServer: true`），可以通过 REST API 查询队列状态：
+当 `controller.enableVisibilityServer=true` 时，Chart 会创建 `Service` `koord-queue-visibility-server` 与
+`APIService` `v1alpha1.visibility.koord-queue.x-k8s.io`，此时可通过 APIServer 查询队列或配额的内容：
 
 ```bash
-$ curl http://koord-queue-visibility:8090/api/queues
+$ kubectl get --raw "/apis/visibility.koord-queue.x-k8s.io/v1alpha1/queues/team-a/queueunits" | jq .
 ```
 
 ### 调试
 
-查看控制器日志了解调度决策：
+通过作业的 `QueueUnit` 查看调度决策，并查看其上记录的事件：
 
 ```bash
-$ kubectl logs -n koord-queue deployment/koord-queue-controller -f --tail=100
+$ kubectl get queueunit <name> -n <namespace> -o yaml
+
+$ kubectl get events -n <namespace> --field-selector involvedObject.name=<name> \
+    -o custom-columns='LAST:.lastTimestamp,TYPE:.type,REASON:.reason,MESSAGE:.message'
 ```
 
-检查 `QueueUnit` 状态获取调度详情：
+其中与调度结果相关的事件是 `Scheduled` 与 `FailedScheduling`，与抢占相关的是 `Preempted` 与 `Reclaimed`；
+当由单元标签推导出的队列名没有对应的 `Queue` 时记录 `QueueNotFound`。完全未带配额标签的作业不会产生事件，
+详见 [ElasticQuota 与 Queue 的映射关系](./queue-quota-mapping.md)。控制器日志通过如下命令查看：
 
 ```bash
-$ kubectl describe queueunit <name> -n <namespace>
+$ kubectl -n koord-queue logs deployment/koord-queue -c controller --tail=200 -f
+$ kubectl -n koord-queue logs deployment/koord-queue-controllers -c manager --tail=200 -f
 ```
 
-查看 Kubernetes 事件获取调度相关消息：
+指标清单、项目自带的 Grafana 大盘、Visibility 与调试 API 的接口以及日志级别，详见
+[Koord-Queue 可观测性](./queue-observability.md)。
 
-```bash
-$ kubectl get events -n <namespace> --field-selector reason=Scheduling
-```
+## 相关文档
+
+- [ElasticQuota 与 Queue 的映射关系](./queue-quota-mapping.md)：作业如何关联到配额与队列。
+- [排队策略与调优](./queue-policies-and-tuning.md)：策略行为、调优注解与不生效的配置项。
+- [队列级抢占](./queue-preemption.md)：从低优先级作业回收配额。
+- [工作负载生命周期控制](./queue-workload-lifecycle.md)：暂停作业、限定执行时长、Condition 与退避。
+- [Koord-Queue 可观测性](./queue-observability.md)：指标、大盘、Visibility API 与事件。
+- [Koord-Queue 设计](../designs/koord-queue.md)：架构与核心概念。

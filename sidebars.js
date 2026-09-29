@@ -46,6 +46,10 @@ const sidebars = {
           'Capacity Scheduling': [
             'user-manuals/capacity-scheduling',
             'user-manuals/queue-management',
+            'user-manuals/queue-quota-mapping',
+            'user-manuals/queue-policies-and-tuning',
+            'user-manuals/queue-preemption',
+            'user-manuals/queue-workload-lifecycle',
             'user-manuals/run-pytorchjob-in-koordinator',
           ],
           'Task Scheduling': [
@@ -96,6 +100,7 @@ const sidebars = {
           'Observability' : [
             'user-manuals/scheduling-monitoring',
             'user-manuals/descheduling-monitoring',
+            'user-manuals/queue-observability',
           ]
         }
       ],

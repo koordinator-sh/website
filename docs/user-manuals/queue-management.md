@@ -208,15 +208,31 @@ The `QueueUnit` stays in `Enqueued` phase because `team-a` has already reached i
 
 Different job types use different fields for suspension:
 
-| Job Type | API Version | Suspension Field | Example | Status |
-|----------|-------------|------------------|---------|--------|
-| Kubernetes Job | `batch/v1` | `.spec.suspend` | `spec.suspend: true` | Supported |
-| TFJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` | `spec.runPolicy.suspend: true` | Supported |
-| PyTorchJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` | `spec.runPolicy.suspend: true` | Supported |
-| Argo Workflow | `argoproj.io/v1alpha1` | Add `koord-queue-suspend` template | See example below | Supported |
-| SparkApplication | `sparkoperator.k8s.io/v1beta2` | `.spec.suspend` |  | WIP |
-| XGBoostJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` |  | Not Supported Yet |
-| PaddleJob | `kubeflow.org/v1` | `.spec.runPolicy.suspend` |  | Not Supported Yet |
+Each job framework is handled by a job extension that runs in the `koord-queue-controllers` deployment.
+An extension is only active when its name is passed to the `--enabled-extensions` argument of that
+deployment, which the Helm chart derives from the `extension.*.enable` values.
+
+| Job Type | API Version | Extension Name | Helm Value | How the Job Is Held | Condition for Being Managed |
+|----------|-------------|----------------|------------|---------------------|-----------------------------|
+| Kubernetes Job | `batch/v1` | `job` | `extension.batchjob.enable` | `spec.suspend` | `spec.suspend: true` and no `status.startTime` |
+| TFJob | `kubeflow.org/v1` | `tfjob` | `extension.tf.enable` | `spec.runPolicy.suspend` and the annotation `scheduling.x-k8s.io/suspend` | Either form of suspension, and no `status.startTime`; a `Queuing` condition is also accepted |
+| PyTorchJob | `kubeflow.org/v1` | `pytorchjob` | `extension.pytorch.enable` | `spec.runPolicy.suspend` and the annotation `scheduling.x-k8s.io/suspend` | Either form of suspension, and no `status.startTime`; a `Queuing` condition is also accepted |
+| RayJob | `ray.io/v1` and `ray.io/v1alpha1` | `rayjob`, `rayjobv1alpha1` | `extension.ray.enable` | `spec.suspend` | `spec.suspend: true` and no `status.startTime` |
+| RayCluster | `ray.io/v1` | `raycluster` | RBAC only, not enabled | `spec.suspend` | `spec.suspend: true`; clusters owned by a `RayJob` or labelled `ray.io/originated-from-crd: RayCluster` are never managed |
+| SparkApplication | `sparkoperator.k8s.io/v1beta2` | `sparkapp` | `extension.spark.enable` | The annotation `scheduling.x-k8s.io/suspend` | The annotation set to `"true"` and an empty `status.appState.state` |
+| Argo Workflow | `argoproj.io/v1alpha1` | `workflow` | `extension.argo.enable` | A template named `koord-queue-suspend`, or `spec.suspend` | A `koord-queue-suspend` template with a `suspend` field, in `spec.templates` or in `status.storedTemplates` |
+
+Two further points are worth noting:
+
+- The value `extension.mpi.enable` exists in `values.yaml` but is not referenced by any template, and no
+  MPI extension is registered. MPIJob is therefore not queued by the published chart. XGBoostJob and
+  PaddleJob are not supported either.
+- The `raycluster` extension is registered in the code and the chart grants the RBAC for `RayCluster`
+  objects, but the chart does not add `raycluster` to `--enabled-extensions`, so queuing `RayCluster`
+  objects requires a customised deployment of `koord-queue-controllers`.
+
+The flag `--manage-all-jobs` of `koord-queue-controllers` makes the extensions manage every job of the
+enabled types, including jobs that were not submitted in a suspended state. It is not exposed by the chart.
 
 **Argo Workflow Example:**
 
@@ -305,6 +321,11 @@ When a TFJob or PyTorchJob is submitted:
 | `priority` | `*int32` | Queue priority for multi-queue ordering. |
 | `priorityClassName` | `string` | Kubernetes PriorityClass name. |
 | `admissionChecks` | `[]AdmissionCheckWithSelector` | List of admission checks required. |
+
+`queuePolicy` accepts `Priority`, `Block` and `Intelligent`. The constants `FIFO` and `Round` also exist in
+the code but are not registered with the queue factory, and a queue that requests one of them fails to be
+constructed. See [Queue Policies and Tuning](./queue-policies-and-tuning.md) for the
+behaviour of each policy, for the tuning annotations and for the runtime behaviour of a policy change.
 
 ### Queue Priority
 
@@ -500,6 +521,11 @@ spec:
 | `podSet` | `[]PodSet` | Pod group definitions (max 8). |
 | `priorityClassName` | `string` | Kubernetes PriorityClass name. |
 | `request` | `ResourceList` | Actual resource requests parsed from the job. |
+| `active` | `*bool` | Whether the unit may be admitted. An unset value is treated as `true`. Requires the `QueueUnitActive` feature gate and a `QueueUnit` CRD newer than the v1.8.0 chart. |
+| `maximumExecutionTimeSeconds` | `*int32` | Execution budget of the job, counted from the moment its pods run. Requires the `MaximumExecutionTime` feature gate and a `QueueUnit` CRD newer than the v1.8.0 chart. |
+
+See [Workload Lifecycle Control](./queue-workload-lifecycle.md) for the two fields above and
+for the availability constraints that apply to them.
 
 ### QueueUnit Status
 
@@ -511,15 +537,25 @@ spec:
 | `lastUpdateTime` | `Time` | Last status update timestamp. |
 | `admissionChecks` | `[]AdmissionCheckState` | Status of each admission check. |
 | `podState` | `PodState` | Running/Pending pod counts. |
-| `admissions` | `[]Admission` | Resource allocation and state per PodSet admission. |
+| `admissions` | `[]Admission` | Resource allocation and state per PodSet admission: `replicas`, `running`, `resources` and, when the unit has been selected as a preemption victim, `reclaimState`. |
+| `lastAllocateTime` | `Time` | Timestamp of the last quota allocation. It is the starting point of the reclaim protect time. |
+| `conditions` | `[]metav1.Condition` | Mirror of `phase` in the standard condition representation. Requires a `QueueUnit` CRD newer than the v1.8.0 chart. |
+| `requeueState` | `RequeueState` | Backoff bookkeeping: `count` and `requeueAt`. Requires the `QueueUnitRequeueState` feature gate and a newer CRD. |
+| `reclaimablePods` | `[]ReclaimablePod` | Per PodSet number of pods whose reserved quota is no longer needed. Requires a newer CRD. |
+| `accumulatedPastExecutionTimeSeconds` | `*int32` | Execution time spent in previous admit-evict cycles. Requires a newer CRD. |
 
 ## Use AdmissionCheck
 
-### Admission Checks *(Work In Progress)*
+### Admission Checks
 
-> **Note**: The Admission Check controller is not yet included in this release. This section describes the planned API for future use.
+Queues can require admission checks that must pass before a `QueueUnit` is released. This is useful for
+integrating with external resource provisioning systems.
 
-Queues can require admission checks that must pass before a `QueueUnit` is released. This is useful for integrating with external resource provisioning systems.
+Koord-Queue ships the queue side of this mechanism: the `admissionChecks` field of the `Queue` API, the
+`status.admissionChecks` state machine of the `QueueUnit`, the CRDs `admissionchecks.kueue.x-k8s.io` and
+`provisioningrequestconfigs.kueue.x-k8s.io`, and the RBAC required to read and write them. The component
+that decides the outcome of a check, for example a provisioning request controller, is not part of
+Koord-Queue and has to be deployed separately; it is the writer of `status.admissionChecks`.
 
 ```yaml
 apiVersion: scheduling.x-k8s.io/v1alpha1
@@ -536,44 +572,65 @@ spec:
           requires-provisioning: "true"
 ```
 
-When a `QueueUnit` is reserved, the admission check controller processes each configured check. The `QueueUnit` transitions to `Dequeued` only when all checks report `Ready` status.
+When a `QueueUnit` is reserved, the checks that its queue requires are copied into
+`status.admissionChecks` and the unit waits in the `Reserved` phase. It transitions to `Dequeued` only when
+every check reports the state `Ready`. A check that reports `Retry` or `Rejected`, or that times out, moves
+the unit to the `TimeoutBackoff` phase, its reservation is released, and it is re-queued. The number of
+workers that drive this state machine is set with the flag `--admissionCheckControllerWorker`, which
+defaults to `2`.
 
 ## Observability
 
-### Monitoring
-
-Koord-Queue exposes Prometheus metrics for monitoring:
+Koord-Queue exposes Prometheus metrics on port `10259` of the `koord-queue` deployment, an aggregated
+visibility API for querying the contents of a queue, and an optional debugging HTTP API. The chart creates
+no `Service` for the metrics port, so scraping has to target the pod directly:
 
 ```bash
-# Port-forward to the controller
-$ kubectl port-forward -n koord-queue svc/koord-queue 10259:10259
+# Forward the metrics port of the controller
+$ kubectl -n koord-queue port-forward deployment/koord-queue 10259:10259
 
-# Fetch metrics
-$ curl http://localhost:10259/metrics
+# Fetch the metrics
+$ curl -s http://127.0.0.1:10259/metrics | head
 ```
 
-If the visibility server is enabled (`enableVisibilityServer: true`), you can query queue status via REST API:
+With `controller.enableVisibilityServer=true`, the chart creates the `Service`
+`koord-queue-visibility-server` and the `APIService` `v1alpha1.visibility.koord-queue.x-k8s.io`, and the
+contents of a queue or of a quota can be queried through the API server:
 
 ```bash
-$ curl http://koord-queue-visibility:8090/api/queues
+$ kubectl get --raw "/apis/visibility.koord-queue.x-k8s.io/v1alpha1/queues/team-a/queueunits" | jq .
 ```
 
 ### Debugging
 
-Check the controller logs for scheduling decisions:
+Inspect the `QueueUnit` of a job for the scheduling decision, and the events recorded on it:
 
 ```bash
-$ kubectl logs -n koord-queue deployment/koord-queue-controller -f --tail=100
+$ kubectl get queueunit <name> -n <namespace> -o yaml
+
+$ kubectl get events -n <namespace> --field-selector involvedObject.name=<name> \
+    -o custom-columns='LAST:.lastTimestamp,TYPE:.type,REASON:.reason,MESSAGE:.message'
 ```
 
-Inspect `QueueUnit` status for scheduling details:
+The relevant events are `Scheduled` and `FailedScheduling` for the outcome of a scheduling cycle,
+`Preempted` and `Reclaimed` for preemption, and `QueueNotFound` when the queue name derived from the labels
+of a unit has no matching `Queue`. A job that carries no quota label at all produces no event; see
+[ElasticQuota and Queue Mapping](./queue-quota-mapping.md). The controller logs are read with:
 
 ```bash
-$ kubectl describe queueunit <name> -n <namespace>
+$ kubectl -n koord-queue logs deployment/koord-queue -c controller --tail=200 -f
+$ kubectl -n koord-queue logs deployment/koord-queue-controllers -c manager --tail=200 -f
 ```
 
-Check Kubernetes events for scheduling-related messages:
+The metric reference, the Grafana dashboard shipped with the project, the endpoints of the visibility and
+debugging APIs and the log levels are documented in
+[Koord-Queue Observability](./queue-observability.md).
 
-```bash
-$ kubectl get events -n <namespace> --field-selector reason=Scheduling
-```
+## Related Documents
+
+- [ElasticQuota and Queue Mapping](./queue-quota-mapping.md): how a job is associated with a quota and with a queue.
+- [Queue Policies and Tuning](./queue-policies-and-tuning.md): policy behaviour, tuning annotations and settings that have no effect.
+- [Queue-Level Preemption](./queue-preemption.md): reclaiming quota from lower-priority jobs.
+- [Workload Lifecycle Control](./queue-workload-lifecycle.md): pausing jobs, bounding execution time, conditions and backoff.
+- [Koord-Queue Observability](./queue-observability.md): metrics, dashboards, visibility API and events.
+- [Koord-Queue Design](../designs/koord-queue.md): architecture and core concepts.
