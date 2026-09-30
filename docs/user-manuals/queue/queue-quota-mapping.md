@@ -16,7 +16,6 @@ and how the quota hierarchy participates in the admission decision. For the conf
 ```
 Job (labels are copied onto the QueueUnit)
   -> quota name   from the label quota.scheduling.koordinator.sh/name
-                  (fallback: alibabacloud.com/quota-name)
   -> queue name   identical to the quota name
   -> Queue object in the namespace koord-queue, created and maintained automatically
 ```
@@ -27,12 +26,8 @@ therefore exactly one queue per quota, and both carry the name of the `ElasticQu
 
 ## Step 1: Determining the Quota
 
-The plugin reads two labels, in the following order of precedence:
-
-| Label | Precedence |
-|-------|-----------|
-| `quota.scheduling.koordinator.sh/name` | Primary |
-| `alibabacloud.com/quota-name` | Fallback, used when the primary label is absent or empty |
+The plugin reads the quota name from the label `quota.scheduling.koordinator.sh/name`, which the job
+extension copies from the job onto the `QueueUnit`.
 
 ```yaml
 apiVersion: batch/v1
@@ -46,9 +41,9 @@ spec:
   suspend: true
 ```
 
-Two consequences follow from this rule and are worth stating explicitly:
+Three consequences follow from this rule and are worth stating explicitly:
 
-- **There is no namespace based fallback.** A job that carries neither label does not resolve to any
+- **There is no namespace based fallback.** A job that does not carry the label does not resolve to any
   quota, and consequently not to any queue. Its `QueueUnit` is created and then held in the pending list of
   the controller, which retries the mapping periodically. The unit is never admitted and no event is
   recorded for it, so this misconfiguration is silent and has to be found in the labels of the job.
@@ -81,7 +76,7 @@ default. A `Queue` that is created automatically receives the following content:
 | `metadata.name` | The name of the `ElasticQuota`. |
 | `metadata.namespace` | `koord-queue`. |
 | `spec.priority` | `1000`. |
-| `spec.queuePolicy` | The value of the label `koord-queue/queue-policy`, or of its alias `kube-queue/queue-policy`, when that value is one of `Priority`, `Block`, `Round` or `Intelligent`. Otherwise `Priority`. |
+| `spec.queuePolicy` | The value of the label `koord-queue/queue-policy`, when that value is one of `Priority`, `Block`, `Round` or `Intelligent`. Otherwise `Priority`. |
 | `metadata.labels["quota.scheduling.koordinator.sh/parent"]` | Copied from the `ElasticQuota`. |
 | `metadata.annotations` | Every annotation of the `ElasticQuota` whose key starts with `koord-queue/`, except the queue policy key itself, which is translated into `spec.queuePolicy`. |
 
@@ -140,13 +135,11 @@ three practical consequences:
 3. **Deleting the `ElasticQuota` deletes the `Queue`.** Units that are still enqueued lose their queue and
    are reported through `QueueNotFound` events until a matching quota exists again.
 
-The annotation prefix matters for the queue policy that consumes it. The `Priority` and `Block` policies
-read the `koord-queue/` prefixed annotations, which are exactly the ones that the synchronisation
-propagates. The `Intelligent` policy reads the wait-for-pods-running, preemption and max-depth annotations
-under the `kube-queue/` prefix instead, and annotations with that prefix are not synchronised from the
-`ElasticQuota`; they have to be written to the `Queue` object directly.
-[Queue Policies and Tuning](./queue-policies-and-tuning.md) lists the effective prefix for
-each annotation.
+Which of the synchronised annotations a queue evaluates depends on its policy. The `Priority` and `Block`
+policies read the wait-for-pods-running, preemption and scan depth annotations, while the `Intelligent`
+policy reads `koord-queue/priority-threshold` only and is not affected by the other three.
+[Queue Policies and Tuning](./queue-policies-and-tuning.md) lists the annotations that each policy
+evaluates.
 
 ## Hierarchy and the Admission Decision
 

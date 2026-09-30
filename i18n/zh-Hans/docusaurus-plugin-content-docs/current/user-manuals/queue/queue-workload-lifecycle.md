@@ -2,7 +2,7 @@
 
 ## 引言
 
-`QueueUnit` 是作业在 Koord-Queue 中的表示形式。除描述作业在队列中所处位置的 phase 之外，`QueueUnit` API 还提供了一组字段，允许运维人员或外部控制器介入作业的生命周期：作业可以在不被删除的前提下暂停与恢复、其执行时长可以被限定、其状态可以通过标准的 Kubernetes Condition 对外提供、其重试可以遵循结构化的退避计划。上述字段的命名与语义与 Kueue 的 `Workload` API 保持一致，因此基于 Kueue 概念编写的工具可以直接映射到 Koord-Queue。
+`QueueUnit` 是作业在 Koord-Queue 中的表示形式。除描述作业在队列中所处位置的 phase 之外，`QueueUnit` API 还提供了一组字段，允许运维人员或外部控制器介入作业的生命周期：作业可以在不被删除的前提下暂停与恢复、其执行时长可以被限定、其状态可以通过标准的 Kubernetes Condition 对外提供、其重试可以遵循结构化的退避计划。
 
 | 能力 | 字段 | 用途 |
 |------|------|------|
@@ -85,7 +85,7 @@ $ kubectl -n koord-queue patch deployment koord-queue --type=json \
 
 `spec.maximumExecutionTimeSeconds` 用于限定作业可执行的时长。计时从作业 Pod 上报运行时开始，即 `PodsReady` 条件所记录的时刻，因此等待准入与等待 Pod 启动的时间不计入预算。预算耗尽后，该 `QueueUnit` 会被停用：`spec.active` 置为 `false`，`status.accumulatedPastExecutionTimeSeconds` 被重置，`Evicted` 条件以原因 `MaximumExecutionTimeExceeded` 记录，并发出同名 `Warning` 事件。此后重新激活该单元将获得一份全新的预算。
 
-作业侧对应的注解为 `scheduling.x-k8s.io/max-exec-time-seconds`，与上游 `kueue.x-k8s.io/max-exec-time-seconds` 标签相对应。
+作业侧对应的注解为 `scheduling.x-k8s.io/max-exec-time-seconds`。
 
 该逻辑实现于作业扩展（`pkg/jobext/framework/activation.go`），需要在 `koord-queue-controllers` 二进制中开启 `MaximumExecutionTime`。由于该二进制未提供 `--feature-gates`，当前发布版本的标准部署无法启用执行时长预算：API 会接受该字段，但不会产生实际效果。
 
@@ -134,20 +134,6 @@ $ kubectl get queueunit training-job -n default \
 $ kubectl get queueunit training-job -n default \
     -o jsonpath='{.status.phase}{"\t"}{.status.requeueState.count}{"\t"}{.status.requeueState.requeueAt}{"\n"}'
 ```
-
-## 与 Kueue Workload API 的对应关系
-
-| Kueue 概念 | Koord-Queue 对应项 |
-|------------|--------------------|
-| `Workload.spec.active` | `QueueUnit.spec.active` |
-| `kueue.x-k8s.io/max-exec-time-seconds` 标签 | `scheduling.x-k8s.io/max-exec-time-seconds` 注解与 `QueueUnit.spec.maximumExecutionTimeSeconds` |
-| `Workload.status.conditions`（`QuotaReserved`、`Admitted`、`PodsReady`、`Finished`、`Evicted`） | `QueueUnit.status.conditions`，条件类型相同 |
-| `Workload.status.requeueState` | `QueueUnit.status.requeueState` |
-| `Workload.status.reclaimablePods` | `QueueUnit.status.reclaimablePods` |
-| `Workload.status.admissionChecks` | `QueueUnit.status.admissionChecks`，直接使用 Kueue 的 `AdmissionCheckState` 类型 |
-| `Workload.spec.podSets` | `QueueUnit.spec.podSet`，直接使用 Kueue 的 `PodSet` 类型 |
-
-其中 `AdmissionCheckState` 与 `PodSet` 直接取自 Kueue API，字段语义完全一致。
 
 ## 参考
 

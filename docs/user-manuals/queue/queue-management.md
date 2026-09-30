@@ -12,7 +12,7 @@ Koord-Queue is a native Kubernetes job queuing system designed for the Koordinat
 - **Deep ElasticQuota integration** to avoid duplicate quota configurations and enable elastic resource sharing.
 - **Pre-scheduling** to reduce scheduler pressure by queuing jobs before they create pods.
 - **Multi-framework support** including TFJob, PyTorchJob, Spark, Argo Workflow, Ray, and native Kubernetes Jobs.
-- **Admission check framework** compatible with Kueue's AdmissionCheck API.
+- **Admission check framework** that lets a queue require external checks to pass before a job is dequeued.
 
 ## Setup
 
@@ -556,8 +556,8 @@ Queues can require admission checks that must pass before a `QueueUnit` is relea
 integrating with external resource provisioning systems.
 
 Koord-Queue ships the queue side of this mechanism: the `admissionChecks` field of the `Queue` API, the
-`status.admissionChecks` state machine of the `QueueUnit`, the CRDs `admissionchecks.kueue.x-k8s.io` and
-`provisioningrequestconfigs.kueue.x-k8s.io`, and the RBAC required to read and write them. The component
+`status.admissionChecks` state machine of the `QueueUnit`, the `AdmissionCheck` and
+`ProvisioningRequestConfig` CRDs, and the RBAC required to read and write them. The component
 that decides the outcome of a check, for example a provisioning request controller, is not part of
 Koord-Queue and has to be deployed separately; it is the writer of `status.admissionChecks`.
 

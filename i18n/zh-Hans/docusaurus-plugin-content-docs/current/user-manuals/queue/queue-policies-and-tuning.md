@@ -8,11 +8,13 @@ Koord-Queue 在两个层级上进行排序。队列之间由 `Priority` 插件�
 
 ## 策略总览
 
-| 策略 | 实现 | 队列内排序 | 抢占支持 | 队列行为注解的前缀 |
-|------|------|------------|----------|--------------------|
-| `Priority` | 与 `Block` 共用同一实现 | 优先级降序，其次首次尝试时间升序 | 支持 | `koord-queue/` |
-| `Block` | 与 `Priority` 共用同一实现 | 优先级降序，其次首次尝试时间升序 | 支持 | `koord-queue/` |
-| `Intelligent` | 双子队列实现 | 高优先级子队列优先，两个子队列内部均按优先级与时间排序 | 不支持 | wait-for-pods-running、抢占与 max-depth 使用 `kube-queue/`；优先级阈值使用 `koord-queue/` |
+| 策略 | 实现 | 队列内排序 | 抢占支持 | 该策略评估的调优注解 |
+|------|------|------------|----------|----------------------|
+| `Priority` | 与 `Block` 共用同一实现 | 优先级降序，其次首次尝试时间升序 | 支持 | `wait-for-pods-running`、`enable-queueunit-preemption`、`max-depth` |
+| `Block` | 与 `Priority` 共用同一实现 | 优先级降序，其次首次尝试时间升序 | 支持 | `wait-for-pods-running`、`enable-queueunit-preemption`、`max-depth` |
+| `Intelligent` | 双子队列实现 | 高优先级子队列优先，两个子队列内部均按优先级与时间排序 | 不支持 | 仅 `priority-threshold` |
+
+上表最后一列省略了调优注解共有的 `koord-queue/` 前缀，完整键名见[调优注解](#调优注解)。
 
 代码中还存在另外两个策略名，但无法使用。`FIFO` 是 `Queue` API 中声明的常量，`Round` 会被 `ElasticQuotaV2` 插件的策略匹配逻辑接受，但二者均未在队列工厂中注册。选择其中之一会导致队列构造失败，并在 `Queue` 上产生原因为 `AddQueueFail` 的 `Warning` 事件，该队列不会服务任何作业。
 
@@ -65,7 +67,7 @@ Koord-Queue 在两个层级上进行排序。队列之间由 `Priority` 插件�
 
 ## 选择与变更策略
 
-对于由 `ElasticQuota` 自动创建的队列，策略取自标签 `koord-queue/queue-policy`；该标签缺失时取其别名 `kube-queue/queue-policy`。二者同时存在时以 `koord-queue/queue-policy` 为准。若取值不属于 `Priority`、`Block`、`Round`、`Intelligent`，则被忽略，策略回落为 `Priority`。
+对于由 `ElasticQuota` 自动创建的队列，策略取自标签 `koord-queue/queue-policy`。若取值不属于 `Priority`、`Block`、`Round`、`Intelligent`，则被忽略，策略回落为 `Priority`。
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -105,7 +107,7 @@ spec:
 
 ## 调优注解
 
-下列注解从 `Queue` 对象读取。对于自动创建的队列，`koord-queue/` 前缀的注解可以设置在 `ElasticQuota` 上并被复制到 `Queue`；`kube-queue/` 前缀的注解则必须直接设置在 `Queue` 上。
+下列注解均从 `Queue` 对象读取，且都使用 `koord-queue/` 前缀。对于自动创建的队列，这些注解也可以设置在 `ElasticQuota` 上，由协调过程复制到 `Queue`，详见 [ElasticQuota 与 Queue 的映射关系](./queue-quota-mapping.md)。
 
 | 注解 | 适用策略 | 默认值 | 作用 |
 |------|----------|--------|------|
@@ -113,12 +115,13 @@ spec:
 | `koord-queue/enable-queueunit-preemption` | `Priority`、`Block` | 缺失，即关闭 | 开启“配额过滤失败后”的抢占路径。 |
 | `koord-queue/max-depth` | `Priority`、`Block` | `-1`，即不限制 | 限制队列扫描与调度的深度，`-1` 表示不限制。 |
 | `koord-queue/priority-threshold` | `Intelligent` | `4` | 划分高、低优先级子队列的阈值。 |
-| `kube-queue/wait-for-pods-running` | `Intelligent` | 缺失，即关闭 | 与 `koord-queue/` 版本作用相同，适用于 `Intelligent` 实现。 |
-| `kube-queue/enable-queueunit-preemption` | `Intelligent` | 缺失，即关闭 | 实现会读取该注解，但 `Intelligent` 未实现抢占，因此不产生效果。 |
-| `kube-queue/max-depth` | `Intelligent` | 不限制 | 实现会解析但不会应用，当前不产生效果。若需要限制扫描深度，请使用 `Priority` 或 `Block`。 |
 | `koord-queue/queue-items-refresh-interval` | 全部策略 | `15s` | `Queue.status.queueItemDetails` 中队列排序的刷新间隔，取值为 Go 时长格式，例如 `30s` 或 `2m`。 |
 | `koord-queue/disable-show-queue-items` | 全部策略 | 缺失，即开启发布 | 停止刷新 `Queue.status.queueItemDetails` 的周期作业，最后一次发布的值会被保留。起作用的是该键是否存在，而非其取值。 |
 | `koord-queue/queue-args` | 全部策略均接受 | 空 | 会被解析为字符串映射并传入队列实现，但当前各实现不读取任何参数，因此不产生效果。 |
+
+`Intelligent` 策略只评估 `koord-queue/priority-threshold`。在 `Intelligent` 队列上设置
+`koord-queue/wait-for-pods-running`、`koord-queue/enable-queueunit-preemption` 或 `koord-queue/max-depth`
+不会产生效果，因此限制扫描深度需要使用 `Priority` 或 `Block`。
 
 上述注解在 `Queue` 对象变更时会被重新读取，因此调优无需重启组件。
 
@@ -151,7 +154,7 @@ $ kubectl -n koord-queue get queue team-a -o jsonpath='{.status.queueItemDetails
 | `--defaultPreemptible` | `koord-queue` | 已注册为参数。队列级抢占的受害者选择依据优先级与资源是否可回收，不依据任何“可抢占”属性，也不会读取可抢占标签。 |
 | `--podInitialBackoffSeconds`、`--podMaxBackoffSeconds` | `koord-queue` | 用于填充队列的参数映射，而各实现并不读取该映射。 |
 | `koord-queue/queue-args` | `Queue` 注解 | 解析进同一参数映射，结果相同。 |
-| `Intelligent` 队列上的 `kube-queue/max-depth` | `Queue` 注解 | 解析后被丢弃。 |
+| `Intelligent` 队列上的 `koord-queue/wait-for-pods-running`、`koord-queue/enable-queueunit-preemption` 与 `koord-queue/max-depth` | `ElasticQuota` 或 `Queue` 注解 | 会被保存在 `Queue` 上，但 `Intelligent` 实现不读取。 |
 
 ## 策略选型建议
 
@@ -170,9 +173,9 @@ $ kubectl -n koord-queue get queue team-a -o jsonpath='{.status.queueItemDetails
 | `Queue` 上出现 `AddQueueFail` 事件 | 策略未注册，`FIFO` 与 `Round` 即属此类。 | 改用 `Priority`、`Block` 或 `Intelligent`。 |
 | 队列完全不服务作业 | 队列构造失败，或没有单元解析到该队列。 | 检查 `Queue` 的事件与单元的 `QueueNotFound` 事件，详见 [ElasticQuota 与 Queue 的映射关系](./queue-quota-mapping.md)。 |
 | `Block` 队列对资源释放反应缓慢 | 阻塞配额依靠事件、30 秒定时器重新评估，陈旧状态需三分钟后清理。 | 属预期行为。若反应速度比尝试次数更重要，请改用 `Priority`。 |
-| `Intelligent` 队列的阈值不生效 | 注解以 `kube-queue/` 前缀写在 `ElasticQuota` 上（不会被同步），或键名不是 `koord-queue/priority-threshold`。 | 在 `ElasticQuota` 或 `Queue` 上设置 `koord-queue/priority-threshold`。 |
+| `Intelligent` 队列的阈值不生效 | 注解使用了 `koord-queue/priority-threshold` 以外的键名，或被设置在作业上而非 `ElasticQuota`、`Queue` 上。 | 在 `ElasticQuota` 或 `Queue` 上设置 `koord-queue/priority-threshold`。 |
 | `Intelligent` 队列从不抢占 | 该策略未实现抢占。 | 需要抢占的队列改用 `Priority` 或 `Block`。 |
-| `max-depth` 不生效 | 队列使用 `Intelligent` 策略，该策略解析但不应用此注解。 | 改用 `Priority` 或 `Block`。 |
+| `max-depth` 不生效 | 队列使用 `Intelligent` 策略，该策略不读取 `koord-queue/max-depth`。 | 改用 `Priority` 或 `Block`。 |
 | `status.queueItemDetails` 中的排序陈旧 | 发布已被关闭（关闭只停止刷新、保留最后一次的值），或刷新间隔过长。 | 移除 `koord-queue/disable-show-queue-items`，或调小 `koord-queue/queue-items-refresh-interval`。 |
 | `status.queueItemDetails` 为空 | 队列中没有等待中的单元；已出队的单元不会被列出。 | 属预期行为，可改为查看该队列下的 `QueueUnit` 对象。 |
 

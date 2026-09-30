@@ -6,8 +6,7 @@ A `QueueUnit` is the representation of a job inside Koord-Queue. Beyond the phas
 job is in the queue, the `QueueUnit` API carries a set of fields that allow an operator or an external
 controller to intervene in the lifecycle of a job: a job can be paused and resumed without being deleted,
 its execution can be bounded in time, its state can be consumed through standard Kubernetes conditions, and
-its retries can follow a structured backoff schedule. The field names and their semantics are aligned with
-the `Workload` API of Kueue, so tooling written against Kueue concepts maps onto Koord-Queue directly.
+its retries can follow a structured backoff schedule.
 
 | Capability | Field | Purpose |
 |------------|-------|---------|
@@ -121,8 +120,7 @@ admission or for pods to start is not charged against the budget. When the budge
 is reset, the `Evicted` condition is recorded with the reason `MaximumExecutionTimeExceeded`, and a
 `Warning` event with the same reason is emitted. Reactivating the unit afterwards grants a fresh budget.
 
-The corresponding annotation on a job is `scheduling.x-k8s.io/max-exec-time-seconds`, which mirrors the
-upstream `kueue.x-k8s.io/max-exec-time-seconds` label.
+The corresponding annotation on a job is `scheduling.x-k8s.io/max-exec-time-seconds`.
 
 Enforcement is implemented in the job extension (`pkg/jobext/framework/activation.go`) and requires the
 `MaximumExecutionTime` gate in the `koord-queue-controllers` binary. As that binary does not expose
@@ -187,21 +185,6 @@ first one.
 $ kubectl get queueunit training-job -n default \
     -o jsonpath='{.status.phase}{"\t"}{.status.requeueState.count}{"\t"}{.status.requeueState.requeueAt}{"\n"}'
 ```
-
-## Relation to the Kueue Workload API
-
-| Kueue concept | Koord-Queue counterpart |
-|---------------|-------------------------|
-| `Workload.spec.active` | `QueueUnit.spec.active` |
-| `kueue.x-k8s.io/max-exec-time-seconds` label | `scheduling.x-k8s.io/max-exec-time-seconds` annotation and `QueueUnit.spec.maximumExecutionTimeSeconds` |
-| `Workload.status.conditions` with `QuotaReserved`, `Admitted`, `PodsReady`, `Finished`, `Evicted` | `QueueUnit.status.conditions` with the same condition types |
-| `Workload.status.requeueState` | `QueueUnit.status.requeueState` |
-| `Workload.status.reclaimablePods` | `QueueUnit.status.reclaimablePods` |
-| `Workload.status.admissionChecks` | `QueueUnit.status.admissionChecks`, using the Kueue `AdmissionCheckState` type |
-| `Workload.spec.podSets` | `QueueUnit.spec.podSet`, using the Kueue `PodSet` type |
-
-The `AdmissionCheckState` and `PodSet` types are taken from the Kueue API directly, so their field
-semantics are identical.
 
 ## Reference
 

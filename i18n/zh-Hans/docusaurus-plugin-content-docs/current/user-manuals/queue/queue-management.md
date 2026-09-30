@@ -12,7 +12,7 @@ Koord-Queue 是 Koordinator 生态系统的原生 Kubernetes 作业队列管理�
 - **深度 ElasticQuota 集成**，避免重复配额配置，实现弹性资源共享。
 - **预调度**，通过在作业创建 Pod 之前排队来减少调度器压力。
 - **多框架支持**，包括 TFJob、PyTorchJob、Spark、Argo Workflow、Ray 和原生 Kubernetes Job。
-- **准入检查框架**，兼容 Kueue 的 AdmissionCheck API。
+- **准入检查框架**：队列可以要求作业在出队之前通过外部检查。
 
 ## 配置
 
@@ -550,8 +550,8 @@ spec:
 Queue 可以要求在 `QueueUnit` 释放之前必须通过准入检查。这对于与外部资源供应系统集成非常有用。
 
 Koord-Queue 提供该机制的队列侧能力：`Queue` API 的 `admissionChecks` 字段、`QueueUnit` 的
-`status.admissionChecks` 状态机、CRD `admissionchecks.kueue.x-k8s.io` 与
-`provisioningrequestconfigs.kueue.x-k8s.io`，以及读写它们所需的 RBAC。而决定检查结果的组件（例如
+`status.admissionChecks` 状态机、`AdmissionCheck` 与 `ProvisioningRequestConfig` 两个 CRD，
+以及读写它们所需的 RBAC。而决定检查结果的组件（例如
 ProvisioningRequest 控制器）不属于 Koord-Queue，需要单独部署，它是 `status.admissionChecks` 的写入方。
 
 ```yaml

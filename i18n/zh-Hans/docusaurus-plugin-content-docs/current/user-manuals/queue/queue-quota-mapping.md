@@ -11,7 +11,6 @@ Koord-Queue 对其接管的每个作业都需要独立回答两个问题：该�
 ```
 Job（其标签会被复制到 QueueUnit）
   -> 配额名    取自标签 quota.scheduling.koordinator.sh/name
-               （回退：alibabacloud.com/quota-name）
   -> 队列名    与配额名相同
   -> Queue 对象 位于命名空间 koord-queue，由插件自动创建与维护
 ```
@@ -20,12 +19,7 @@ Job（其标签会被复制到 QueueUnit）
 
 ## 第 1 步：确定配额
 
-插件按如下优先顺序读取两个标签：
-
-| 标签 | 优先级 |
-|------|--------|
-| `quota.scheduling.koordinator.sh/name` | 主要 |
-| `alibabacloud.com/quota-name` | 回退，仅在主要标签缺失或为空时使用 |
+插件从标签 `quota.scheduling.koordinator.sh/name` 读取配额名，该标签由作业扩展从作业复制到 `QueueUnit` 上。
 
 ```yaml
 apiVersion: batch/v1
@@ -39,9 +33,9 @@ spec:
   suspend: true
 ```
 
-由该规则可以推出两点，值得明确说明：
+由该规则可以推出三点，值得明确说明：
 
-- **不存在基于命名空间的回退。** 未携带上述任一标签的作业不会解析到任何配额，也就不会解析到任何队列。其 `QueueUnit` 会被创建，随后被留在控制器的待处理列表中并周期性重试映射；该单元永远不会被准入，且不会产生任何事件，因此这类配置错误是静默的，只能通过检查作业标签发现。
+- **不存在基于命名空间的回退。** 未携带该标签的作业不会解析到任何配额，也就不会解析到任何队列。其 `QueueUnit` 会被创建，随后被留在控制器的待处理列表中并周期性重试映射；该单元永远不会被准入，且不会产生任何事件，因此这类配置错误是静默的，只能通过检查作业标签发现。
 - **标签指向不存在的配额时会被上报。** 队列名在查找配额之前就已由标签推导得出，因此标签指向未知配额的 `QueueUnit` 会解析到一个并不存在的队列。此时会在该单元上记录一次原因为 `QueueNotFound` 的 `Warning` 事件，消息形如 `queue <name> not found for queueUnit <namespace>/<name>`，并持续重试映射，直到出现同名 `ElasticQuota`。
 - **`ElasticQuota` 所在的命名空间与映射无关。** 插件监听所有命名空间中的 `ElasticQuota` 并按名称建立索引，而作业上的标签携带的是名称而非引用。因此配额名在集群范围内必须唯一：不同命名空间中同名的两个 `ElasticQuota` 会被视为同一份配额，以最后被协调的对象为准。
 
@@ -62,7 +56,7 @@ spec:
 | `metadata.name` | `ElasticQuota` 的名称。 |
 | `metadata.namespace` | `koord-queue`。 |
 | `spec.priority` | `1000`。 |
-| `spec.queuePolicy` | 标签 `koord-queue/queue-policy`（或别名 `kube-queue/queue-policy`）的取值，前提是该取值属于 `Priority`、`Block`、`Round`、`Intelligent` 之一；否则为 `Priority`。 |
+| `spec.queuePolicy` | 标签 `koord-queue/queue-policy` 的取值，前提是该取值属于 `Priority`、`Block`、`Round`、`Intelligent` 之一；否则为 `Priority`。 |
 | `metadata.labels["quota.scheduling.koordinator.sh/parent"]` | 从 `ElasticQuota` 复制。 |
 | `metadata.annotations` | `ElasticQuota` 上所有以 `koord-queue/` 为前缀的注解，但队列策略键本身除外（它被转换为 `spec.queuePolicy`）。 |
 
@@ -114,7 +108,7 @@ spec:
 2. **直接写入 `Queue` 的注解会被保留。** 协调过程只新增与更新来自 `ElasticQuota` 的注解，不会删除其他注解。因此人工维护的 `Queue` 可以携带额外注解，但其策略仍由配额控制。
 3. **删除 `ElasticQuota` 会删除对应的 `Queue`。** 仍在排队的单元会失去所属队列，并在重新出现匹配配额之前通过 `QueueNotFound` 事件上报。
 
-注解前缀对消费它的排队策略是有影响的。`Priority` 与 `Block` 策略读取 `koord-queue/` 前缀的注解，而这正是同步机制所传播的前缀；`Intelligent` 策略读取的 wait-for-pods-running、抢占与 max-depth 注解则使用 `kube-queue/` 前缀，而该前缀的注解不会从 `ElasticQuota` 同步，必须直接写在 `Queue` 对象上。各注解的有效前缀详见[排队策略与调优](./queue-policies-and-tuning.md)。
+被同步的注解中哪些会被队列评估，取决于该队列的策略。`Priority` 与 `Block` 策略会读取 wait-for-pods-running、抢占与扫描深度注解；`Intelligent` 策略只读取 `koord-queue/priority-threshold`，其余三者对其不产生效果。各策略评估的注解详见[排队策略与调优](./queue-policies-and-tuning.md)。
 
 ## 层级与准入判定
 

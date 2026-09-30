@@ -13,11 +13,14 @@ evaluate.
 
 ## Policy Overview
 
-| Policy | Implementation | Ordering within the queue | Preemption | Annotation prefix for queue behaviour |
-|--------|----------------|---------------------------|------------|---------------------------------------|
-| `Priority` | Shared implementation of `Priority` and `Block` | Priority descending, then first attempt timestamp ascending | Supported | `koord-queue/` |
-| `Block` | Shared implementation of `Priority` and `Block` | Priority descending, then first attempt timestamp ascending | Supported | `koord-queue/` |
-| `Intelligent` | Dual sub-queue implementation | High priority sub-queue first, each sub-queue ordered by priority then timestamp | Not supported | `kube-queue/` for wait-for-pods-running, preemption and max-depth; `koord-queue/` for the priority threshold |
+| Policy | Implementation | Ordering within the queue | Preemption | Tuning annotations that the policy evaluates |
+|--------|----------------|---------------------------|------------|----------------------------------------------|
+| `Priority` | Shared implementation of `Priority` and `Block` | Priority descending, then first attempt timestamp ascending | Supported | `wait-for-pods-running`, `enable-queueunit-preemption`, `max-depth` |
+| `Block` | Shared implementation of `Priority` and `Block` | Priority descending, then first attempt timestamp ascending | Supported | `wait-for-pods-running`, `enable-queueunit-preemption`, `max-depth` |
+| `Intelligent` | Dual sub-queue implementation | High priority sub-queue first, each sub-queue ordered by priority then timestamp | Not supported | `priority-threshold` only |
+
+The last column omits the common `koord-queue/` prefix of the tuning annotations; the full keys are listed
+under [Tuning Annotations](#tuning-annotations).
 
 Two further policy names exist in the code but cannot be used. `FIFO` is declared as a constant of the
 `Queue` API, and `Round` is accepted by the policy matcher of the `ElasticQuotaV2` plugin, yet neither is
@@ -92,9 +95,8 @@ and no victim is marked, see [Queue-Level Preemption](./queue-preemption.md).
 ## Selecting and Changing a Policy
 
 For a queue that is created automatically from an `ElasticQuota`, the policy is taken from the label
-`koord-queue/queue-policy`, or from its alias `kube-queue/queue-policy` when the former is absent. When both
-are present, `koord-queue/queue-policy` takes precedence. A value that is not one of `Priority`, `Block`,
-`Round` or `Intelligent` is ignored, and the policy defaults to `Priority`.
+`koord-queue/queue-policy`. A value that is not one of `Priority`, `Block`, `Round` or `Intelligent` is
+ignored, and the policy defaults to `Priority`.
 
 ```yaml
 apiVersion: scheduling.sigs.k8s.io/v1alpha1
@@ -138,9 +140,10 @@ Policy changes are applied at runtime, without a restart and without losing the 
 
 ## Tuning Annotations
 
-The following annotations are read from the `Queue` object. For a queue that is created automatically, the
-`koord-queue/` prefixed ones can be set on the `ElasticQuota` and are copied to the `Queue`; the
-`kube-queue/` prefixed ones have to be set on the `Queue` itself.
+The following annotations are read from the `Queue` object and all carry the `koord-queue/` prefix. For a
+queue that is created automatically they can be set on the `ElasticQuota` instead, from where the
+reconciliation copies them to the `Queue`, see
+[ElasticQuota and Queue Mapping](./queue-quota-mapping.md).
 
 | Annotation | Applies to | Default | Effect |
 |------------|-----------|---------|--------|
@@ -148,12 +151,13 @@ The following annotations are read from the `Queue` object. For a queue that is 
 | `koord-queue/enable-queueunit-preemption` | `Priority`, `Block` | absent, that is disabled | Enables the preemption path that runs after the quota filter fails. |
 | `koord-queue/max-depth` | `Priority`, `Block` | `-1`, unlimited | Limits how deep the queue scans and schedules. `-1` disables the limit. |
 | `koord-queue/priority-threshold` | `Intelligent` | `4` | Priority threshold that separates the high priority sub-queue from the low priority sub-queue. |
-| `kube-queue/wait-for-pods-running` | `Intelligent` | absent, that is disabled | Same effect as the `koord-queue/` variant, for the `Intelligent` implementation. |
-| `kube-queue/enable-queueunit-preemption` | `Intelligent` | absent, that is disabled | Accepted by the implementation, but `Intelligent` does not implement preemption, so it has no effect. |
-| `kube-queue/max-depth` | `Intelligent` | unlimited | Parsed by the implementation but not applied, so it currently has no effect. Use `Priority` or `Block` when a scan depth limit is required. |
 | `koord-queue/queue-items-refresh-interval` | All policies | `15s` | Refresh interval of the published queue order in `Queue.status.queueItemDetails`. The value is a Go duration, for example `30s` or `2m`. |
 | `koord-queue/disable-show-queue-items` | All policies | absent, that is publishing enabled | Stops the periodic task that refreshes `Queue.status.queueItemDetails`. The value that was published last is left in place. The presence of the key is what matters, not its value. |
 | `koord-queue/queue-args` | Accepted by all policies | empty | Parsed as a YAML map of strings and passed to the queue implementation. The current implementations do not read any argument, so the annotation has no effect. |
+
+The `Intelligent` policy evaluates `koord-queue/priority-threshold` only. Setting
+`koord-queue/wait-for-pods-running`, `koord-queue/enable-queueunit-preemption` or `koord-queue/max-depth`
+on an `Intelligent` queue has no effect, so a scan depth limit requires `Priority` or `Block`.
 
 Annotations are re-read whenever the `Queue` object changes, which means that tuning takes effect without a
 restart of the component.
@@ -197,7 +201,7 @@ they are not mistaken for working knobs.
 | `--defaultPreemptible` | `koord-queue` | Registered as a flag. Victim selection in the queue level preemption path is based on priority and on whether resources can be reclaimed, not on a preemptible attribute, and no preemptible label is read. |
 | `--podInitialBackoffSeconds`, `--podMaxBackoffSeconds` | `koord-queue` | Used to populate the argument map of a queue, which the implementations do not read. |
 | `koord-queue/queue-args` | `Queue` annotation | Parsed into the same argument map, with the same outcome. |
-| `kube-queue/max-depth` on an `Intelligent` queue | `Queue` annotation | Parsed and then discarded. |
+| `koord-queue/wait-for-pods-running`, `koord-queue/enable-queueunit-preemption` and `koord-queue/max-depth` on an `Intelligent` queue | `ElasticQuota` or `Queue` annotation | Stored on the `Queue`, but not read by the `Intelligent` implementation. |
 
 ## Choosing a Policy
 
@@ -216,9 +220,9 @@ they are not mistaken for working knobs.
 | `AddQueueFail` event on a `Queue` | The policy is not registered, which is the case for `FIFO` and `Round`. | Use `Priority`, `Block` or `Intelligent`. |
 | The queue serves no job at all | The queue failed to be constructed, or no unit resolves to it. | Check the events of the `Queue` and the `QueueNotFound` events of the units, see [ElasticQuota and Queue Mapping](./queue-quota-mapping.md). |
 | A `Block` queue reacts slowly to freed resources | Blocked quotas are re-evaluated on events and on the 30 second timer, and stale state is cleared after three minutes. | This is the intended behaviour. Use `Priority` when reaction speed matters more than attempt count. |
-| The threshold of an `Intelligent` queue does not change | The annotation was set on the `ElasticQuota` with the `kube-queue/` prefix, which is not synchronised, or with a key other than `koord-queue/priority-threshold`. | Set `koord-queue/priority-threshold` on the `ElasticQuota`, or on the `Queue`. |
+| The threshold of an `Intelligent` queue does not change | The annotation was written under a key other than `koord-queue/priority-threshold`, or was set on the job rather than on the `ElasticQuota` or the `Queue`. | Set `koord-queue/priority-threshold` on the `ElasticQuota`, or on the `Queue`. |
 | An `Intelligent` queue never preempts | Preemption is not implemented for that policy. | Use `Priority` or `Block` for queues that require preemption. |
-| `max-depth` has no effect | The queue uses the `Intelligent` policy, which parses but does not apply the annotation. | Use `Priority` or `Block`. |
+| `max-depth` has no effect | The queue uses the `Intelligent` policy, which does not read `koord-queue/max-depth`. | Use `Priority` or `Block`. |
 | The published order in `status.queueItemDetails` is stale | Publication was disabled, which stops the refresh but keeps the last value, or the refresh interval is large. | Remove `koord-queue/disable-show-queue-items` or lower `koord-queue/queue-items-refresh-interval`. |
 | The published order in `status.queueItemDetails` is empty | No unit is waiting in the queue; dequeued units are not listed. | Expected behaviour. Inspect the `QueueUnit` objects of the queue instead. |
 
