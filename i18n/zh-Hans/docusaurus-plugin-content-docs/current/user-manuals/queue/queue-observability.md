@@ -1,3 +1,7 @@
+---
+sidebar_label: 可观测性
+---
+
 # Koord-Queue 可观测性
 
 ## 引言

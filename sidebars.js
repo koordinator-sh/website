@@ -45,20 +45,15 @@ const sidebars = {
         {
           'Capacity Scheduling': [
             'user-manuals/capacity-scheduling',
-            {
-              type: 'category',
-              label: 'Koord-Queue',
-              collapsed: true,
-              items: [
-                'user-manuals/queue/queue-management',
-                'user-manuals/queue/queue-quota-mapping',
-                'user-manuals/queue/queue-policies-and-tuning',
-                'user-manuals/queue/queue-preemption',
-                'user-manuals/queue/queue-workload-lifecycle',
-                'user-manuals/queue/queue-observability',
-              ],
-            },
             'user-manuals/run-pytorchjob-in-koordinator',
+          ],
+          'Koord-Queue': [
+            'user-manuals/queue/queue-management',
+            'user-manuals/queue/queue-quota-mapping',
+            'user-manuals/queue/queue-policies-and-tuning',
+            'user-manuals/queue/queue-preemption',
+            'user-manuals/queue/queue-workload-lifecycle',
+            'user-manuals/queue/queue-observability',
           ],
           'Task Scheduling': [
             'user-manuals/gang-scheduling',

@@ -1,3 +1,7 @@
+---
+sidebar_label: Observability
+---
+
 # Koord-Queue Observability
 
 ## Introduction

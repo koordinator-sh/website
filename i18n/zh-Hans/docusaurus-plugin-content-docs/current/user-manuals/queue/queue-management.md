@@ -1,3 +1,7 @@
+---
+sidebar_label: 使用指南
+---
+
 # Koord-Queue
 
 ## 介绍

@@ -1,3 +1,7 @@
+---
+sidebar_label: User Guide
+---
+
 # Koord-Queue
 
 ## Introduction
