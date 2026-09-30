@@ -91,12 +91,15 @@ kind: Queue
 metadata:
   name: team-a
   namespace: koord-queue
+  annotations:
+    koord-queue/priority-threshold: "10"
 spec:
   queuePolicy: Intelligent
   priority: 1000
-  annotations:
-    koord-queue/priority-threshold: "10"
 ```
+
+调优注解属于 `metadata.annotations`。`Queue.spec` 只声明 `admissionChecks`、`priority`、`priorityClassName`
+与 `queuePolicy` 四个字段，写在 `spec` 之下的注解会被 API Server 直接丢弃且不报错。
 
 直接写入自动创建的 `Queue` 的策略，会在 `ElasticQuota` 下一次协调时被回退，详见 [ElasticQuota 与 Queue 的映射关系](./queue-quota-mapping.md)。
 

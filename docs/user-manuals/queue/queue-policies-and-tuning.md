@@ -120,12 +120,16 @@ kind: Queue
 metadata:
   name: team-a
   namespace: koord-queue
+  annotations:
+    koord-queue/priority-threshold: "10"
 spec:
   queuePolicy: Intelligent
   priority: 1000
-  annotations:
-    koord-queue/priority-threshold: "10"
 ```
+
+The tuning annotations belong to `metadata.annotations`. `Queue.spec` declares `admissionChecks`,
+`priority`, `priorityClassName` and `queuePolicy` only, and an annotation that is nested under `spec` is
+discarded by the API server without an error.
 
 A policy that is written directly to an automatically created `Queue` is reverted at the next reconciliation
 of the `ElasticQuota`, see

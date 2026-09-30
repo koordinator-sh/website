@@ -479,7 +479,7 @@ spec:
 | Ordering | Priority + Timestamp | Priority + Timestamp | Dual-queue: High (FIFO) + Low (Round-Robin) |
 | Retry Behavior | Retry failed job | Retry failed job | High: retry same job; Low: move to next job |
 | Resource Blocking | Optimistic | Strict/Conservative | Balanced |
-| Preemption Support | Yes | No | Yes (for high-priority jobs) |
+| Preemption Support | Yes | Yes | No |
 | Use Cases | Priority scheduling | Strict resource isolation | Mixed critical + batch workloads |
 
 #### Configuring Queue Policy
@@ -500,17 +500,19 @@ kind: Queue
 metadata:
   name: my-queue
   namespace: koord-queue
+  annotations:
+    koord-queue/priority-threshold: "5"
 spec:
   queuePolicy: Intelligent
   priority: 1000
-  annotations:
-    koord-queue/priority-threshold: "5"
 ```
 
-**Advanced Tuning Annotations**:
-- `koord-queue/priority-threshold`: Set threshold for Intelligent policy (default: 4)
-- `koord-queue/max-depth`: Limit max number of jobs considered during scheduling
-- `koord-queue/wait-for-pods-running`: Wait for pods to enter Running state before dequeuing next job
+**Advanced Tuning Annotations**, see [Queue Policies and Tuning](./queue-policies-and-tuning.md) for the
+full list and for the settings that a policy does not evaluate:
+- `koord-queue/priority-threshold`: Set the threshold of the `Intelligent` policy (default: 4)
+- `koord-queue/max-depth`: Limit the number of jobs considered during scheduling (`Priority` and `Block` only)
+- `koord-queue/wait-for-pods-running`: Wait for the pods of an admitted job to enter the Running state
+  before the next job is dequeued (`Priority` and `Block` only)
 
 ## Use QueueUnit
 

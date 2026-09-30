@@ -475,7 +475,7 @@ spec:
 | 排序规则 | 优先级 + 时间戳 | 优先级 + 时间戳 | 双队列：高优先级（FIFO）+ 低优先级（Round-Robin） |
 | 重试行为 | 重试失败作业 | 重试失败作业 | 高：重试同一作业；低：移动到下一作业 |
 | 资源阻塞 | 乐观 | 严格/保守 | 平衡 |
-| 抢占支持 | 是 | 否 | 是（针对高优先级作业） |
+| 抢占支持 | 是 | 是 | 否 |
 | 适用场景 | 优先级调度 | 严格资源隔离 | 混合关键 + 批量工作负载 |
 
 #### 配置队列策略
@@ -496,17 +496,17 @@ kind: Queue
 metadata:
   name: my-queue
   namespace: koord-queue
+  annotations:
+    koord-queue/priority-threshold: "5"
 spec:
   queuePolicy: Intelligent
   priority: 1000
-  annotations:
-    koord-queue/priority-threshold: "5"
 ```
 
-**高级调优 Annotations**：
-- `koord-queue/priority-threshold`：设置 Intelligent 策略的阈值（默认：4）
-- `koord-queue/max-depth`：限制调度时考虑的最大作业数量
-- `koord-queue/wait-for-pods-running`：等待 Pod 进入 Running 状态后再出队下一作业
+**高级调优 Annotations**：完整列表以及各策略不予评估的配置项见[排队策略与调优](./queue-policies-and-tuning.md)：
+- `koord-queue/priority-threshold`：设置 `Intelligent` 策略的阈值（默认：4）
+- `koord-queue/max-depth`：限制调度时考虑的作业数量（仅 `Priority` 与 `Block`）
+- `koord-queue/wait-for-pods-running`：等待已准入作业的 Pod 进入 Running 状态后再出队下一个作业（仅 `Priority` 与 `Block`）
 
 ## 使用 QueueUnit
 
