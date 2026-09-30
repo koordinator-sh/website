@@ -219,4 +219,4 @@ $ kubectl -n koord-queue logs deployment/koord-queue-controllers -c manager --ta
 
 - [Koord-Queue 使用指南](./queue-management.md)：安装与配置。
 - [队列级抢占](./queue-preemption.md)：`Preempted` 与 `Reclaimed` 事件的解读。
-- [调度可观测性](./scheduling-monitoring.md)：koord-scheduler 的 Grafana 大盘。
+- [调度可观测性](../scheduling-monitoring.md)：koord-scheduler 的 Grafana 大盘。

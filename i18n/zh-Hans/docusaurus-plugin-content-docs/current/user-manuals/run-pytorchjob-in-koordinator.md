@@ -337,7 +337,7 @@ Koordinator 中的 PyTorchJob 可以利用其他功能：
 
 ## 下一步
 
-- 了解 [Koord-Queue](./queue-management.md) 进行高级队列管理
+- 了解 [Koord-Queue](queue/queue-management.md) 进行高级队列管理
 - 探索 [ElasticQuota](../architecture/resource-model.md) 进行资源管理
 - 阅读 [Gang 调度](../designs/gang-scheduling.md) 了解分布式训练
 - 查看 [Koordinator 架构](../architecture/overview.md) 获得全面理解

@@ -45,11 +45,19 @@ const sidebars = {
         {
           'Capacity Scheduling': [
             'user-manuals/capacity-scheduling',
-            'user-manuals/queue-management',
-            'user-manuals/queue-quota-mapping',
-            'user-manuals/queue-policies-and-tuning',
-            'user-manuals/queue-preemption',
-            'user-manuals/queue-workload-lifecycle',
+            {
+              type: 'category',
+              label: 'Koord-Queue',
+              collapsed: true,
+              items: [
+                'user-manuals/queue/queue-management',
+                'user-manuals/queue/queue-quota-mapping',
+                'user-manuals/queue/queue-policies-and-tuning',
+                'user-manuals/queue/queue-preemption',
+                'user-manuals/queue/queue-workload-lifecycle',
+                'user-manuals/queue/queue-observability',
+              ],
+            },
             'user-manuals/run-pytorchjob-in-koordinator',
           ],
           'Task Scheduling': [
@@ -100,7 +108,6 @@ const sidebars = {
           'Observability' : [
             'user-manuals/scheduling-monitoring',
             'user-manuals/descheduling-monitoring',
-            'user-manuals/queue-observability',
           ]
         }
       ],

@@ -633,4 +633,4 @@ debugging APIs and the log levels are documented in
 - [Queue-Level Preemption](./queue-preemption.md): reclaiming quota from lower-priority jobs.
 - [Workload Lifecycle Control](./queue-workload-lifecycle.md): pausing jobs, bounding execution time, conditions and backoff.
 - [Koord-Queue Observability](./queue-observability.md): metrics, dashboards, visibility API and events.
-- [Koord-Queue Design](../designs/koord-queue.md): architecture and core concepts.
+- [Koord-Queue Design](../../designs/koord-queue.md): architecture and core concepts.

@@ -19,7 +19,7 @@ Two properties of this mechanism are important to understand before enabling it:
 - **Koord-Queue never deletes a running pod.** Only replicas whose pods have not been bound to a node are
   reclaimed. Preemption therefore accelerates the admission of high-priority jobs; it does not evict
   workloads that are already executing. To reclaim resources from running workloads, use
-  [Job Level Preemption](./job-level-preemption.md) or descheduling in koord-scheduler.
+  [Job Level Preemption](../job-level-preemption.md) or descheduling in koord-scheduler.
 - **Preemption is asynchronous.** The preemptor is not admitted in the scheduling cycle in which the
   victims are marked. It is re-queued and admitted later, once the job extension has reclaimed the
   victims' pods and reported the freed quota.
@@ -300,7 +300,7 @@ $ kubectl get events -n default --field-selector involvedObject.name=low-priorit
 | No victim is ever marked | `koord-queue/wait-for-pods-running` is not `"true"`, so the assumed set stays empty. | Set the annotation on the `ElasticQuota` or the `Queue`. |
 | Preemption never runs after a quota filter failure | `koord-queue/enable-queueunit-preemption` is not `"true"`. | Set the annotation on the `ElasticQuota` or the `Queue`. |
 | Preemption is rejected with an error on every attempt | The queue uses the `Intelligent` policy, which does not implement preemption. | Use `Priority` or `Block` for queues that require preemption. |
-| A running job is not reclaimed | Reclamation only considers pods that are not bound to a node. | Use [Job Level Preemption](./job-level-preemption.md) or descheduling to reclaim resources from running workloads. |
+| A running job is not reclaimed | Reclamation only considers pods that are not bound to a node. | Use [Job Level Preemption](../job-level-preemption.md) or descheduling to reclaim resources from running workloads. |
 | A freshly admitted job is never selected | The reclaim protect time has not elapsed. | Lower `defaultReclaimProtectTime`, or wait for the protection window to pass. |
 | The preemptor stays `Enqueued` although victims were marked | Preemption is asynchronous, and the preemptor is admitted only after the job extension has reported the freed quota. | Check the pods of the victims, the `Reclaimed` event, and the log of the job extension. |
 | The queue stops admitting any job | All admitted `QueueUnit`s are in the assumed set and none of them is reclaimable, so the queue waits for their pods to start. | This is the intended behaviour of `wait-for-pods-running`. Investigate why the pods of the admitted jobs do not start. |
@@ -325,5 +325,5 @@ The behaviour described in this document is implemented in the following places 
 
 - [Koord-Queue User Guide](./queue-management.md): Installation, queue policies and the `QueueUnit` API.
 - [Queue Policies and Tuning](./queue-policies-and-tuning.md): Ordering, blocking behaviour and the tuning annotations of a queue.
-- [Job Level Preemption](./job-level-preemption.md): Preemption of running workloads by koord-scheduler.
-- [Capacity Scheduling](./capacity-scheduling.md): ElasticQuota configuration in Koordinator.
+- [Job Level Preemption](../job-level-preemption.md): Preemption of running workloads by koord-scheduler.
+- [Capacity Scheduling](../capacity-scheduling.md): ElasticQuota configuration in Koordinator.

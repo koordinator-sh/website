@@ -264,4 +264,4 @@ $ kubectl -n koord-queue logs deployment/koord-queue-controllers -c manager --ta
 
 - [Koord-Queue User Guide](./queue-management.md): Installation and configuration.
 - [Queue-Level Preemption](./queue-preemption.md): Interpretation of the `Preempted` and `Reclaimed` events.
-- [Scheduling Monitoring](./scheduling-monitoring.md): Grafana dashboards for koord-scheduler.
+- [Scheduling Monitoring](../scheduling-monitoring.md): Grafana dashboards for koord-scheduler.

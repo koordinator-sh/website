@@ -337,7 +337,7 @@ PyTorchJob in Koordinator can leverage additional features:
 
 ## Next Steps
 
-- Learn about [Koord-Queue](./queue-management.md) for advanced queue management
+- Learn about [Koord-Queue](queue/queue-management.md) for advanced queue management
 - Explore [ElasticQuota](../architecture/resource-model.md) for resource management
 - Read about [Gang Scheduling](../designs/gang-scheduling.md) for distributed training
 - Check [Koordinator Architecture](../architecture/overview.md) for comprehensive understanding

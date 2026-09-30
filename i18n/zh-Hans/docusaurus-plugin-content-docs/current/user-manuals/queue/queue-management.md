@@ -620,4 +620,4 @@ $ kubectl -n koord-queue logs deployment/koord-queue-controllers -c manager --ta
 - [队列级抢占](./queue-preemption.md)：从低优先级作业回收配额。
 - [工作负载生命周期控制](./queue-workload-lifecycle.md)：暂停作业、限定执行时长、Condition 与退避。
 - [Koord-Queue 可观测性](./queue-observability.md)：指标、大盘、Visibility API 与事件。
-- [Koord-Queue 设计](../designs/koord-queue.md)：架构与核心概念。
+- [Koord-Queue 设计](../../designs/koord-queue.md)：架构与核心概念。

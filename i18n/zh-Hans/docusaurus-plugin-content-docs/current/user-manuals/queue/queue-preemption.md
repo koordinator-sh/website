@@ -8,7 +8,7 @@ Koord-Queue 在允许作业创建 Pod 之前，会先为其预留配额。已预
 
 在启用该机制之前，有两点特性需要明确：
 
-- **Koord-Queue 不会删除正在运行的 Pod。** 仅回收尚未绑定到节点的 Pod 所占用的副本。因此抢占的作用是加速高优先级作业的准入，而不是驱逐已在执行的工作负载。若需回收运行中工作负载的资源，请使用 koord-scheduler 的[Job 级别抢占](./job-level-preemption.md)或重调度能力。
+- **Koord-Queue 不会删除正在运行的 Pod。** 仅回收尚未绑定到节点的 Pod 所占用的副本。因此抢占的作用是加速高优先级作业的准入，而不是驱逐已在执行的工作负载。若需回收运行中工作负载的资源，请使用 koord-scheduler 的[Job 级别抢占](../job-level-preemption.md)或重调度能力。
 - **抢占是异步的。** 抢占者不会在标记受害者的那个调度周期内被准入，而是在作业扩展完成 Pod 回收并上报配额释放之后，由后续调度周期完成准入。
 
 ## 概念
@@ -240,7 +240,7 @@ $ kubectl get events -n default --field-selector involvedObject.name=low-priorit
 | 始终没有受害者被标记 | `koord-queue/wait-for-pods-running` 未设为 `"true"`，假定集合为空。 | 在 `ElasticQuota` 或 `Queue` 上设置该注解。 |
 | 配额过滤失败后从不触发抢占 | `koord-queue/enable-queueunit-preemption` 未设为 `"true"`。 | 在 `ElasticQuota` 或 `Queue` 上设置该注解。 |
 | 每次抢占均返回错误 | 队列使用 `Intelligent` 策略，该策略未实现抢占。 | 需要抢占的队列请改用 `Priority` 或 `Block`。 |
-| 运行中的作业未被回收 | 回收仅考虑未绑定节点的 Pod。 | 请使用[Job 级别抢占](./job-level-preemption.md)或重调度回收运行中工作负载的资源。 |
+| 运行中的作业未被回收 | 回收仅考虑未绑定节点的 Pod。 | 请使用[Job 级别抢占](../job-level-preemption.md)或重调度回收运行中工作负载的资源。 |
 | 刚准入的作业始终不被选中 | 回收保护期尚未结束。 | 调小 `defaultReclaimProtectTime`，或等待保护期结束。 |
 | 受害者已被标记，但抢占者仍为 `Enqueued` | 抢占为异步过程，需待作业扩展上报配额释放后方可准入抢占者。 | 检查受害者的 Pod、`Reclaimed` 事件以及作业扩展日志。 |
 | 队列不再准入任何作业 | 所有已准入 `QueueUnit` 都在假定集合中且均不可回收，队列在等待其 Pod 启动。 | 这是 `wait-for-pods-running` 的预期行为，应排查已准入作业的 Pod 为何未启动。 |
@@ -264,5 +264,5 @@ $ kubectl get events -n default --field-selector involvedObject.name=low-priorit
 
 - [Koord-Queue 使用指南](./queue-management.md)：安装、排队策略与 `QueueUnit` API。
 - [排队策略与调优](./queue-policies-and-tuning.md)：队列的排序、阻塞行为与调优注解。
-- [Job 级别抢占](./job-level-preemption.md)：由 koord-scheduler 对运行中工作负载实施抢占。
-- [容量调度](./capacity-scheduling.md)：Koordinator 中的 ElasticQuota 配置。
+- [Job 级别抢占](../job-level-preemption.md)：由 koord-scheduler 对运行中工作负载实施抢占。
+- [容量调度](../capacity-scheduling.md)：Koordinator 中的 ElasticQuota 配置。

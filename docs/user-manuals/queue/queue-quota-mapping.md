@@ -9,7 +9,7 @@ automatic and the exceptional cases easy to reason about.
 
 This document describes the resolution rules, the objects that the plugin maintains on the user's behalf,
 and how the quota hierarchy participates in the admission decision. For the configuration of the
-`ElasticQuota` objects themselves, see [Capacity Scheduling](./capacity-scheduling.md).
+`ElasticQuota` objects themselves, see [Capacity Scheduling](../capacity-scheduling.md).
 
 ## Resolution Overview
 
@@ -214,4 +214,4 @@ Parent limits are therefore a property of the quota accounting described above, 
 - [Koord-Queue User Guide](./queue-management.md): Installation and end-to-end usage.
 - [Queue Policies and Tuning](./queue-policies-and-tuning.md): Policy behaviour and the tuning annotations.
 - [Queue-Level Preemption](./queue-preemption.md): Reclaiming quota from lower-priority jobs.
-- [Capacity Scheduling](./capacity-scheduling.md): ElasticQuota configuration in Koordinator.
+- [Capacity Scheduling](../capacity-scheduling.md): ElasticQuota configuration in Koordinator.

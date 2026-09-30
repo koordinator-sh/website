@@ -188,10 +188,10 @@ Koord-Queue is deployed via Helm charts and consists of the following components
 
 ## What's Next
 
-- [Koord-Queue User Guide](../user-manuals/queue-management.md): Learn how to install and use Koord-Queue for job queuing.
-- [ElasticQuota and Queue Mapping](../user-manuals/queue-quota-mapping.md): How a job is associated with a quota and with a queue.
-- [Queue Policies and Tuning](../user-manuals/queue-policies-and-tuning.md): Policy behaviour and the tuning annotations.
-- [Queue-Level Preemption](../user-manuals/queue-preemption.md): Reclaiming quota from lower-priority jobs.
-- [Workload Lifecycle Control](../user-manuals/queue-workload-lifecycle.md): Activation, execution budget, conditions and backoff.
-- [Koord-Queue Observability](../user-manuals/queue-observability.md): Metrics, dashboards, visibility API and events.
+- [Koord-Queue User Guide](../user-manuals/queue/queue-management.md): Learn how to install and use Koord-Queue for job queuing.
+- [ElasticQuota and Queue Mapping](../user-manuals/queue/queue-quota-mapping.md): How a job is associated with a quota and with a queue.
+- [Queue Policies and Tuning](../user-manuals/queue/queue-policies-and-tuning.md): Policy behaviour and the tuning annotations.
+- [Queue-Level Preemption](../user-manuals/queue/queue-preemption.md): Reclaiming quota from lower-priority jobs.
+- [Workload Lifecycle Control](../user-manuals/queue/queue-workload-lifecycle.md): Activation, execution budget, conditions and backoff.
+- [Koord-Queue Observability](../user-manuals/queue/queue-observability.md): Metrics, dashboards, visibility API and events.
 - [Capacity Scheduling](../user-manuals/capacity-scheduling.md): Learn about Koordinator's ElasticQuota management.

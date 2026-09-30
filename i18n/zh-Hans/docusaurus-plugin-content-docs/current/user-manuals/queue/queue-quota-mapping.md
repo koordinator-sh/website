@@ -4,7 +4,7 @@
 
 Koord-Queue 对其接管的每个作业都需要独立回答两个问题：该作业计入哪一份配额，以及它在哪个队列中等待。在默认的 `ElasticQuotaV2` 插件下，两个答案都来自同一个值——某个 `ElasticQuota` 的名称。这使得常见场景完全自动化，也使特殊场景易于推理。
 
-本文说明该解析规则、插件代用户维护的对象，以及配额层级如何参与准入判定。有关 `ElasticQuota` 对象本身的配置，请参见[容量调度](./capacity-scheduling.md)。
+本文说明该解析规则、插件代用户维护的对象，以及配额层级如何参与准入判定。有关 `ElasticQuota` 对象本身的配置，请参见[容量调度](../capacity-scheduling.md)。
 
 ## 解析总览
 
@@ -172,4 +172,4 @@ spec:
 - [Koord-Queue 使用指南](./queue-management.md)：安装与端到端使用。
 - [排队策略与调优](./queue-policies-and-tuning.md)：策略行为与调优注解。
 - [队列级抢占](./queue-preemption.md)：从低优先级作业回收配额。
-- [容量调度](./capacity-scheduling.md)：Koordinator 中的 ElasticQuota 配置。
+- [容量调度](../capacity-scheduling.md)：Koordinator 中的 ElasticQuota 配置。

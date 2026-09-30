@@ -189,10 +189,10 @@ Koord-Queue 通过 Helm charts 部署，包含以下组件：
 
 ## 下一步
 
-- [Koord-Queue 用户指南](../user-manuals/queue-management.md)：了解如何安装和使用 Koord-Queue 进行作业队列管理。
-- [ElasticQuota 与 Queue 的映射关系](../user-manuals/queue-quota-mapping.md)：作业如何关联到配额与队列。
-- [排队策略与调优](../user-manuals/queue-policies-and-tuning.md)：策略行为与调优注解。
-- [队列级抢占](../user-manuals/queue-preemption.md)：从低优先级作业回收配额。
-- [工作负载生命周期控制](../user-manuals/queue-workload-lifecycle.md)：激活、执行时长预算、Condition 与退避。
-- [Koord-Queue 可观测性](../user-manuals/queue-observability.md)：指标、大盘、Visibility API 与事件。
+- [Koord-Queue 用户指南](../user-manuals/queue/queue-management.md)：了解如何安装和使用 Koord-Queue 进行作业队列管理。
+- [ElasticQuota 与 Queue 的映射关系](../user-manuals/queue/queue-quota-mapping.md)：作业如何关联到配额与队列。
+- [排队策略与调优](../user-manuals/queue/queue-policies-and-tuning.md)：策略行为与调优注解。
+- [队列级抢占](../user-manuals/queue/queue-preemption.md)：从低优先级作业回收配额。
+- [工作负载生命周期控制](../user-manuals/queue/queue-workload-lifecycle.md)：激活、执行时长预算、Condition 与退避。
+- [Koord-Queue 可观测性](../user-manuals/queue/queue-observability.md)：指标、大盘、Visibility API 与事件。
 - [弹性配额管理](../user-manuals/capacity-scheduling.md)：了解 Koordinator 的 ElasticQuota 管理。
