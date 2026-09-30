@@ -136,7 +136,7 @@ spec:
 
 ### 准入检查
 
-Koord-Queue 实现了准入检查框架的队列侧能力，该框架兼容 Kueue 的 `AdmissionCheck` API。队列可以定义一组准入检查，全部通过后 `QueueUnit` 才能从 `Reserved` 转换为 `Dequeued`。每项检查具有以下状态之一：
+Koord-Queue 实现了准入检查框架的队列侧能力。队列可以定义一组准入检查，全部通过后 `QueueUnit` 才能从 `Reserved` 转换为 `Dequeued`。每项检查具有以下状态之一：
 
 | 状态 | 描述 |
 |------|------|
@@ -145,7 +145,7 @@ Koord-Queue 实现了准入检查框架的队列侧能力，该框架兼容 Kueu
 | `Retry` | 检查需要重试。 |
 | `Rejected` | 检查被拒绝。 |
 
-属于 Koord-Queue 的部分：`QueueUnit` API、将队列所要求的检查复制到 `status.admissionChecks` 的状态机、由 `Retry`、`Rejected` 与超时触发的状态转换、CRD `admissionchecks.kueue.x-k8s.io` 与 `provisioningrequestconfigs.kueue.x-k8s.io`，以及读写它们所需的 RBAC。不属于 Koord-Queue 的部分：决定检查结果的控制器（例如 ProvisioningRequest 控制器），它需要单独部署，是 `status.admissionChecks` 的写入方。当某项检查报告 `Retry` 或 `Rejected`、或检查超时时，`QueueUnit` 会进入 `TimeoutBackoff`，其预留被释放并重新入队。
+属于 Koord-Queue 的部分：`QueueUnit` API、将队列所要求的检查复制到 `status.admissionChecks` 的状态机、由 `Retry`、`Rejected` 与超时触发的状态转换、`AdmissionCheck` 与 `ProvisioningRequestConfig` 两个 CRD，以及读写它们所需的 RBAC。不属于 Koord-Queue 的部分：决定检查结果的控制器（例如 ProvisioningRequest 控制器），它需要单独部署，是 `status.admissionChecks` 的写入方。当某项检查报告 `Retry` 或 `Rejected`、或检查超时时，`QueueUnit` 会进入 `TimeoutBackoff`，其预留被释放并重新入队。
 
 
 ## 特性开关

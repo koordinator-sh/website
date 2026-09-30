@@ -135,7 +135,7 @@ For details on ElasticQuota CRD usage, see [Capacity Scheduling](../user-manuals
 
 ### Admission Checks
 
-Koord-Queue implements the queue side of an admission check framework that is compatible with Kueue's `AdmissionCheck` API. A queue can define a list of admission checks that must all pass before a `QueueUnit` transitions from `Reserved` to `Dequeued`. Each check has one of the following states:
+Koord-Queue implements the queue side of an admission check framework. A queue can define a list of admission checks that must all pass before a `QueueUnit` transitions from `Reserved` to `Dequeued`. Each check has one of the following states:
 
 | State | Description |
 |-------|-------------|
@@ -144,7 +144,7 @@ Koord-Queue implements the queue side of an admission check framework that is co
 | `Retry` | The check needs to be retried. |
 | `Rejected` | The check has been rejected. |
 
-Part of Koord-Queue: the `QueueUnit` API, the state machine that copies the checks required by a queue into `status.admissionChecks`, the transitions triggered by `Retry`, `Rejected` and timeouts, the CRDs `admissionchecks.kueue.x-k8s.io` and `provisioningrequestconfigs.kueue.x-k8s.io`, and the RBAC needed to read and write them. Not part of Koord-Queue: the controller that decides the outcome of a check, for example a provisioning request controller. It is deployed separately and is the writer of `status.admissionChecks`. A check that reports `Retry` or `Rejected`, or that times out, moves the `QueueUnit` to `TimeoutBackoff`, releases its reservation and re-queues it.
+Part of Koord-Queue: the `QueueUnit` API, the state machine that copies the checks required by a queue into `status.admissionChecks`, the transitions triggered by `Retry`, `Rejected` and timeouts, the `AdmissionCheck` and `ProvisioningRequestConfig` CRDs, and the RBAC needed to read and write them. Not part of Koord-Queue: the controller that decides the outcome of a check, for example a provisioning request controller. It is deployed separately and is the writer of `status.admissionChecks`. A check that reports `Retry` or `Rejected`, or that times out, moves the `QueueUnit` to `TimeoutBackoff`, releases its reservation and re-queues it.
 
 
 ## Feature Gates
