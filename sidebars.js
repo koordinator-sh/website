@@ -53,7 +53,7 @@ const sidebars = {
             'user-manuals/queue/queue-preemption',
             'user-manuals/queue/queue-workload-lifecycle',
             'user-manuals/queue/queue-observability',
-            'user-manuals/run-pytorchjob-in-koordinator',
+            'user-manuals/queue/run-pytorchjob-in-koordinator',
           ],
           'Task Scheduling': [
             'user-manuals/gang-scheduling',
