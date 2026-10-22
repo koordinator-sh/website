@@ -7,7 +7,7 @@ You can get more info form [here](https://kubernetes.io/docs/reference/command-l
 
 For the best experience, koordinator recommends **linux kernel 4.19** or higher.
 
-## Install with helms
+## Install with helm
 
 Koordinator can be simply installed by helm v3.5+, which is a simple command-line tool, and you can get it from [here](https://github.com/helm/helm/releases).
 

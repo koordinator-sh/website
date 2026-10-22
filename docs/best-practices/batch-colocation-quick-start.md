@@ -98,7 +98,7 @@ helm repo update
 Install Koordinator (latest stable version):
 
 ```bash
-helm install koordinator koordinator-sh/koordinator --version 1.6.0
+helm install koordinator koordinator-sh/koordinator --version 1.8.0
 ```
 
 Verify the installation:

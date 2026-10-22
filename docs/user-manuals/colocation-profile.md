@@ -50,7 +50,7 @@ If you are not familiar with Kubernetes resources please refer to the page [Unde
 
 ### Create ClusterColocationProfile
 
-The `profile.yaml` file below describes to modify Pod in Namepspace with label `koordinator.sh/enable-colocation=true` and inject Koordinator QoS, Koordinator Priority etc.
+The `profile.yaml` file below describes to modify Pod in Namespace with label `koordinator.sh/enable-colocation=true` and inject Koordinator QoS, Koordinator Priority etc.
 
 ```yaml
 apiVersion: config.koordinator.sh/v1alpha1
